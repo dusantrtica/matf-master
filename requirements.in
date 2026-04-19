@@ -1,0 +1,10 @@
+black
+fastapi
+httpx
+mip
+openpyxl
+ortools
+pydantic
+pytest
+uvicorn
+pyfunctional

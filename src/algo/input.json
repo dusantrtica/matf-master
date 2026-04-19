@@ -1,0 +1,45 @@
+{
+    "settings": {
+        "workingDays": ["Ponedeljak", "Utorak", "Sreda", "Četvrtak", "Petak"],
+        "startHour": 8,
+        "endHour": 20,
+        "duration": 1
+    },
+    "locations": [
+        {"id": 1, "name": "Studentski trg"},
+        {"id": 2, "name": "N Building"},
+        {"id": 3, "name": "Jagiceva"}
+    ],
+    "classrooms": [
+        {"id": 1, "name": "BIM", "locId": 1, "hasComputers": 1, "capacity": 30},
+        {"id": 2, "name": "704", "locId": 1, "hasComputers": 0, "capacity": 25},
+        {"id": 3, "name": "840", "locId": 1, "hasComputers": 0, "capacity": 30},
+        {"id": 4, "name": "N250", "locId": 2, "hasComputers": 0, "capacity": 25},
+        {"id": 5, "name": "N251", "locId": 2, "hasComputers": 0, "capacity": 20},
+        {"id": 6, "name": "N252", "locId": 2, "hasComputers": 0, "capacity": 25},
+        {"id": 7, "name": "706", "locId": 1, "hasComputers": 1, "capacity": 80},
+        {"id": 8, "name": "718", "locId": 1, "hasComputers": 1, "capacity": 30},
+        {"id": 9, "name": "JAG1", "locId": 3, "hasComputers": 1, "capacity": 20},
+        {"id": 10, "name": "JAG2", "locId": 3, "hasComputers": 1, "capacity": 30},
+        {"id": 11, "name": "JAG3", "locId": 3, "hasComputers": 1, "capacity": 15}
+    ],
+    "departments": [
+        {"id": 1, "name": "Profesor Matematike i racunarstva"},
+        {"id": 2, "name": "Informatika"}
+    ],
+    "courses": [
+        {"id": 1, "name": "Analiza 1", "semester": 1, "depId": 1, "quota": {"theory": 4, "practice": 4}, "needsComputers": 0},
+        {"id": 2, "name": "Linearna Algebra", "semester": 1, "depId": 1, "quota": {"theory": 2, "practice": 3}, "needsComputers": 0},
+        {"id": 3, "name": "Uvod u Matematicku logiku", "semester": 1, "depId": 1, "quota": {"theory": 2, "practice": 2}, "needsComputers": 0},
+        {"id": 4, "name": "Programiranje 1", "semester": 1, "depId": 1, "quota": {"theory": 2, "practice": 3}, "needsComputers": 1},
+        {"id": 5, "name": "Uvod u informatiku", "semester": 1, "depId": 2, "quota": {"theory": 2, "practice": 0}, "needsComputers": 0},
+        {"id": 6, "name": "Uvod u programiranje", "semester": 1, "depId": 2, "quota": {"theory": 3, "practice": 3}, "needsComputers": 1},
+        {"id": 7, "name": "Digitalni zapis podataka", "semester": 1, "depId": 2, "quota": {"theory": 2, "practice": 1}, "needsComputers": 1},
+        {"id": 8, "name": "Linearna algebra i analiticka geometrija", "semester": 1, "depId": 2, "quota": {"theory": 3, "practice": 3}, "needsComputers": 0},
+        {"id": 9, "name": "Diskretne strukture 1", "semester": 1, "depId": 2, "quota": {"theory": 3, "practice": 2}, "needsComputers": 0}
+    ],
+    "studentsEnrolled": [
+        {"depId": 1, "semester": 1, "count": 90},
+        {"depId": 2, "semester": 1, "count": 100}
+    ]
+}

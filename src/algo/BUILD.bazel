@@ -1,0 +1,23 @@
+load("@rules_python//python:defs.bzl", "py_binary", "py_test")
+
+py_test(
+    name = "test_data",
+    srcs = ["model.py", "data.py", "test_data.py"],
+    data = ["input.json"],
+    deps = [        
+        "@pip//pytest",
+        "@pip//pydantic",
+        "@pip//pyfunctional",
+    ],
+)
+
+py_test(
+    name = "test_cp_solver",
+    srcs=["model.py", "data.py", "cp_solver.py", "test_cp_solver.py"],
+    deps = [
+        "@pip//pytest",
+        "@pip//pydantic",
+        "@pip//pyfunctional",
+        "@pip//ortools",
+    ],
+)
