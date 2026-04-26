@@ -40,3 +40,14 @@ py_binary(
     ],
     main = "cp_runner.py",
 )
+
+py_test(
+    name = "test_mip_solver",
+    srcs = ["model.py", "data.py", "mip_solver.py", "test_mip_solver.py"],
+    deps = [
+        "@pip//pytest",
+        "@pip//pydantic",
+        "@pip//ortools",
+        "@pip//pyfunctional",
+    ],
+)
