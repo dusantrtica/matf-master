@@ -21,3 +21,22 @@ py_test(
         "@pip//ortools",
     ],
 )
+
+py_binary(
+    name = "run_cp_solver",
+    srcs = [
+        "model.py",
+        "data.py",
+        "cp_solver.py",
+        "report.py",
+        "cp_runner.py",
+    ],
+    data = ["input.json"],
+    deps = [
+        "@pip//pydantic",
+        "@pip//ortools",
+        "@pip//openpyxl",
+        "@pip//pyfunctional",
+    ],
+    main = "cp_runner.py",
+)
