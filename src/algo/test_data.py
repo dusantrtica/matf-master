@@ -1,5 +1,4 @@
 import os
-import pdb
 import sys
 import pytest
 from functional import seq
@@ -20,7 +19,6 @@ mock_settings = Settings(
         "duration": 1,
     }
 )
-
 
 def test_parse_sample_input():
     path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "input.json")
@@ -237,13 +235,13 @@ def test_course_sessions():
     # Ukupno 5 sesija, 2 za predavanja t
     assert len(sessions) == 5
 
-    # Check the types and counts
+    # Proveriti da li ima 2 sesije za predavanja i 3 sesije za vezbe
     theory_sessions = [s for s in sessions if s.session_type == "theory"]
     practice_sessions = [s for s in sessions if s.session_type == "practice"]
     assert len(theory_sessions) == 2
     assert len(practice_sessions) == 3
 
-    # IDs should have the correct format
+    # Da li su ID-evi sesija u ispravnom formatu
     expected_theory_id = generate_session_id(group_id, course.dep_id, course.id, "t")
     expected_practice_id = generate_session_id(group_id, course.dep_id, course.id, "p")
     for s in theory_sessions:

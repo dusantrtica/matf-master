@@ -13,7 +13,6 @@ class SimpleCPSolver:
     """
     Klasa SimpleCPSolver, koristi CP rešavač da napravi raspored nastave
     """
-
     def __init__(
         self,
         scheduling_input: SchedulingInput,        
@@ -75,6 +74,8 @@ class SimpleCPSolver:
             self.flat_time_var[s] = self.model.NewIntVar(
                 0, total_slots - 1, f"flat_time_{s}"
             )
+
+            # ogranicenje da flat_time bude jednak day * H + slot, da bude smisleno mapiranje
             self.model.Add(
                 self.flat_time_var[s] == self.day_var[s] * H + self.slot_var[s]
             )
@@ -133,7 +134,7 @@ class SimpleCPSolver:
         Takođe, dodajemo izračunatu donju granicu: grupa sa najviše sesija
         treba da ima najmanje ceil(num_sessions / num_days) satnih slotova, tako da
         max_slot >= ceil(max_group_sessions / D) - 1. Ovo pomaže solveru
-        da dostigne optimalnost mnogo brže.
+        da dostigne optimalnost mnogo brže, al nije  neophodno za dobijanje optimalnog rešenja.
         """
         if not self.sessions:
             return
@@ -163,8 +164,8 @@ class SimpleCPSolver:
 
     def get_solution_variables(self):
         """
-        Nakon solve(), izvuči dodeljeni dan, sat i indeks ucionice za svaku sesiju.
-        Vraća raw indekse tako da pozivaoc može da mapira na nazive
+        Nakon solve(), izvucemo dodeljeni dan, sat i indeks ucionice za svaku sesiju.
+        Vraća raw indekse tako da pozivalac mapira indekse na nazive
         koristeći settings.working_days, working_hours i classrooms.
         """
         result = []
