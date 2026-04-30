@@ -41,6 +41,25 @@ py_binary(
     main = "cp_runner.py",
 )
 
+py_binary(
+    name = "run_mip_solver",
+    srcs = [
+        "model.py",
+        "data.py",
+        "mip_solver.py",
+        "report.py",
+        "mip_runner.py",
+    ],
+    data = ["input.json"],
+    deps = [
+        "@pip//pydantic",
+        "@pip//ortools",
+        "@pip//openpyxl",
+        "@pip//pyfunctional",
+    ],
+    main = "mip_runner.py",
+)
+
 py_test(
     name = "test_mip_solver",
     srcs = ["model.py", "data.py", "mip_solver.py", "test_mip_solver.py"],

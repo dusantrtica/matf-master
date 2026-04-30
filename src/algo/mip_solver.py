@@ -98,6 +98,11 @@ class SimpleMIPSolver:
         Hard constraint 3: Nikoje 2 sesije iste grupe ne mogu biti u isto
         vreme.
            sum_{s in grupa, r} x[s,d,h,r] <= 1, za svaku grupu i svako (d, h)
+
+        Hard constraint 4: Ravnomerna raspodela sesija po danima za svaku grupu.
+           sum_{s in grupa, h, r} x[s,d,h,r] <= ceil(N_g / D),
+           za svaku grupu g i svaki dan d,
+           gde je N_g ukupan broj sesija grupe g.
         """
         if not self.sessions:
             return
@@ -131,14 +136,35 @@ class SimpleMIPSolver:
         for group_id, session_indices in groups.items():
             for d in range(D):
                 for h in range(H):
-                    vars_at_dh = [
+                    session_vars_at_dhr = [
                         self.x[s][(d, h, r)]
                         for s in session_indices
                         for r in range(R)
                         if (d, h, r) in self.x[s]
                     ]
-                    if len(vars_at_dh) > 1:
-                        self.solver.Add(sum(vars_at_dh) <= 1)
+                    if len(session_vars_at_dhr) > 1:
+                        self.solver.Add(sum(session_vars_at_dhr) <= 1)
+
+        # 4) Ravnomerna raspodela: svaka grupa ima najvise ceil(N_g / D)
+        #    sesija po danu, sto forsira ravnomernu raspodelu preko nedelje.
+        group_session_counts = defaultdict(int)
+        for s, session in enumerate(self.sessions):
+            group_session_counts[session.group_id] += 1
+
+        for group_id, session_indices in groups.items():
+            n_g = group_session_counts[group_id]
+            max_per_day = math.ceil(n_g / D)
+            for d in range(D):
+                day_vars = [
+                    self.x[s][(d, h, r)]
+                    for s in session_indices
+                    for h in range(H)
+                    for r in range(R)
+                    if (d, h, r) in self.x[s]
+                ]
+                if day_vars:
+                    # TODO: implementirati ogranicenje
+                    self.solver.Add(sum(day_vars) <= max_per_day)
 
     def set_objective(self):
         """

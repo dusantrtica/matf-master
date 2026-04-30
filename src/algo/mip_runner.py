@@ -3,12 +3,12 @@ import os
 import sys
 import time
 
-from ortools.sat.python import cp_model
+from ortools.linear_solver import pywraplp
 
 from src.algo.data import load_input, GROUP_SIZE, Session
-from src.algo.cp_solver import SimpleCPSolver
-from src.algo.report import export_schedule_to_excel
+from src.algo.mip_solver import SimpleMIPSolver
 from src.algo.model import SchedulingInput
+from src.algo.report import export_schedule_to_excel
 
 
 def print_table(rows, headers):
@@ -27,7 +27,7 @@ def print_table(rows, headers):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="CP schedule solver")
+    parser = argparse.ArgumentParser(description="MIP schedule solver")
     parser.add_argument(
         "--verbose", action="store_true",
         help="Print the full schedule table to the terminal",
@@ -41,8 +41,8 @@ if __name__ == "__main__":
     print(f"Loaded {len(scheduling_input.courses)} courses, "
           f"{len(scheduling_input.classrooms)} rooms", flush=True)
 
-    print("Creating CP solver (30s limit)...", flush=True)
-    solver = SimpleCPSolver(scheduling_input)
+    print("Creating MIP solver (300s limit)...", flush=True)
+    solver = SimpleMIPSolver(scheduling_input, max_time_seconds=300.0)
     print(f"Model has {len(solver.sessions)} sessions to schedule.", flush=True)
 
     print("Solving...", flush=True)
@@ -50,11 +50,19 @@ if __name__ == "__main__":
     status = solver.solve()
     elapsed = time.perf_counter() - t_start
 
-    status_name = solver.solver.StatusName(status)
+    status_map = {
+        pywraplp.Solver.OPTIMAL: "OPTIMAL",
+        pywraplp.Solver.FEASIBLE: "FEASIBLE",
+        pywraplp.Solver.INFEASIBLE: "INFEASIBLE",
+        pywraplp.Solver.UNBOUNDED: "UNBOUNDED",
+        pywraplp.Solver.ABNORMAL: "ABNORMAL",
+        pywraplp.Solver.NOT_SOLVED: "NOT_SOLVED",
+    }
+    status_name = status_map.get(status, f"UNKNOWN({status})")
     print(f"\nSolver finished with status: {status_name}", flush=True)
-    print(f"CP solver completed in {elapsed:.2f}s", flush=True)
+    print(f"MIP solver completed in {elapsed:.2f}s", flush=True)
 
-    if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+    if status not in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
         print("No feasible solution found.")
         sys.exit(2)
 
@@ -94,7 +102,7 @@ if __name__ == "__main__":
     os.makedirs(out_dir, exist_ok=True)
     excel_path = os.environ.get(
         "SCHEDULE_OUTPUT",
-        os.path.join(out_dir, "schedule.xlsx"),
+        os.path.join(out_dir, "mip_schedule.xlsx"),
     )
     export_schedule_to_excel(solver, scheduling_input, excel_path)
     print(f"\nExcel schedule exported to: {excel_path}", flush=True)

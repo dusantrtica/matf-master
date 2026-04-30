@@ -1,15 +1,25 @@
 from collections import defaultdict
+from typing import List, Protocol
+
 from functional import seq
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
-from src.algo.cp_solver import SimpleCPSolver
+
 from src.algo.data import (
     Session, Group, print_group, split_students_into_groups, print_session, GROUP_SIZE,
 )
 from src.algo.model import SchedulingInput
 
 
-def export_schedule_to_excel(solver: SimpleCPSolver,
+class ScheduleSolver(Protocol):
+    """Minimal interface that both CP and MIP solvers satisfy."""
+    sessions: List[Session]
+    working_hours: List[int]
+
+    def get_solution_variables(self) -> List[dict]: ...
+
+
+def export_schedule_to_excel(solver: ScheduleSolver,
                              scheduling_input: SchedulingInput,
                              output_path: str):
     """
@@ -52,7 +62,6 @@ def export_schedule_to_excel(solver: SimpleCPSolver,
         entries = group_entries[group_id]
 
         sheet_name = print_group(seq(groups).find(lambda grp: grp.id == group_id), scheduling_input.departments)
-        print("SHeet Name = ", sheet_name)
         ws = wb.create_sheet(title=sheet_name)
 
         # Header row: hour slots

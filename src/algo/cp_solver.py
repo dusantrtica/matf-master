@@ -148,11 +148,13 @@ class SimpleCPSolver:
         for session in self.sessions:
             groups[session.group_id] += 1
         max_group_sessions = max(groups.values()) if groups else 0
+        # npr ako imamo 5 sesija i 3 dana, lower_bound je 1, tj. moramo imati bar 1 sat u toku dana.
         lower_bound = math.ceil(max_group_sessions / D) - 1 if D > 0 else 0
-
 
         # max slot mora je manji od broja sati u toku dana, a
         # želimo i da ga minimizujemo tako da se predavanja što pre završe u toku dana.
+        # implicitno, ako minimizujemo max_slot, minimizujemo i broj sati u toku dana.
+        # i to ce terati solver da rasporedi sesije tokom vise dana, ali tako da se zavrsavju sto pre.
         self.max_slot = self.model.NewIntVar(lower_bound, H - 1, "max_slot")
         for s in range(len(self.sessions)):
             self.model.Add(self.max_slot >= self.slot_var[s])

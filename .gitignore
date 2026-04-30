@@ -68,3 +68,6 @@ bazel-*
 *.dist-info     
 *.DS_Store
 out/
+
+.cursor/
+AGENTS.md
