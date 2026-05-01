@@ -31,7 +31,11 @@ py_binary(
         "report.py",
         "cp_runner.py",
     ],
-    data = ["input.json"],
+    args = [
+        "--input",
+        "input_full_1_semester.json",
+    ],
+    data = ["input_full_1_semester.json"],
     deps = [
         "@pip//pydantic",
         "@pip//ortools",
@@ -77,6 +81,10 @@ py_binary(
     data = [
         "input_full_1_semester.json",
         "input_full_2_semester.json",
+    ],
+    args = [
+        "--max-time",
+        "600",
     ],
     deps = [
         "@pip//pydantic",
