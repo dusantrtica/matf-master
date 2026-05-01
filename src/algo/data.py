@@ -17,7 +17,21 @@ GROUP_SIZE = 30  # 30 ucenika po grupi
 
 
 def courses_for_department(courses: List[Course], department_id) -> List[Course]:
-    return seq(courses).filter(lambda course: course.dep_id == department_id).to_list()    
+    return seq(courses).filter(lambda course: course.dep_id == department_id).to_list()
+
+
+def courses_for_group(courses: List[Course], department_id, semester) -> List[Course]:
+    """Filter courses matching a group's department and semester.
+
+    A group represents a (department, semester) cohort, so it only attends
+    courses whose `dep_id` AND `semester` match. Without the semester filter,
+    a year-1 group would also be assigned year-2/3/4 courses.
+    """
+    return (
+        seq(courses)
+        .filter(lambda c: c.dep_id == department_id and c.semester == semester)
+        .to_list()
+    )
 
 
 class Group:
@@ -120,8 +134,8 @@ def generate_sessions(scheduling_input: SchedulingInput, group_size: int) -> Ite
     groups: List[Group] = split_students_into_groups(scheduling_input.students_enrolled, group_size)
     sessions: List[Session] = []
     for group in groups:
-        for course in courses_for_department(
-            scheduling_input.courses, group.department_id
+        for course in courses_for_group(
+            scheduling_input.courses, group.department_id, group.semester
         ):
             for session in course_sessions(course, group.id):
                 sessions.append(session)
