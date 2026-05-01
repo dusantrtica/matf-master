@@ -260,18 +260,93 @@ da postoji rešenje barem oko `4`, ali ne uspeva da ga nađe u datom vremenu.
 rešenje** (`max_slot = 7` vs `11`) sa **manjim gap-om**, koristeći **160x
 manje promenljivih** i upola manje RAM-a.
 
+### 5.5 Stvarni MATF ulazi (osnovne studije, sve godine)
+
+Pored sintetičkih skala iznad, benchmark se pokreće i na dva realna ulazna
+fajla koji modeluju nedeljni raspored osnovnih studija MATF-a:
+
+- [`input_full_1_semester.json`](input_full_1_semester.json) - **neparni
+  semestri** (1, 3, 5, 7) za sve 4 godine sa 6 odseka (5 modula Matematike +
+  Informatika), 35 učionica, 5 dana x 12 sati.
+- [`input_full_2_semester.json`](input_full_2_semester.json) - **parni
+  semestri** (2, 4, 6, 8), iste 6 odseka i isti pool učionica.
+
+Izborni predmeti su deterministički zamenjeni prvom opcijom iz svakog bloka.
+Studenata po smeru/godini opadaju lagano (npr. Matematika i računarstvo:
+60 → 55 → 50 → 45). Detalji u [input_full_1_semester.json](input_full_1_semester.json)
+i [input_full_2_semester.json](input_full_2_semester.json).
+
+#### 5.5.1 Neparni semestri (937 sesija, 35 učionica, 5 dana x 12 sati)
+
+| Metrika | CP-SAT | MIP/SCIP |
+|---|---:|---:|
+| Broj sesija | 937 | 937 |
+| Broj promenljivih | 4,686 | **1,433,101** |
+| Broj ograničenja | 3,179 | 6,379 |
+| Vreme konstrukcije | **0.1122 s** | 142.9797 s |
+| Vreme rešavanja | 60.0506 s | 95.2641 s |
+| Ukupno vreme | **60.16 s** | 238.24 s |
+| Memorija modela | 762.1 KB | 419,644.3 KB (~410 MB) |
+| Maksimalan RSS | 452,976 KB (~442 MB) | 6,540,192 KB (~6.24 GB) |
+| Status | UNKNOWN | NOT_SOLVED |
+| Objektivna vrednost (`max_slot`) | N/A | N/A |
+| Optimality gap | N/A | N/A |
+| Validnost rešenja | N/A | N/A |
+
+**Komentar:** instanca je previše velika za oba solvera u 60-sekundnom
+limitu. **CP konstruiše model za 0.11 s i ulazi u pretragu**, ali ne uspeva
+da pronađe inicijalno rešenje pre isteka limita (UNKNOWN). **MIP gubi
+~143 s samo na konstrukciji modela** (1.4M binarnih promenljivih) i
+ostaje sa NOT_SOLVED jer SCIP-u ostaje malo vremena za pretragu, a model je
+toliko veliki da ga LP relaxation ne stiže ni da pokrene smisleno.
+Razlika u veličini modela: **306x** (4,686 vs 1,433,101 promenljivih).
+
+#### 5.5.2 Parni semestri (888 sesija, 35 učionica, 5 dana x 12 sati)
+
+| Metrika | CP-SAT | MIP/SCIP |
+|---|---:|---:|
+| Broj sesija | 888 | 888 |
+| Broj promenljivih | 4,441 | **1,323,721** |
+| Broj ograničenja | 3,036 | 6,281 |
+| Vreme konstrukcije | **0.0369 s** | 49.4176 s |
+| Vreme rešavanja | 60.0332 s | 77.3926 s |
+| Ukupno vreme | **60.07 s** | 126.81 s |
+| Memorija modela | 717.9 KB | 387,653.9 KB (~378 MB) |
+| Maksimalan RSS | ~7 GB (kumulativno za proces) | ~7 GB (kumulativno za proces) |
+| Status | **FEASIBLE** | NOT_SOLVED |
+| Objektivna vrednost (`max_slot`) | **11** | N/A |
+| Optimality gap | 54.55% | N/A |
+| Validnost rešenja | **PASS** | N/A |
+
+**Komentar:** ista skala (~900 sesija) ali nešto bolji raspored cohort-a -
+**CP-SAT pronađe validan raspored u limitu**, koji prolazi `validate_solution`
+proveru. MIP/SCIP, kao i kod neparnih semestara, "potroši" pola limita na
+konstrukciju i ne stigne da vrati nijedno rešenje (NOT_SOLVED). Faktor
+veličine modela ostaje **~298x**.
+
+> **Napomena o RSS memoriji**: ru_maxrss meri max RSS celog procesa
+> kumulativno; pošto se CP i MIP test pokreću jedan za drugim u istom procesu,
+> oba reporta dele istu peak vrednost (7 GB) - dominantno doprinosi MIP-ova
+> alokacija. Realan footprint CP-a za parne semestre je reda **~450 MB** (kao
+> kod neparnih, gde je MIP još nije alocirao do tada).
+
 ---
 
 ## 6. Zbirna tabela
 
-Pregled ključnih metrika kroz sve skale:
+Pregled ključnih metrika kroz sve skale (sintetičke + stvarni MATF ulazi):
 
 | Skala | Sesije | CP vars | MIP vars | CP ukupno (s) | MIP ukupno (s) | CP RSS (MB) | MIP RSS (MB) | CP status | MIP status | CP gap | MIP gap |
 |---|---:|---:|---:|---:|---:|---:|---:|---|---|---:|---:|
-| small  | 8   | 41    | 481     | 0.04   | 0.04   | 146   | 153   | OPTIMAL  | OPTIMAL  | 0.00%  | 0.00%  |
-| medium | 144 | 721   | 48,601  | 0.24   | 30.08  | 217   | 642   | OPTIMAL  | OPTIMAL  | 0.00%  | 0.00%  |
-| large  | 300 | 1,501 | 187,201 | 9.91   | 65.29  | 738   | 1,851 | OPTIMAL  | FEASIBLE | 0.00%  | 63.64% |
-| xl     | 480 | 2,401 | 384,001 | 60.06  | 71.67  | 1,851 | 3,222 | FEASIBLE | FEASIBLE | 42.86% | 63.64% |
+| small        | 8   | 41    | 481       | 0.04   | 0.04   | 146   | 153   | OPTIMAL    | OPTIMAL    | 0.00%  | 0.00%  |
+| medium       | 144 | 721   | 48,601    | 0.24   | 30.08  | 217   | 642   | OPTIMAL    | OPTIMAL    | 0.00%  | 0.00%  |
+| large        | 300 | 1,501 | 187,201   | 9.91   | 65.29  | 738   | 1,851 | OPTIMAL    | FEASIBLE   | 0.00%  | 63.64% |
+| xl           | 480 | 2,401 | 384,001   | 60.06  | 71.67  | 1,851 | 3,222 | FEASIBLE   | FEASIBLE   | 42.86% | 63.64% |
+| MATF neparni | 937 | 4,686 | 1,433,101 | 60.16  | 238.24 | 442   | 6,233 | UNKNOWN    | NOT_SOLVED | N/A    | N/A    |
+| MATF parni   | 888 | 4,441 | 1,323,721 | 60.07  | 126.81 | ~450* | ~6,000* | FEASIBLE | NOT_SOLVED | 54.55% | N/A    |
+
+\* Procene; ru_maxrss kumulativno u procesu otežava razdvajanje između test-ova
+po solveru kada se pokreću sekvencijalno.
 
 ---
 
@@ -291,15 +366,19 @@ Faktor između je ~160x i raste sa svakom dodatnom dimenzijom.
 
 ### 7.2 Vreme rešavanja
 
-| Skala | CP/MIP odnos vremena |
+| Skala        | CP/MIP odnos vremena |
 |---|---:|
-| small  | ~1.1x (MIP malo brži) |
-| medium | ~128x (CP brži) |
-| large  | ~6.6x (CP brži, plus CP je OPTIMAL a MIP samo FEASIBLE) |
-| xl     | oba ~60s (limit), ali CP daje bolje rešenje |
+| small        | ~1.1x (MIP malo brži) |
+| medium       | ~128x (CP brži) |
+| large        | ~6.6x (CP brži, plus CP je OPTIMAL a MIP samo FEASIBLE) |
+| xl           | oba ~60s (limit), ali CP daje bolje rešenje |
+| MATF neparni | CP konstrukcija 1,275x brža; MIP ne stigne ni da pokrene pretragu (143s na konstrukciji) |
+| MATF parni   | CP daje FEASIBLE u limitu, MIP NOT_SOLVED |
 
 Ključan trenutak: **na medium skali MIP već gubi za dva reda veličine** i
-više se ne oporavlja.
+više se ne oporavlja. Na realnoj MATF skali (~900 sesija, 35 učionica),
+MIP/SCIP ne stigne ni da završi konstrukciju modela u smislenom vremenu, dok
+CP-SAT već uveliko pretražuje rešenja.
 
 ### 7.3 Memorija
 
@@ -341,10 +420,20 @@ Sva pokretanja idu kroz Bazel:
 bazel run //src/algo:benchmark
 ```
 
-Sa argumentima (npr. samo male skale i JSON izlaz):
+Po default-u, ova komanda pokreće benchmark na dva stvarna MATF ulaza
+([input_full_1_semester.json](input_full_1_semester.json) i
+[input_full_2_semester.json](input_full_2_semester.json)).
+
+Sintetičke skale (small/medium/large/xl) se pokreću eksplicitno:
 
 ```bash
-bazel run //src/algo:benchmark -- --scales small medium --max-time 60 --json out.json
+bazel run //src/algo:benchmark -- --scales small medium large xl --max-time 60 --json out.json
+```
+
+Custom ulazni fajlovi:
+
+```bash
+bazel run //src/algo:benchmark -- --inputs path/to/a.json path/to/b.json --max-time 60
 ```
 
 Pojedinačni solveri (postojeći Bazel target-i u [BUILD.bazel](BUILD.bazel)):
@@ -366,13 +455,17 @@ bazel test //src/algo:test_data
 
 ## 9. Zaključak
 
-Na osnovu merenja iznad, **CP-SAT je jasan pobednik** za naš problem
-nedeljnog rasporeda nastave. Pobeđuje u sve četiri kategorije:
+Na osnovu merenja iznad - i sintetičkih skala i stvarnih MATF ulaza -
+**CP-SAT je jasan pobednik** za naš problem nedeljnog rasporeda nastave.
+Pobeđuje u sve četiri kategorije:
 
-1. **Veličina modela** - linearna umesto multiplikativne.
-2. **Vreme rešavanja** - 1-2 reda veličine brže od medium skale naviše.
-3. **Memorija** - faktor ~1.7-2x manje.
-4. **Kvalitet rešenja pod vremenskim limitom** - manji `max_slot` i manji gap.
+1. **Veličina modela** - linearna umesto multiplikativne (na MATF skali:
+   **~300x manje promenljivih**).
+2. **Vreme rešavanja** - 1-2 reda veličine brže od medium skale naviše;
+   na MATF skali MIP ni ne stiže do faze pretrage u 60s limitu.
+3. **Memorija** - faktor ~1.7-14x manje (raste sa skalom).
+4. **Kvalitet rešenja pod vremenskim limitom** - na MATF parnim semestrima
+   CP daje validan FEASIBLE raspored, dok MIP vraća NOT_SOLVED.
 
 ### Sledeći koraci
 
