@@ -70,3 +70,18 @@ py_test(
         "@pip//pyfunctional",
     ],
 )
+
+py_binary(
+    name = "benchmark",
+    srcs = ["model.py", "data.py", "cp_solver.py", "mip_solver.py", "benchmark.py"],
+    data = [
+        "input_full_1_semester.json",
+        "input_full_2_semester.json",
+    ],
+    deps = [
+        "@pip//pydantic",
+        "@pip//ortools",
+        "@pip//openpyxl",
+        "@pip//pyfunctional",
+    ],
+)
