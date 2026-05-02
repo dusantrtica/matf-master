@@ -1,0 +1,1608 @@
+{
+    "settings": {
+        "workingDays": [
+            "Ponedeljak",
+            "Utorak",
+            "Sreda",
+            "Četvrtak",
+            "Petak"
+        ],
+        "startHour": 8,
+        "endHour": 20,
+        "duration": 1
+    },
+    "locations": [
+        {
+            "id": 1,
+            "name": "Studentski trg"
+        },
+        {
+            "id": 2,
+            "name": "N Building"
+        },
+        {
+            "id": 3,
+            "name": "Jagiceva"
+        }
+    ],
+    "classrooms": [
+        {
+            "id": 1,
+            "name": "406",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 2,
+            "name": "704",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 3,
+            "name": "706",
+            "locId": 1,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 4,
+            "name": "718",
+            "locId": 1,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 5,
+            "name": "809",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 6,
+            "name": "821",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 7,
+            "name": "830",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 8,
+            "name": "840",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 9,
+            "name": "843",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 10,
+            "name": "844",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 11,
+            "name": "BIM",
+            "locId": 1,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 12,
+            "name": "JAG1",
+            "locId": 3,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 13,
+            "name": "JAG2",
+            "locId": 3,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 14,
+            "name": "JAG3",
+            "locId": 3,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 15,
+            "name": "JAG4",
+            "locId": 3,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 16,
+            "name": "KAB809B",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 17,
+            "name": "KAB829",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 18,
+            "name": "KABM1",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 19,
+            "name": "KABM2",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 20,
+            "name": "KABM3",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 21,
+            "name": "KABN",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 22,
+            "name": "N102",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 23,
+            "name": "N103",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 24,
+            "name": "N151",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 25,
+            "name": "N152",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 26,
+            "name": "N153",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 27,
+            "name": "N201",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 28,
+            "name": "N202",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 29,
+            "name": "N206",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 30,
+            "name": "N225",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 31,
+            "name": "N251",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 32,
+            "name": "N252",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 33,
+            "name": "N253",
+            "locId": 2,
+            "hasComputers": 0,
+            "capacity": 50
+        },
+        {
+            "id": 34,
+            "name": "RLAB",
+            "locId": 1,
+            "hasComputers": 1,
+            "capacity": 50
+        },
+        {
+            "id": 35,
+            "name": "ZBORNICA",
+            "locId": 1,
+            "hasComputers": 0,
+            "capacity": 50
+        }
+    ],
+    "departments": [
+        {
+            "id": 1,
+            "name": "Matematika (zajednicki, 1. godina)"
+        },
+        {
+            "id": 2,
+            "name": "Profesor matematike i racunarstva"
+        },
+        {
+            "id": 3,
+            "name": "Teorijska matematika i primene"
+        },
+        {
+            "id": 4,
+            "name": "Matematika i racunarstvo"
+        },
+        {
+            "id": 5,
+            "name": "Primenjena matematika"
+        },
+        {
+            "id": 6,
+            "name": "Statistika, aktuarska i finansijska matematika"
+        },
+        {
+            "id": 7,
+            "name": "Informatika"
+        }
+    ],
+    "courses": [
+        {
+            "id": 1,
+            "name": "Analiza 1",
+            "semester": 1,
+            "depId": 1,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 2,
+            "name": "Linearna Algebra",
+            "semester": 1,
+            "depId": 1,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 3,
+            "name": "Uvod u Matematicku logiku",
+            "semester": 1,
+            "depId": 1,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 4,
+            "name": "Programiranje 1",
+            "semester": 1,
+            "depId": 1,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 5,
+            "name": "Elementarna matematika",
+            "semester": 1,
+            "depId": 1,
+            "quota": {
+                "theory": 0,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 6,
+            "name": "Analiza 2A",
+            "semester": 3,
+            "depId": 2,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 7,
+            "name": "Racunarski sistemi",
+            "semester": 3,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 8,
+            "name": "Osnovi geometrije",
+            "semester": 3,
+            "depId": 2,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 9,
+            "name": "Uvod u teoriju brojeva i kombinatoriku",
+            "semester": 3,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 10,
+            "name": "Uvod u finansijsku matematiku",
+            "semester": 3,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 11,
+            "name": "Uvod u algoritme i strukture podataka",
+            "semester": 5,
+            "depId": 2,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 12,
+            "name": "Analiza 2B",
+            "semester": 5,
+            "depId": 2,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 13,
+            "name": "Algebra 2",
+            "semester": 5,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 14,
+            "name": "Metodika nastave matematike A",
+            "semester": 5,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 15,
+            "name": "Projektivna geometrija sa primenama u racunarstvu",
+            "semester": 5,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 16,
+            "name": "Verovatnoca i statistika sa praktikumom",
+            "semester": 7,
+            "depId": 2,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 17,
+            "name": "Metodika nastave racunarstva i informatike",
+            "semester": 7,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 18,
+            "name": "Uvod u kompleksnu analizu",
+            "semester": 7,
+            "depId": 2,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 19,
+            "name": "Uvod u relacione baze podataka",
+            "semester": 7,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 20,
+            "name": "Uvod u astronomiju",
+            "semester": 7,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 21,
+            "name": "Odabrana poglavlja analize A",
+            "semester": 7,
+            "depId": 2,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 22,
+            "name": "Analiza 2",
+            "semester": 3,
+            "depId": 3,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 23,
+            "name": "Osnovi geometrije",
+            "semester": 3,
+            "depId": 3,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 24,
+            "name": "Algebra 1",
+            "semester": 3,
+            "depId": 3,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 25,
+            "name": "Racunarski sistemi",
+            "semester": 3,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 26,
+            "name": "Diskretna matematika",
+            "semester": 3,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 27,
+            "name": "Analiza 3A",
+            "semester": 5,
+            "depId": 3,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 28,
+            "name": "Kompleksna analiza A",
+            "semester": 5,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 29,
+            "name": "Algebra 2",
+            "semester": 5,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 30,
+            "name": "Diferencijalne jednacine A",
+            "semester": 5,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 31,
+            "name": "Topologija A",
+            "semester": 5,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 32,
+            "name": "Projektivna geometrija sa primenama u racunarstvu",
+            "semester": 5,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 33,
+            "name": "Verovatnoca i statistika A",
+            "semester": 7,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 34,
+            "name": "Diferencijalna geometrija",
+            "semester": 7,
+            "depId": 3,
+            "quota": {
+                "theory": 4,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 35,
+            "name": "Distribucije i parcijalne jednacine A",
+            "semester": 7,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 36,
+            "name": "Algebarska topologija",
+            "semester": 7,
+            "depId": 3,
+            "quota": {
+                "theory": 3,
+                "practice": 1
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 37,
+            "name": "Geometrijska teorija funkcija 1",
+            "semester": 7,
+            "depId": 3,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 38,
+            "name": "Uvod u komutativnu algebru",
+            "semester": 7,
+            "depId": 3,
+            "quota": {
+                "theory": 3,
+                "practice": 1
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 39,
+            "name": "Analiza 2",
+            "semester": 3,
+            "depId": 4,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 40,
+            "name": "Uvod u organizaciju i arhitekturu racunara",
+            "semester": 3,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 41,
+            "name": "Osnovi geometrije",
+            "semester": 3,
+            "depId": 4,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 42,
+            "name": "Algebra 1",
+            "semester": 3,
+            "depId": 4,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 43,
+            "name": "Diskretna matematika",
+            "semester": 3,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 44,
+            "name": "Programske paradigme",
+            "semester": 5,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 45,
+            "name": "Diferencijalne jednacine sa primenama",
+            "semester": 5,
+            "depId": 4,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 46,
+            "name": "Matematicka logika u racunarstvu",
+            "semester": 5,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 47,
+            "name": "Leksicka analiza i primene",
+            "semester": 5,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 48,
+            "name": "Kompleksne funkcije",
+            "semester": 5,
+            "depId": 4,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 49,
+            "name": "Uvod u algoritme i strukture podataka",
+            "semester": 5,
+            "depId": 4,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 50,
+            "name": "Uvod u relacione baze podataka",
+            "semester": 7,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 51,
+            "name": "Verovatnoca i statistika A",
+            "semester": 7,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 52,
+            "name": "Dizajn i analiza algoritama",
+            "semester": 7,
+            "depId": 4,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 53,
+            "name": "Operativni sistemi",
+            "semester": 7,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 54,
+            "name": "Teorija izracunljivosti",
+            "semester": 7,
+            "depId": 4,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 55,
+            "name": "Uvod u teorijsku mehaniku",
+            "semester": 7,
+            "depId": 4,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 56,
+            "name": "Analiza 2",
+            "semester": 3,
+            "depId": 5,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 57,
+            "name": "Diskretne strukture",
+            "semester": 3,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 58,
+            "name": "Osnovi geometrije",
+            "semester": 3,
+            "depId": 5,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 59,
+            "name": "Algebra 1",
+            "semester": 3,
+            "depId": 5,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 60,
+            "name": "Uvod u algoritme i strukture podataka",
+            "semester": 3,
+            "depId": 5,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 61,
+            "name": "Analiza 3A",
+            "semester": 5,
+            "depId": 5,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 62,
+            "name": "Kompleksne funkcije",
+            "semester": 5,
+            "depId": 5,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 63,
+            "name": "Linearno programiranje",
+            "semester": 5,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 64,
+            "name": "Diferencijalne jednacine A",
+            "semester": 5,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 65,
+            "name": "Numericka analiza 1A",
+            "semester": 5,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 66,
+            "name": "Odabrana poglavlja astronomije",
+            "semester": 5,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 67,
+            "name": "Verovatnoca i statistika A",
+            "semester": 7,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 68,
+            "name": "Numericka analiza 2A",
+            "semester": 7,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 69,
+            "name": "Jednacine matematicke fizike",
+            "semester": 7,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 70,
+            "name": "Operaciona istrazivanja",
+            "semester": 7,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 71,
+            "name": "Osnove matematickog modeliranja",
+            "semester": 7,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 72,
+            "name": "Algebra 2",
+            "semester": 7,
+            "depId": 5,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 73,
+            "name": "Analiza 2",
+            "semester": 3,
+            "depId": 6,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 74,
+            "name": "Racunarski sistemi",
+            "semester": 3,
+            "depId": 6,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 75,
+            "name": "Osnovi geometrije",
+            "semester": 3,
+            "depId": 6,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 76,
+            "name": "Algebra 1",
+            "semester": 3,
+            "depId": 6,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 77,
+            "name": "Uvod u verovatnocu",
+            "semester": 3,
+            "depId": 6,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 78,
+            "name": "Analiza 3A",
+            "semester": 5,
+            "depId": 6,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 79,
+            "name": "Kompleksna analiza",
+            "semester": 5,
+            "depId": 6,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 80,
+            "name": "Diferencijalne jednacine i dinamicki sistemi",
+            "semester": 5,
+            "depId": 6,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 81,
+            "name": "Teorija verovatnoca",
+            "semester": 5,
+            "depId": 6,
+            "quota": {
+                "theory": 4,
+                "practice": 4
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 82,
+            "name": "Statisticki softver 1",
+            "semester": 5,
+            "depId": 6,
+            "quota": {
+                "theory": 0,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 83,
+            "name": "Teorija informacije",
+            "semester": 7,
+            "depId": 6,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 84,
+            "name": "Statisticki softver 3",
+            "semester": 7,
+            "depId": 6,
+            "quota": {
+                "theory": 0,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 85,
+            "name": "Elementi aktuarske matematike",
+            "semester": 7,
+            "depId": 6,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 86,
+            "name": "Osnove matematickog modeliranja",
+            "semester": 7,
+            "depId": 6,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 87,
+            "name": "Elementi statistickog ucenja",
+            "semester": 7,
+            "depId": 6,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 88,
+            "name": "Uvod u teorijsku mehaniku",
+            "semester": 7,
+            "depId": 6,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 89,
+            "name": "Uvod u informatiku",
+            "semester": 1,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 0
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 90,
+            "name": "Uvod u programiranje",
+            "semester": 1,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 91,
+            "name": "Digitalni zapis podataka",
+            "semester": 1,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 1
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 92,
+            "name": "Linearna algebra i analiticka geometrija",
+            "semester": 1,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 93,
+            "name": "Diskretne strukture 1",
+            "semester": 1,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 94,
+            "name": "Engleski jezik 1",
+            "semester": 1,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 0
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 95,
+            "name": "Uvod u strukture podataka",
+            "semester": 3,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 3
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 96,
+            "name": "Objektno orijentisano programiranje (Informatika)",
+            "semester": 3,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 97,
+            "name": "Operativni sistemi (Informatika)",
+            "semester": 3,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 98,
+            "name": "Geometrija",
+            "semester": 3,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 99,
+            "name": "Analiza 2 (Informatika)",
+            "semester": 3,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 100,
+            "name": "Vestacka inteligencija",
+            "semester": 5,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 101,
+            "name": "Razvoj softvera",
+            "semester": 5,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 102,
+            "name": "Uvod u numericku matematiku (Informatika)",
+            "semester": 5,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 103,
+            "name": "Verovatnoca (Informatika)",
+            "semester": 5,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 0
+        },
+        {
+            "id": 104,
+            "name": "Alati za razvoj softvera",
+            "semester": 5,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 105,
+            "name": "Programiranje baza podataka (Informatika)",
+            "semester": 7,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 106,
+            "name": "Prevodjenje programskih jezika",
+            "semester": 7,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 3
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 107,
+            "name": "Automatsko rezonovanje",
+            "semester": 7,
+            "depId": 7,
+            "quota": {
+                "theory": 3,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 108,
+            "name": "Uvod u kvantno programiranje i prenos informacije u kosmosu",
+            "semester": 7,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 1
+        },
+        {
+            "id": 109,
+            "name": "Elementi racunarske algebre",
+            "semester": 7,
+            "depId": 7,
+            "quota": {
+                "theory": 2,
+                "practice": 2
+            },
+            "needsComputers": 0
+        }
+    ],
+    "studentsEnrolled": [
+        {
+            "depId": 1,
+            "semester": 1,
+            "count": 165
+        },
+        {
+            "depId": 2,
+            "semester": 3,
+            "count": 28
+        },
+        {
+            "depId": 2,
+            "semester": 5,
+            "count": 25
+        },
+        {
+            "depId": 2,
+            "semester": 7,
+            "count": 22
+        },
+        {
+            "depId": 3,
+            "semester": 3,
+            "count": 18
+        },
+        {
+            "depId": 3,
+            "semester": 5,
+            "count": 16
+        },
+        {
+            "depId": 3,
+            "semester": 7,
+            "count": 14
+        },
+        {
+            "depId": 4,
+            "semester": 3,
+            "count": 55
+        },
+        {
+            "depId": 4,
+            "semester": 5,
+            "count": 50
+        },
+        {
+            "depId": 4,
+            "semester": 7,
+            "count": 45
+        },
+        {
+            "depId": 5,
+            "semester": 3,
+            "count": 23
+        },
+        {
+            "depId": 5,
+            "semester": 5,
+            "count": 21
+        },
+        {
+            "depId": 5,
+            "semester": 7,
+            "count": 19
+        },
+        {
+            "depId": 6,
+            "semester": 3,
+            "count": 28
+        },
+        {
+            "depId": 6,
+            "semester": 5,
+            "count": 26
+        },
+        {
+            "depId": 6,
+            "semester": 7,
+            "count": 24
+        },
+        {
+            "depId": 7,
+            "semester": 1,
+            "count": 100
+        },
+        {
+            "depId": 7,
+            "semester": 3,
+            "count": 90
+        },
+        {
+            "depId": 7,
+            "semester": 5,
+            "count": 80
+        },
+        {
+            "depId": 7,
+            "semester": 7,
+            "count": 70
+        }
+    ]
+}

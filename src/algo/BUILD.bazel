@@ -34,6 +34,8 @@ py_binary(
     args = [
         "--input",
         "input_full_1_semester.json",
+        "--time-limit",
+        "60",
     ],
     data = ["input_full_1_semester.json"],
     deps = [
