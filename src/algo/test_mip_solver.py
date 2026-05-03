@@ -78,10 +78,9 @@ def test_mip_solver_basic_constraint(scheduling_input):
     solver.solver = inner_solver
     solver.create_assignment_variables()
     solver.create_hard_constraints()
-    solver.set_objective()
 
     status = solver.solve()
-    assert status == pywraplp.Solver.OPTIMAL
+    assert status in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE)
 
     variables = solver.get_solution_variables()
     assert len(variables) == 8

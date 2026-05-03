@@ -1,8 +1,12 @@
 """
 Benchmark harness for comparing CP-SAT vs MIP/SCIP solvers on class scheduling.
 
-Runs both solvers on three real-world subsets of input_full_1_semester.json
-(MATF-S, MATF-M, MATF-L) and prints a structured comparison report.
+Both solvers run in feasibility-only mode (no objective function).
+The benchmark measures how quickly each solver finds any valid schedule
+that satisfies all hard constraints.
+
+Runs on three real-world subsets of input_full_1_semester.json
+(MATF-S, MATF-M, MATF-L).
 
 Usage:
     python -m src.algo.benchmark                       # all three scales
@@ -14,7 +18,6 @@ Usage:
 import argparse
 import gc
 import json
-import math
 import os
 import resource
 import time
@@ -49,8 +52,6 @@ class BenchmarkResult:
     peak_memory_kb: float
     model_memory_kb: float
     status: str
-    objective_value: Optional[float]
-    optimality_gap: Optional[float]
     solution_valid: Optional[bool]
 
 
@@ -116,7 +117,7 @@ def validate_solution(
 # ---------------------------------------------------------------------------
 
 CP_STATUS_NAMES = {
-    cp_model.OPTIMAL: "OPTIMAL",
+    cp_model.OPTIMAL: "FEASIBLE",
     cp_model.FEASIBLE: "FEASIBLE",
     cp_model.INFEASIBLE: "INFEASIBLE",
     cp_model.MODEL_INVALID: "MODEL_INVALID",
@@ -124,7 +125,7 @@ CP_STATUS_NAMES = {
 }
 
 MIP_STATUS_NAMES = {
-    pywraplp.Solver.OPTIMAL: "OPTIMAL",
+    pywraplp.Solver.OPTIMAL: "FEASIBLE",
     pywraplp.Solver.FEASIBLE: "FEASIBLE",
     pywraplp.Solver.INFEASIBLE: "INFEASIBLE",
     pywraplp.Solver.UNBOUNDED: "UNBOUNDED",
@@ -166,18 +167,8 @@ def benchmark_cp(
 
     status = CP_STATUS_NAMES.get(status_code, str(status_code))
 
-    objective_value = None
-    gap = None
     solution_valid = None
-
     if status_code in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-        objective_value = solver.solver.ObjectiveValue()
-        best_bound = solver.solver.BestObjectiveBound()
-        if objective_value != 0:
-            gap = abs(objective_value - best_bound) / abs(objective_value)
-        else:
-            gap = 0.0
-
         variables = solver.get_solution_variables()
         valid, _ = validate_solution(
             solver.sessions, variables, scheduling_input.classrooms
@@ -199,8 +190,6 @@ def benchmark_cp(
         peak_memory_kb=round(_get_peak_rss_kb(), 1),
         model_memory_kb=round(model_mem_kb, 1),
         status=status,
-        objective_value=objective_value,
-        optimality_gap=round(gap, 6) if gap is not None else None,
         solution_valid=solution_valid,
     )
 
@@ -230,18 +219,8 @@ def benchmark_mip(
 
     status = MIP_STATUS_NAMES.get(status_code, str(status_code))
 
-    objective_value = None
-    gap = None
     solution_valid = None
-
     if status_code in (pywraplp.Solver.OPTIMAL, pywraplp.Solver.FEASIBLE):
-        objective_value = solver.solver.Objective().Value()
-        best_bound = solver.solver.Objective().BestBound()
-        if objective_value != 0:
-            gap = abs(objective_value - best_bound) / abs(objective_value)
-        else:
-            gap = 0.0
-
         variables = solver.get_solution_variables()
         valid, _ = validate_solution(
             solver.sessions, variables, scheduling_input.classrooms
@@ -263,8 +242,6 @@ def benchmark_mip(
         peak_memory_kb=round(_get_peak_rss_kb(), 1),
         model_memory_kb=round(model_mem_kb, 1),
         status=status,
-        objective_value=objective_value,
-        optimality_gap=round(gap, 6) if gap is not None else None,
         solution_valid=solution_valid,
     )
 
@@ -277,14 +254,14 @@ DEFAULT_REAL_SOURCE = "src/algo/input_full_1_semester.json"
 
 SCALE_CONFIGS = {
     "S": {"semesters": [1], "loc_ids": [1], "max_time": 60},
-    "M": {"semesters": [1, 3], "loc_ids": [1, 3], "max_time": 60},
+    "M": {"semesters": [1, 3], "loc_ids": [1, 3], "max_time": 120},
     "L": {"semesters": [1, 3, 5, 7], "loc_ids": [1, 2, 3], "max_time": 300},
 }
 
 SCALE_LABELS = {
     "S": "MATF-S: 1. godina, lok. Studentski trg",
     "M": "MATF-M: 1-2. godina, lok. Studentski trg + Jagiceva",
-    "L": "MATF-L: sve godine, sve lokacije (5 min limit)",
+    "L": "MATF-L: sve godine, sve lokacije",
 }
 
 
@@ -344,7 +321,7 @@ def _run_solvers_on_input(
     print(
         f"Scenario: {scale_label} "
         f"({n_sessions} sesija, {n_rooms} ucionica, "
-        f"{D} dana x {H} sati)"
+        f"{D} dana x {H} sati, limit {max_time:.0f}s)"
     )
     print("=" * 65)
 
@@ -401,12 +378,6 @@ def _fmt_num(n) -> str:
     return f"{n:,}"
 
 
-def _fmt_pct(v) -> str:
-    if v is None:
-        return "N/A"
-    return f"{v * 100:.2f}%"
-
-
 def _fmt_valid(v) -> str:
     if v is None:
         return "N/A"
@@ -424,8 +395,6 @@ def print_comparison_table(cp: BenchmarkResult, mip: BenchmarkResult):
         ("Model memorija", f"{cp.model_memory_kb:.1f} KB", f"{mip.model_memory_kb:.1f} KB"),
         ("Maksimalna RAM", f"{cp.peak_memory_kb:.0f} KB", f"{mip.peak_memory_kb:.0f} KB"),
         ("Status", cp.status, mip.status),
-        ("Objektivna vrednost (max_slot)", _fmt_num(cp.objective_value), _fmt_num(mip.objective_value)),
-        ("Optimality gap", _fmt_pct(cp.optimality_gap), _fmt_pct(mip.optimality_gap)),
         ("Resenje validno", _fmt_valid(cp.solution_valid), _fmt_valid(mip.solution_valid)),
     ]
 
@@ -463,15 +432,12 @@ def print_summary(results: List[BenchmarkResult]):
 
   MIP/SCIP (Mixed Integer Programming):
     - Promenljive:   O(S * D * H * R) -- jedna binarna promenljiva per (session, day, hour, room)
-    - Ogranicenja: O(D*H*R + G*D*H) linear inequalities
+    - Ogranicenja:   O(D*H*R + G*D*H) linear inequalities
     - Pretraga:      LP relaxation + branch-and-bound
     - Snaga:    LP relaxation daje tesne granice objektivne vrednosti
 
-  Kljucni trade-off:
-    CP pravi mali model ali se zavisi od inferencije za skracivanje pretrage.
-    MIP pravi veliki model ali dobija jake granice iz LP relaxation.
-    Kao problem raste, broj promenljivih MIP eksplodira (multiplikativno),
-    dok CP ostaje linearno u broju sesija.
+  Rezim:      FEASIBILITY-ONLY (bez funkcije cilja)
+  Pitanje:    da li solver moze da nadje bilo koji validan raspored?
 """)
 
 
@@ -488,7 +454,7 @@ def write_json_report(results: List[BenchmarkResult], path: str):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Merenje CP-SAT vs MIP/SCIP za problem rasporeda ucionica"
+        description="Merenje CP-SAT vs MIP/SCIP za problem rasporeda ucionica (feasibility-only)"
     )
     parser.add_argument(
         "--scales",
@@ -511,7 +477,7 @@ def main():
     )
     args = parser.parse_args()
 
-    print("===== Merenje CP-SAT vs MIP/SCIP =====")
+    print("===== Merenje CP-SAT vs MIP/SCIP (feasibility-only) =====")
 
     results = run_benchmark(
         scales=args.scales,

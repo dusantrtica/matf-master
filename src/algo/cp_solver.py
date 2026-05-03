@@ -1,4 +1,3 @@
-import math
 from collections import defaultdict
 from ortools.sat.python import cp_model
 from typing import List
@@ -26,14 +25,13 @@ class SimpleCPSolver:
 
         # Ubrzava rešavanje tako sto koristimo vise jezgara i tako sto
         # skracujemo simetrije u modelu.
-        self.solver.parameters.num_search_workers = 8  # use all M4 cores
-        self.solver.parameters.symmetry_level = 2
+        #self.solver.parameters.num_search_workers = 8  # use all M4 cores
+        #self.solver.parameters.symmetry_level = 2
 
         self.init_input(scheduling_input)
         
         self.create_assignment_variables()
         self.create_hard_constraints()
-        self.set_objective()
 
     def init_input(self, scheduling_input: SchedulingInput):
         self.settings: Settings = scheduling_input.settings
@@ -131,40 +129,6 @@ class SimpleCPSolver:
                     [self.room_var[s]],
                     [[idx] for idx in computer_room_indices],
                 )
-
-    def set_objective(self):
-        """
-        Minimizovati najkasniji sat na danu.
-        Ovo motiviše solver da rasporedi sesije na različite dane
-        umesto da ih skupi u jedan dan do poslednjeg sata.
-        Takođe, dodajemo izračunatu donju granicu: grupa sa najviše sesija
-        treba da ima najmanje ceil(num_sessions / num_days) satnih slotova, tako da
-        max_slot >= ceil(max_group_sessions / D) - 1. Ovo pomaže solveru
-        da dostigne optimalnost mnogo brže, al nije  neophodno za dobijanje optimalnog rešenja.
-        """
-        if not self.sessions:
-            return
-
-        D = len(self.settings.working_days)
-        H = len(self.working_hours)
-
-        # Racunamo lower bound, da bismo pomogli solveru da pre dostigne optimalnost,
-        # inače nije neophodno.
-        groups = defaultdict(int)
-        for session in self.sessions:
-            groups[session.group_id] += 1
-        max_group_sessions = max(groups.values()) if groups else 0
-        # npr ako imamo 5 sesija i 3 dana, lower_bound je 1, tj. moramo imati bar 1 sat u toku dana.
-        lower_bound = math.ceil(max_group_sessions / D) - 1 if D > 0 else 0
-
-        # max slot mora je manji od broja sati u toku dana, a
-        # želimo i da ga minimizujemo tako da se predavanja što pre završe u toku dana.
-        # implicitno, ako minimizujemo max_slot, minimizujemo i broj sati u toku dana.
-        # i to ce terati solver da rasporedi sesije tokom vise dana, ali tako da se zavrsavju sto pre.
-        self.max_slot = self.model.NewIntVar(lower_bound, H - 1, "max_slot")
-        for s in range(len(self.sessions)):
-            self.model.Add(self.max_slot >= self.slot_var[s])
-        self.model.Minimize(self.max_slot)
 
     def solve(self):
         status = self.solver.Solve(self.model)

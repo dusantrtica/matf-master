@@ -56,7 +56,7 @@ py_binary(
         "report.py",
         "mip_runner.py",
     ],
-    data = ["input.json"],
+    data = ["input_full_1_semester.json"],
     deps = [
         "@pip//pydantic",
         "@pip//ortools",

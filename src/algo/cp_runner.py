@@ -48,17 +48,14 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    if args.input is not None:
-        input_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.input)
-    else:
-        input_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "input.json")
+    input_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.input or "input.json")
 
-    print("Loading input...", flush=True)
+    print(f"Loading input from {input_path}...", flush=True)
     scheduling_input: SchedulingInput = load_input(input_path)
     print(f"Loaded {len(scheduling_input.courses)} courses, "
           f"{len(scheduling_input.classrooms)} rooms", flush=True)
 
-    print("Creating CP solver (30s limit)...", flush=True)
+    print(f"Creating CP solver {(args.time_limit)}s limit)...", flush=True)
     solver = SimpleCPSolver(scheduling_input, max_time_seconds=args.time_limit)
     print(f"Model has {len(solver.sessions)} sessions to schedule.", flush=True)
 
@@ -68,8 +65,8 @@ if __name__ == "__main__":
     elapsed = time.perf_counter() - t_start
 
     status_name = solver.solver.StatusName(status)
-    print(f"\nSolver finished with status: {status_name}", flush=True)
-    print(f"CP solver completed in {elapsed:.2f}s", flush=True)
+    print(f"\nSolver je zavrsio sa statusom: {status_name}", flush=True)
+    print(f"CP solver je zavrsio sa rešavanjem u {elapsed:.2f}s", flush=True)
 
     if status not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
         print("No feasible solution found.")

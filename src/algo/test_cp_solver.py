@@ -78,7 +78,7 @@ def test_cp_solver_basic_constraint(scheduling_input, sessions):
     solver = SimpleCPSolver(scheduling_input, log_progress=False)
     status = solver.solve()
 
-    assert status == cp_model.OPTIMAL
+    assert status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
     variables = solver.get_solution_variables()
  
     # Broj varijabli mora da odgovara broju sesija generisanih od strane solvera.    

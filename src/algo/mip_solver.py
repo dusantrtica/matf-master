@@ -37,7 +37,6 @@ class SimpleMIPSolver:
 
         self.create_assignment_variables()
         self.create_hard_constraints()
-        self.set_objective()
 
     def init_input(self, scheduling_input: SchedulingInput):
         self.settings: Settings = scheduling_input.settings
@@ -165,36 +164,6 @@ class SimpleMIPSolver:
                 if day_vars:
                     # TODO: implementirati ogranicenje
                     self.solver.Add(sum(day_vars) <= max_per_day)
-
-    def set_objective(self):
-        """
-        Minimizujemo max_slot -- najkasniji sat koriscen bilo kog dana.
-        Za svaku sesiju s, slot sesije s = sum_{d,h,r} h * x[s,d,h,r],
-        pa stavljamo max_slot >= taj izraz.
-        """
-        if not self.sessions:
-            return
-
-        D = len(self.settings.working_days)
-        H = len(self.working_hours)
-
-        groups = defaultdict(int)
-        for session in self.sessions:
-            groups[session.group_id] += 1
-        max_group_sessions = max(groups.values()) if groups else 0
-        lower_bound = math.ceil(max_group_sessions / D) - 1 if D > 0 else 0
-
-        self.max_slot = self.solver.IntVar(lower_bound, H - 1, "max_slot")
-
-        for s in range(len(self.sessions)):
-            self.solver.Add(
-                self.max_slot >= sum(
-                    h * self.x[s][(d, h, r)]
-                    for (d, h, r) in self.x[s]
-                )
-            )
-
-        self.solver.Minimize(self.max_slot)
 
     def solve(self):
         status = self.solver.Solve()

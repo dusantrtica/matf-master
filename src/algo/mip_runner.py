@@ -32,17 +32,31 @@ if __name__ == "__main__":
         "--verbose", action="store_true",
         help="Print the full schedule table to the terminal",
     )
+    parser.add_argument(
+        "--input",
+        type=str,
+        default=None,
+        help="Putanja do JSON fajla za input",
+    )
+
+    parser.add_argument(
+        "--time-limit",
+        type=int,
+        default=600,
+        help="Vremenski limit za solver u sekundama",
+    )
+
     args = parser.parse_args()
 
-    input_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "input.json")
-
+    input_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.input or "input.json")
+    
     print("Loading input...", flush=True)
     scheduling_input: SchedulingInput = load_input(input_path)
     print(f"Loaded {len(scheduling_input.courses)} courses, "
           f"{len(scheduling_input.classrooms)} rooms", flush=True)
 
-    print("Creating MIP solver (300s limit)...", flush=True)
-    solver = SimpleMIPSolver(scheduling_input, max_time_seconds=300.0)
+    print(f"Creating MIP solver with {(args.time_limit)}s limit...", flush=True)
+    solver = SimpleMIPSolver(scheduling_input, max_time_seconds=args.time_limit)
     print(f"Model has {len(solver.sessions)} sessions to schedule.", flush=True)
 
     print("Solving...", flush=True)
