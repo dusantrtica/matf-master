@@ -23,6 +23,12 @@ class SimpleCPSolver:
         self.solver = cp_model.CpSolver()
         self.solver.parameters.max_time_in_seconds = max_time_seconds
         self.solver.parameters.log_search_progress = log_progress
+
+        # Ubrzava rešavanje tako sto koristimo vise jezgara i tako sto
+        # skracujemo simetrije u modelu.
+        self.solver.parameters.num_search_workers = 8  # use all M4 cores
+        self.solver.parameters.symmetry_level = 2
+
         self.init_input(scheduling_input)
         
         self.create_assignment_variables()

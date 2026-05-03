@@ -402,6 +402,70 @@ DEFAULT_INPUT_FILES: List[Tuple[str, str]] = [
     ("Parni semestri (2, 4, 6, 8)", "src/algo/input_full_2_semester.json"),
 ]
 
+DEFAULT_REAL_SOURCE = "src/algo/input_full_1_semester.json"
+
+REAL_SCALE_CONFIGS = {
+    "S": {"semesters": [1], "loc_ids": [1], "max_time": 60},
+    "M": {"semesters": [1, 3], "loc_ids": [1, 3], "max_time": 60},
+    "L": {"semesters": [1, 3, 5, 7], "loc_ids": [1, 2, 3], "max_time": 300},
+}
+
+REAL_SCALE_LABELS = {
+    "S": "MATF-S: 1. godina, lok. Studentski trg",
+    "M": "MATF-M: 1-2. godina, lok. Studentski trg + Jagiceva",
+    "L": "MATF-L: sve godine, sve lokacije (5 min limit)",
+}
+
+
+def generate_real_subset(
+    scheduling_input: SchedulingInput,
+    semesters: List[int],
+    loc_ids: List[int],
+) -> SchedulingInput:
+    """Filter a full SchedulingInput to a subset of semesters and locations."""
+    return SchedulingInput(
+        settings=scheduling_input.settings,
+        locations=scheduling_input.locations,
+        classrooms=[
+            r for r in scheduling_input.classrooms if r.loc_id in loc_ids
+        ],
+        departments=scheduling_input.departments,
+        courses=[
+            c for c in scheduling_input.courses if c.semester in semesters
+        ],
+        students_enrolled=[
+            s for s in scheduling_input.students_enrolled
+            if s.semester in semesters
+        ],
+    )
+
+
+def run_real_benchmark(
+    source_path: str = DEFAULT_REAL_SOURCE,
+    scales: Optional[List[str]] = None,
+    max_time_override: Optional[float] = None,
+) -> List[BenchmarkResult]:
+    """Run CP-SAT and MIP/SCIP on real MATF subsets (S, M, L)."""
+    if scales is None:
+        scales = list(REAL_SCALE_CONFIGS.keys())
+
+    resolved = _resolve_input_path(source_path)
+    full_input = load_input(resolved)
+
+    results: List[BenchmarkResult] = []
+    for scale in scales:
+        cfg = REAL_SCALE_CONFIGS[scale]
+        subset = generate_real_subset(
+            full_input, cfg["semesters"], cfg["loc_ids"]
+        )
+        max_time = max_time_override if max_time_override is not None else cfg["max_time"]
+        label = REAL_SCALE_LABELS[scale]
+        cp_result, mip_result = _run_solvers_on_input(subset, label, max_time)
+        results.append(cp_result)
+        results.append(mip_result)
+
+    return results
+
 
 def _run_solvers_on_input(
     scheduling_input: SchedulingInput,
@@ -599,13 +663,20 @@ def main():
         description="Merenje CP-SAT vs MIP/SCIP za problem raspoređivanja učionica"
     )
     parser.add_argument(
+        "--real-scales",
+        nargs="+",
+        choices=list(REAL_SCALE_CONFIGS.keys()),
+        default=None,
+        help=(
+            "Pokrece stvarne MATF podskupove (S/M/L). "
+            "Default ako se ne navede nijedan drugi mode."
+        ),
+    )
+    parser.add_argument(
         "--inputs",
         nargs="+",
         default=None,
-        help=(
-            "Putanje do JSON fajlova za benchmark. Default: "
-            "input_full_1_semester.json i input_full_2_semester.json."
-        ),
+        help="Putanje do JSON fajlova za benchmark (raw file mode).",
     )
     parser.add_argument(
         "--scales",
@@ -617,8 +688,8 @@ def main():
     parser.add_argument(
         "--max-time",
         type=float,
-        default=1e9,
-        help="Vremenski limit za solver u sekundama (default: bez limita)",
+        default=None,
+        help="Vremenski limit za solver u sekundama (override per-scale defaults).",
     )
     parser.add_argument(
         "--json",
@@ -631,14 +702,16 @@ def main():
     print("===== Merenje CP-SAT vs MIP/SCIP =====")
 
     if args.scales is not None:
-        results = run_benchmark_matrix(scales=args.scales, max_time=args.max_time)
+        mt = args.max_time if args.max_time is not None else 1e9
+        results = run_benchmark_matrix(scales=args.scales, max_time=mt)
+    elif args.inputs is not None:
+        mt = args.max_time if args.max_time is not None else 1e9
+        input_files = [(os.path.basename(p), p) for p in args.inputs]
+        results = run_input_files_benchmark(input_files=input_files, max_time=mt)
     else:
-        if args.inputs is not None:
-            input_files = [(os.path.basename(p), p) for p in args.inputs]
-        else:
-            input_files = DEFAULT_INPUT_FILES
-        results = run_input_files_benchmark(
-            input_files=input_files, max_time=args.max_time
+        results = run_real_benchmark(
+            scales=args.real_scales,
+            max_time_override=args.max_time,
         )
 
     print_summary(results)
