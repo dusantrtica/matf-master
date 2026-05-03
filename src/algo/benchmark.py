@@ -1,17 +1,14 @@
 """
 Benchmark harness for comparing CP-SAT vs MIP/SCIP solvers on class scheduling.
 
-By default, the harness runs both solvers on the two real-world input files
-(`input_full_1_semester.json` and `input_full_2_semester.json`) and prints a
-structured comparison report per file.
-
-A synthetic-scale mode is also available via `--scales` for stress-testing.
+Runs both solvers on three real-world subsets of input_full_1_semester.json
+(MATF-S, MATF-M, MATF-L) and prints a structured comparison report.
 
 Usage:
-    python -m src.algo.benchmark                    # real inputs (default)
-    python -m src.algo.benchmark --json report.json
-    python -m src.algo.benchmark --scales small medium
-    python -m src.algo.benchmark --inputs path1.json path2.json
+    python -m src.algo.benchmark                       # all three scales
+    python -m src.algo.benchmark --scales S M          # only S and M
+    python -m src.algo.benchmark --json report.json    # save JSON report
+    python -m src.algo.benchmark --max-time 120        # override time limits
 """
 
 import argparse
@@ -23,7 +20,7 @@ import resource
 import time
 import tracemalloc
 from collections import defaultdict
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 from typing import Dict, List, Optional, Tuple
 
 from ortools.linear_solver import pywraplp
@@ -32,108 +29,11 @@ from ortools.sat.python import cp_model
 from src.algo.cp_solver import SimpleCPSolver
 from src.algo.data import GROUP_SIZE, Session, generate_sessions, load_input
 from src.algo.mip_solver import SimpleMIPSolver
-from src.algo.model import (
-    Classroom,
-    Course,
-    Department,
-    Location,
-    Quota,
-    SchedulingInput,
-    Settings,
-    StudentsEnrolled,
-)
-
-# ---------------------------------------------------------------------------
-# 1. Scaled input generation
-# ---------------------------------------------------------------------------
-
-COURSE_NAMES = [
-    "Analiza", "Algebra", "Geometrija", "Diskretne strukture",
-    "Baze podataka", "Operativni sistemi", "Racunarske Mreze", "Vestacka inteligencija",
-    "Statistika", "Diskretna matematika", "Numericki metodi", "Logika",
-    "Softversko inzenjerstvo", "Racunarska grafika",
-    "Kriptografija", "Mreze", "Vestacka inteligencija", "Statistika", "Diskretna matematika", "Numericki metodi", "Logika",
-    "Algoritmi", "Strukture podataka"
-]
-
-
-def generate_scaled_input(
-    n_departments: int = 1,
-    students_per_dep: int = 30,
-    courses_per_dep: int = 2,
-    n_rooms: int = 3,
-    n_computer_rooms: int = 1,
-    n_days: int = 5,
-    hours_per_day: int = 6,
-    theory_quota: int = 2,
-    practice_quota: int = 2,
-    computer_course_ratio: float = 0.3,
-) -> SchedulingInput:
-    day_names = ["Ponedeljak", "Utorak", "Sreda", "Cetvrtak", "Petak",
-                 "Subota", "Nedelja"][:n_days]
-    start_hour = 8
-    end_hour = start_hour + hours_per_day
-
-    settings = Settings(
-        working_days=day_names,
-        start_hour=start_hour,
-        end_hour=end_hour,
-        duration=1,
-    )
-
-    locations = [Location(id=1, name="Trg")]
-
-    classrooms = []
-    for i in range(n_rooms):
-        has_computers = i < n_computer_rooms
-        classrooms.append(
-            Classroom(
-                id=i + 1,
-                name=f"Room_{i + 1}",
-                loc_id=1,
-                has_computers=has_computers,
-                capacity=40,
-            )
-        )
-
-    departments = []
-    courses = []
-    students_enrolled = []
-    course_id = 1
-
-    for dep_idx in range(n_departments):
-        dep_id = dep_idx + 1
-        departments.append(Department(id=dep_id, name=f"Dep_{dep_id}"))
-        students_enrolled.append(
-            StudentsEnrolled(dep_id=dep_id, semester=1, count=students_per_dep)
-        )
-        for c_idx in range(courses_per_dep):
-            name = COURSE_NAMES[c_idx % len(COURSE_NAMES)]
-            needs_pc = c_idx < int(courses_per_dep * computer_course_ratio)
-            courses.append(
-                Course(
-                    id=course_id,
-                    name=f"{name} (D{dep_id})",
-                    semester=1,
-                    dep_id=dep_id,
-                    quota=Quota(theory=theory_quota, practice=practice_quota),
-                    needs_computers=needs_pc,
-                )
-            )
-            course_id += 1
-
-    return SchedulingInput(
-        settings=settings,
-        locations=locations,
-        classrooms=classrooms,
-        departments=departments,
-        courses=courses,
-        students_enrolled=students_enrolled,
-    )
+from src.algo.model import Classroom, SchedulingInput
 
 
 # ---------------------------------------------------------------------------
-# 2. BenchmarkResult dataclass
+# 1. BenchmarkResult dataclass
 # ---------------------------------------------------------------------------
 
 @dataclass
@@ -155,7 +55,7 @@ class BenchmarkResult:
 
 
 # ---------------------------------------------------------------------------
-# 3. Solution validator
+# 2. Solution validator
 # ---------------------------------------------------------------------------
 
 def validate_solution(
@@ -164,7 +64,7 @@ def validate_solution(
     classrooms: List[Classroom],
 ) -> tuple:
     """
-    Funkcija koja proverava da li je resenje validno.
+    Funkcija koja proverava da li je resenje validno
     u odnosu na hard constraints.
     Returns (is_valid, list_of_violations).
     """
@@ -189,7 +89,7 @@ def validate_solution(
         rt_key = (d, h, r)
         if rt_key in room_time_set:
             violations.append(
-                f"Kolizija učionice u danu={d} satu={h} učionici={r} (sesija {s})"
+                f"Kolizija ucionice u danu={d} satu={h} ucionici={r} (sesija {s})"
             )
         room_time_set.add(rt_key)
 
@@ -203,8 +103,8 @@ def validate_solution(
 
         if session.needs_computers and r not in computer_room_indices:
             violations.append(
-                f"Ograničenje računara nije zadovoljeno: sesija {s} zahteva računare "
-                f"ali učionica {r} nema računara"
+                f"Ogranicenje racunara nije zadovoljeno: sesija {s} zahteva racunare "
+                f"ali ucionica {r} nema racunara"
             )
 
     is_valid = len(violations) == 0
@@ -212,7 +112,7 @@ def validate_solution(
 
 
 # ---------------------------------------------------------------------------
-# 4. Benchmark runner za svaki solver tip
+# 3. Benchmark runners for each solver type
 # ---------------------------------------------------------------------------
 
 CP_STATUS_NAMES = {
@@ -234,7 +134,7 @@ MIP_STATUS_NAMES = {
 
 
 def _get_peak_rss_kb() -> float:
-    """Maksimalna veličina RAM u KB (macOS ru_maxrss je u bajtovima)."""
+    """Maksimalna velicina RAM u KB (macOS ru_maxrss je u bajtovima)."""
     usage = resource.getrusage(resource.RUSAGE_SELF)
     return usage.ru_maxrss / 1024
 
@@ -370,47 +270,18 @@ def benchmark_mip(
 
 
 # ---------------------------------------------------------------------------
-# 5. Definicije skala i benchmark matrica
+# 4. Real MATF subsets (S / M / L)
 # ---------------------------------------------------------------------------
-
-SCALE_CONFIGS = {
-    "small": dict(
-        n_departments=1, students_per_dep=30, courses_per_dep=2,
-        n_rooms=3, n_computer_rooms=1, n_days=5, hours_per_day=6,
-        theory_quota=2, practice_quota=2, computer_course_ratio=0.5,
-    ),
-    "medium": dict(
-        n_departments=2, students_per_dep=90, courses_per_dep=4,
-        n_rooms=8, n_computer_rooms=3, n_days=5, hours_per_day=10,
-        theory_quota=3, practice_quota=3, computer_course_ratio=0.25,
-    ),
-    "large": dict(
-        n_departments=3, students_per_dep=120, courses_per_dep=5,
-        n_rooms=12, n_computer_rooms=4, n_days=5, hours_per_day=12,
-        theory_quota=3, practice_quota=2, computer_course_ratio=0.2,
-    ),
-    "xl": dict(
-        n_departments=4, students_per_dep=150, courses_per_dep=6,
-        n_rooms=15, n_computer_rooms=5, n_days=5, hours_per_day=12,
-        theory_quota=2, practice_quota=2, computer_course_ratio=0.17,
-    ),
-}
-
-
-DEFAULT_INPUT_FILES: List[Tuple[str, str]] = [
-    ("Neparni semestri (1, 3, 5, 7)", "src/algo/input_full_1_semester.json"),
-    ("Parni semestri (2, 4, 6, 8)", "src/algo/input_full_2_semester.json"),
-]
 
 DEFAULT_REAL_SOURCE = "src/algo/input_full_1_semester.json"
 
-REAL_SCALE_CONFIGS = {
+SCALE_CONFIGS = {
     "S": {"semesters": [1], "loc_ids": [1], "max_time": 60},
     "M": {"semesters": [1, 3], "loc_ids": [1, 3], "max_time": 60},
     "L": {"semesters": [1, 3, 5, 7], "loc_ids": [1, 2, 3], "max_time": 300},
 }
 
-REAL_SCALE_LABELS = {
+SCALE_LABELS = {
     "S": "MATF-S: 1. godina, lok. Studentski trg",
     "M": "MATF-M: 1-2. godina, lok. Studentski trg + Jagiceva",
     "L": "MATF-L: sve godine, sve lokacije (5 min limit)",
@@ -440,31 +311,22 @@ def generate_real_subset(
     )
 
 
-def run_real_benchmark(
-    source_path: str = DEFAULT_REAL_SOURCE,
-    scales: Optional[List[str]] = None,
-    max_time_override: Optional[float] = None,
-) -> List[BenchmarkResult]:
-    """Run CP-SAT and MIP/SCIP on real MATF subsets (S, M, L)."""
-    if scales is None:
-        scales = list(REAL_SCALE_CONFIGS.keys())
-
-    resolved = _resolve_input_path(source_path)
-    full_input = load_input(resolved)
-
-    results: List[BenchmarkResult] = []
-    for scale in scales:
-        cfg = REAL_SCALE_CONFIGS[scale]
-        subset = generate_real_subset(
-            full_input, cfg["semesters"], cfg["loc_ids"]
-        )
-        max_time = max_time_override if max_time_override is not None else cfg["max_time"]
-        label = REAL_SCALE_LABELS[scale]
-        cp_result, mip_result = _run_solvers_on_input(subset, label, max_time)
-        results.append(cp_result)
-        results.append(mip_result)
-
-    return results
+def _resolve_input_path(path: str) -> str:
+    """Resolve a file path, trying cwd first then this module's parent dir."""
+    if os.path.exists(path):
+        return path
+    here = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(here, os.path.basename(path)),
+        os.path.join(os.path.dirname(here), os.path.basename(path)),
+        os.path.join(here, "..", "..", path),
+    ]
+    for c in candidates:
+        if os.path.exists(c):
+            return c
+    raise FileNotFoundError(
+        f"Cannot locate input file '{path}'. Tried: {[path] + candidates}"
+    )
 
 
 def _run_solvers_on_input(
@@ -498,61 +360,27 @@ def _run_solvers_on_input(
     return cp_result, mip_result
 
 
-def run_benchmark_matrix(
+def run_benchmark(
+    source_path: str = DEFAULT_REAL_SOURCE,
     scales: Optional[List[str]] = None,
-    max_time: float = 1e9,
+    max_time_override: Optional[float] = None,
 ) -> List[BenchmarkResult]:
+    """Run CP-SAT and MIP/SCIP on real MATF subsets (S, M, L)."""
     if scales is None:
         scales = list(SCALE_CONFIGS.keys())
 
+    resolved = _resolve_input_path(source_path)
+    full_input = load_input(resolved)
+
     results: List[BenchmarkResult] = []
-    for scale_label in scales:
-        config = SCALE_CONFIGS[scale_label]
-        scheduling_input = generate_scaled_input(**config)
-        cp_result, mip_result = _run_solvers_on_input(
-            scheduling_input, scale_label, max_time
+    for scale in scales:
+        cfg = SCALE_CONFIGS[scale]
+        subset = generate_real_subset(
+            full_input, cfg["semesters"], cfg["loc_ids"]
         )
-        results.append(cp_result)
-        results.append(mip_result)
-
-    return results
-
-
-def _resolve_input_path(path: str) -> str:
-    """Resolve a file path, trying cwd first then this module's parent dir.
-
-    Lets the harness work whether it's launched from the repo root,
-    from inside `src/algo`, or via Bazel's runfiles tree.
-    """
-    if os.path.exists(path):
-        return path
-    here = os.path.dirname(os.path.abspath(__file__))
-    candidates = [
-        os.path.join(here, os.path.basename(path)),
-        os.path.join(os.path.dirname(here), os.path.basename(path)),
-        os.path.join(here, "..", "..", path),
-    ]
-    for c in candidates:
-        if os.path.exists(c):
-            return c
-    raise FileNotFoundError(
-        f"Cannot locate input file '{path}'. Tried: {[path] + candidates}"
-    )
-
-
-def run_input_files_benchmark(
-    input_files: List[Tuple[str, str]],
-    max_time: float = 1e9,
-) -> List[BenchmarkResult]:
-    """Run CP-SAT and MIP/SCIP on each provided JSON input file."""
-    results: List[BenchmarkResult] = []
-    for label, path in input_files:
-        resolved = _resolve_input_path(path)
-        scheduling_input = load_input(resolved)
-        scale_label = f"{label} [{os.path.basename(resolved)}]"
-        cp_result, mip_result = _run_solvers_on_input(
-            scheduling_input, scale_label, max_time
-        )
+        max_time = max_time_override if max_time_override is not None else cfg["max_time"]
+        label = SCALE_LABELS[scale]
+        cp_result, mip_result = _run_solvers_on_input(subset, label, max_time)
         results.append(cp_result)
         results.append(mip_result)
 
@@ -560,7 +388,7 @@ def run_input_files_benchmark(
 
 
 # ---------------------------------------------------------------------------
-# 6. Prikazivanje rezultata
+# 5. Output formatting
 # ---------------------------------------------------------------------------
 
 def _fmt_num(n) -> str:
@@ -591,14 +419,14 @@ def print_comparison_table(cp: BenchmarkResult, mip: BenchmarkResult):
         ("Promenljive", _fmt_num(cp.num_variables), _fmt_num(mip.num_variables)),
         ("Ogranicenja", _fmt_num(cp.num_constraints), _fmt_num(mip.num_constraints)),
         ("Vreme konstrukcije", f"{cp.construction_time_s:.4f}s", f"{mip.construction_time_s:.4f}s"),
-        ("Vreme rešavanja", f"{cp.solve_time_s:.4f}s", f"{mip.solve_time_s:.4f}s"),
+        ("Vreme resavanja", f"{cp.solve_time_s:.4f}s", f"{mip.solve_time_s:.4f}s"),
         ("Ukupno vreme", f"{cp.total_time_s:.4f}s", f"{mip.total_time_s:.4f}s"),
         ("Model memorija", f"{cp.model_memory_kb:.1f} KB", f"{mip.model_memory_kb:.1f} KB"),
         ("Maksimalna RAM", f"{cp.peak_memory_kb:.0f} KB", f"{mip.peak_memory_kb:.0f} KB"),
         ("Status", cp.status, mip.status),
         ("Objektivna vrednost (max_slot)", _fmt_num(cp.objective_value), _fmt_num(mip.objective_value)),
         ("Optimality gap", _fmt_pct(cp.optimality_gap), _fmt_pct(mip.optimality_gap)),
-        ("Rešenje validno", _fmt_valid(cp.solution_valid), _fmt_valid(mip.solution_valid)),
+        ("Resenje validno", _fmt_valid(cp.solution_valid), _fmt_valid(mip.solution_valid)),
     ]
 
     col0_w = max(len(r[0]) for r in rows)
@@ -631,7 +459,7 @@ def print_summary(results: List[BenchmarkResult]):
     - Promenljive:   O(S) -- 5 integer promenljive per session
     - Ogranicenja:   kompaktne globalne ogranicenja (AllDifferent, AllowedAssignments)
     - Pretraga:      constraint propagation + lazy-clause SAT pretraga
-    - Snaga:    kompaktna model; moćna inferencija skraćuje pretragu prostora
+    - Snaga:    kompaktna model; mocna inferencija skracuje pretragu prostora
 
   MIP/SCIP (Mixed Integer Programming):
     - Promenljive:   O(S * D * H * R) -- jedna binarna promenljiva per (session, day, hour, room)
@@ -639,8 +467,8 @@ def print_summary(results: List[BenchmarkResult]):
     - Pretraga:      LP relaxation + branch-and-bound
     - Snaga:    LP relaxation daje tesne granice objektivne vrednosti
 
-  Ključni trade-off:
-    CP pravi mali model ali se zavisi od inferencije za skraćivanje pretrage.
+  Kljucni trade-off:
+    CP pravi mali model ali se zavisi od inferencije za skracivanje pretrage.
     MIP pravi veliki model ali dobija jake granice iz LP relaxation.
     Kao problem raste, broj promenljivih MIP eksplodira (multiplikativno),
     dok CP ostaje linearno u broju sesija.
@@ -655,35 +483,19 @@ def write_json_report(results: List[BenchmarkResult], path: str):
 
 
 # ---------------------------------------------------------------------------
-# 7. CLI entry point
+# 6. CLI entry point
 # ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Merenje CP-SAT vs MIP/SCIP za problem raspoređivanja učionica"
-    )
-    parser.add_argument(
-        "--real-scales",
-        nargs="+",
-        choices=list(REAL_SCALE_CONFIGS.keys()),
-        default=None,
-        help=(
-            "Pokrece stvarne MATF podskupove (S/M/L). "
-            "Default ako se ne navede nijedan drugi mode."
-        ),
-    )
-    parser.add_argument(
-        "--inputs",
-        nargs="+",
-        default=None,
-        help="Putanje do JSON fajlova za benchmark (raw file mode).",
+        description="Merenje CP-SAT vs MIP/SCIP za problem rasporeda ucionica"
     )
     parser.add_argument(
         "--scales",
         nargs="+",
         choices=list(SCALE_CONFIGS.keys()),
         default=None,
-        help="Pokrece sinteticke skale umesto stvarnih input fajlova.",
+        help="Koje MATF podskupove pokrenuti: S, M, L (default: sve)",
     )
     parser.add_argument(
         "--max-time",
@@ -701,18 +513,10 @@ def main():
 
     print("===== Merenje CP-SAT vs MIP/SCIP =====")
 
-    if args.scales is not None:
-        mt = args.max_time if args.max_time is not None else 1e9
-        results = run_benchmark_matrix(scales=args.scales, max_time=mt)
-    elif args.inputs is not None:
-        mt = args.max_time if args.max_time is not None else 1e9
-        input_files = [(os.path.basename(p), p) for p in args.inputs]
-        results = run_input_files_benchmark(input_files=input_files, max_time=mt)
-    else:
-        results = run_real_benchmark(
-            scales=args.real_scales,
-            max_time_override=args.max_time,
-        )
+    results = run_benchmark(
+        scales=args.scales,
+        max_time_override=args.max_time,
+    )
 
     print_summary(results)
 
