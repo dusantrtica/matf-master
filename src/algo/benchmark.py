@@ -1,20 +1,3 @@
-"""
-Benchmark harness for comparing CP-SAT vs MIP/SCIP solvers on class scheduling.
-
-Both solvers run in feasibility-only mode (no objective function).
-The benchmark measures how quickly each solver finds any valid schedule
-that satisfies all hard constraints.
-
-Runs on three real-world subsets of input_full_1_semester.json
-(MATF-S, MATF-M, MATF-L).
-
-Usage:
-    python -m src.algo.benchmark                       # all three scales
-    python -m src.algo.benchmark --scales S M          # only S and M
-    python -m src.algo.benchmark --json report.json    # save JSON report
-    python -m src.algo.benchmark --max-time 120        # override time limits
-"""
-
 import argparse
 import gc
 import json
@@ -35,10 +18,6 @@ from src.algo.mip_solver import SimpleMIPSolver
 from src.algo.model import Classroom, SchedulingInput
 
 
-# ---------------------------------------------------------------------------
-# 1. BenchmarkResult dataclass
-# ---------------------------------------------------------------------------
-
 @dataclass
 class BenchmarkResult:
     solver_name: str
@@ -54,10 +33,6 @@ class BenchmarkResult:
     status: str
     solution_valid: Optional[bool]
 
-
-# ---------------------------------------------------------------------------
-# 2. Solution validator
-# ---------------------------------------------------------------------------
 
 def validate_solution(
     sessions: List[Session],
@@ -111,10 +86,6 @@ def validate_solution(
     is_valid = len(violations) == 0
     return is_valid, violations
 
-
-# ---------------------------------------------------------------------------
-# 3. Benchmark runners for each solver type
-# ---------------------------------------------------------------------------
 
 CP_STATUS_NAMES = {
     cp_model.OPTIMAL: "FEASIBLE",
@@ -246,16 +217,12 @@ def benchmark_mip(
     )
 
 
-# ---------------------------------------------------------------------------
-# 4. Real MATF subsets (S / M / L)
-# ---------------------------------------------------------------------------
-
 DEFAULT_REAL_SOURCE = "src/algo/input_full_1_semester.json"
 
 SCALE_CONFIGS = {
     "S": {"semesters": [1], "loc_ids": [1], "max_time": 60},
     "M": {"semesters": [1, 3], "loc_ids": [1, 3], "max_time": 120},
-    "L": {"semesters": [1, 3, 5, 7], "loc_ids": [1, 2, 3], "max_time": 300},
+    "L": {"semesters": [1, 3, 5, 7], "loc_ids": [1, 2, 3], "max_time": 600},
 }
 
 SCALE_LABELS = {
@@ -270,7 +237,7 @@ def generate_real_subset(
     semesters: List[int],
     loc_ids: List[int],
 ) -> SchedulingInput:
-    """Filter a full SchedulingInput to a subset of semesters and locations."""
+    """Generise podskup realnog inputa filtriranjem po semestru i lokaciji."""
     return SchedulingInput(
         settings=scheduling_input.settings,
         locations=scheduling_input.locations,
@@ -364,10 +331,7 @@ def run_benchmark(
     return results
 
 
-# ---------------------------------------------------------------------------
-# 5. Output formatting
-# ---------------------------------------------------------------------------
-
+# Formatiranje i prikaz rezultata
 def _fmt_num(n) -> str:
     if n is None:
         return "N/A"
@@ -447,10 +411,6 @@ def write_json_report(results: List[BenchmarkResult], path: str):
         json.dump(data, f, indent=2)
     print(f"JSON report written to: {path}")
 
-
-# ---------------------------------------------------------------------------
-# 6. CLI entry point
-# ---------------------------------------------------------------------------
 
 def main():
     parser = argparse.ArgumentParser(

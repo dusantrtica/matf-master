@@ -5,22 +5,15 @@ resavanja problema nedeljnog rasporeda nastave: **CP-SAT** (Constraint
 Programming, OR-Tools) i **MIP/SCIP** (Mixed Integer Programming preko
 OR-Tools `pywraplp` SCIP backend-a).
 
-Oba solvera rade u **feasibility-only** rezimu -- bez funkcije cilja.
-Jedino pitanje je: **da li solver moze da pronadje bilo koji validan
+Pitanje je: **da li solver moze da pronadje bilo koji validan
 raspored koji zadovoljava sva tvrda ogranicenja?**
-
-Zakljucak unapred: **CP-SAT ubedljivo nadmasuje MIP/SCIP na svim testiranim
-skalama** -- i po vremenu resavanja, i po velicini modela, i po memorijskoj
-slozensoti. Na najvecoj skali MIP ne vraca nijedno resenje u datom
-vremenskom limitu, dok CP-SAT zavrsi za 5.4 sekunde.
 
 ---
 
 ## 1. Opis problema
 
 Treba napraviti **nedeljni raspored predavanja** za fakultet, gde se sesije
-(predavanja i vezbe) dodeljuju trojkama `(dan, sat, ucionica)`. Implementacija
-obe varijante zivi u [src/algo/](.) paketu.
+(predavanja i vezbe) dodeljuju trojkama `(dan, sat, ucionica)`.
 
 ### Ulazni podaci
 
@@ -32,14 +25,14 @@ Ulaz je definisan u [model.py](model.py) klasama:
   casova nedeljno smer treba da odslusa za taj predmet.
 - `StudentsEnrolled` - koliko studenata je upisano u dati smer/semestar.
 
-Realni podaci dolaze iz [input_full_1_semester.json](input_full_1_semester.json),
-koji modeluje neparni semestri (1, 3, 5, 7) osnovnih studija MATF-a za
+Podaci dolaze iz [input_full_1_semester.json](input_full_1_semester.json)
 6 odseka (5 modula Matematike + Informatika) sa 35 ucionica na 3 lokacije.
+Razmatramo prvi semestar za sve četiri godine studija, dakle semestri: 1, 3, 5, 7
 
 ### Generisanje sesija
 
 Svaki upisani broj studenata se deli u grupe od po `GROUP_SIZE = 30`
-(vidi [data.py](data.py), funkcija `split_students_into_groups`). Za svaku
+(videti [data.py](data.py), funkcija `split_students_into_groups`). Za svaku
 grupu i svaki predmet generise se po `quota.theory` teorijskih i
 `quota.practice` prakticnih sesija (`generate_sessions` u [data.py](data.py)).
 Jedna sesija = jedan cas u rasporedu.
@@ -48,25 +41,18 @@ Jedna sesija = jedan cas u rasporedu.
 
 Oba solvera namecu identican skup tvrdih ogranicenja:
 
-1. **Ucionica zauzeta jednom u datom satu.** Nikoje dve sesije ne dele isti
+1. **Učionica zauzeta jednom u datom satu.** Nikoje dve sesije ne dele isti
    `(dan, sat, ucionica)`.
-2. **Grupa ne moze biti na dva mesta odjednom.** Nijedna grupa ne sme imati
+2. **Grupa ne može biti na dva mesta odjednom.** Nijedna grupa ne sme imati
    dve sesije u istom `(dan, sat)`.
-3. **Racunarske ucionice za predmete koji ih zahtevaju.** Sesija sa
+3. **Računarske ucionice za predmete koji ih zahtevaju.** Sesija sa
    `needs_computers = true` moze zavrsiti samo u ucionici sa
    `has_computers = true`.
-
-(MIP varijanta dodatno namece "ravnomernu raspodelu po danima" --
-`sum_{s in g, h, r} x[s,d,h,r] <= ceil(N_g / D)` po grupi i danu -- radi
-kontrole prostora pretrage; CP varijanta isti efekat dobija kroz
-`AllDifferent` na `flat_time` po grupi.)
 
 ### Rezim: feasibility-only
 
 Solveri ne minimizuju nijednu funkciju cilja. Traze se **bilo koji raspored**
-koji zadovoljava gore navedena tvrda ogranicenja. Ovo izoluje cistu
-performansu zadovoljavanja ogranicenja (constraint satisfaction) od
-performanse optimizacije, i predstavlja prvu fazu projekta.
+koji zadovoljava gore navedena tvrda ograničejna, dakle da se predmeti i grupe ne sudaraju.
 
 ---
 
@@ -91,7 +77,7 @@ Tvrda ogranicenja su zatim izrazena kao dva globalna `AllDifferent`:
   sesije u istom `(dan, sat)`.
 
 Sesije sa `needs_computers` dobijaju `AddAllowedAssignments` na `room_var`
-sa listom dozvoljenih ucionica.
+sa listom dozvoljenih učionica, koje imaju računare.
 
 Velicina modela: **O(S)** promenljivih (5 po sesiji).
 
@@ -102,34 +88,28 @@ je SCIP preko `pywraplp.Solver.CreateSolver("SCIP")`.
 
 Po sesiji `s` se kreira **binarna promenljiva `x[s, d, h, r]`** za svaku
 dozvoljenu trojku `(d, h, r)` -- jedinica znaci "sesija s je u danu d, satu
-h, ucionici r". Promenljive za nedozvoljene kombinacije (sesija trazi
-racunare a ucionica ih nema) se preskacuju.
+h, ucionici r".
 
 Ogranicenja su klasicne linearne nejednakosti:
 
 - `sum_{d,h,r} x[s,d,h,r] == 1` za svako `s` (svaka sesija rasporedjena tacno jednom).
 - `sum_s x[s,d,h,r] <= 1` za svako `(d,h,r)` (ucionica nije dvostruko zauzeta).
 - `sum_{s in g, r} x[s,d,h,r] <= 1` po grupi i `(d,h)`.
-- `sum_{s in g, h, r} x[s,d,h,r] <= ceil(N_g / D)` po grupi i danu (ravnomerna
-  raspodela).
 
 Velicina modela: **O(S * D * H * R)** binarnih promenljivih.
 
 ---
 
-## 3. Sta je tacno mereno (metodologija)
-
-Benchmark harness je u [benchmark.py](benchmark.py). Za svaki par
-(skala, solver) mere se polja iz `BenchmarkResult` dataclass-a:
+## 3. Šta je mereno:
 
 | Polje | Sta predstavlja | Kako se meri |
 |---|---|---|
 | `num_sessions` | Broj generisanih sesija | `len(solver.sessions)` |
 | `num_variables` | Broj promenljivih u modelu | `model.Proto().variables` (CP) / `solver.NumVariables()` (MIP) |
-| `num_constraints` | Broj ogranicenja u modelu | `model.Proto().constraints` (CP) / `solver.NumConstraints()` (MIP) |
+| `num_constraints` | Broj ograničenja u modelu | `model.Proto().constraints` (CP) / `solver.NumConstraints()` (MIP) |
 | `construction_time_s` | Vreme izgradnje modela | `time.perf_counter` razlika oko konstruktora |
-| `solve_time_s` | Cisto vreme resavanja | `time.perf_counter` razlika oko `solver.Solve(...)` |
-| `total_time_s` | Konstrukcija + resavanje | zbir gornja dva |
+| `solve_time_s` | Čisto vreme resavanja | `time.perf_counter` razlika oko `solver.Solve(...)` |
+| `total_time_s` | Konstrukcija + rešavanje | zbir gornja dva |
 | `model_memory_kb` | Memorija alocirana tokom konstrukcije modela | `tracemalloc` snapshot razlika |
 | `peak_memory_kb` | Maksimalan RSS procesa | `resource.getrusage(RUSAGE_SELF).ru_maxrss` |
 | `status` | Status koji solver vraca | `FEASIBLE`, `INFEASIBLE`, `NOT_SOLVED`, ... |
@@ -158,7 +138,7 @@ Sva merenja u nastavku su izvrsena na sledecem hardveru i softveru:
 |---|---|
 | CPU | Apple M4 (ARM64) |
 | Broj jezgara | 10 |
-| RAM | 24 GB (25,769,803,776 B) |
+| RAM | 24 GB |
 | OS | macOS 15.6.1 (build 24G90) |
 | Python | 3.11 (preko Bazel toolchain-a, vidi [MODULE.bazel](../../MODULE.bazel) - `python_version="3.11"`) |
 | Build sistem | Bazel sa `rules_python` 1.4.1 |
@@ -205,7 +185,7 @@ Sva merenja u nastavku su izvrsena na sledecem hardveru i softveru:
 
 **Komentar:** oba solvera ponovo nalaze validan raspored. CP-SAT: **0.55 s**,
 MIP: **25.14 s** (46x brze). MIP-u treba 14 s samo za konstrukciju modela
-(kreiranje 522K binarnih promenljivih). Razlika u broju promenljivih: **216x**.
+(kreiranje 522K binarnih promenljivih).
 
 ### 5.3 MATF-L (937 sesija, 35 ucionica, 5 dana x 12 sati, limit 300s)
 
@@ -222,8 +202,8 @@ MIP: **25.14 s** (46x brze). MIP-u treba 14 s samo za konstrukciju modela
 | Status | **FEASIBLE** | **NOT_SOLVED** |
 | Validnost resenja | **PASS** | N/A |
 
-**Komentar:** CP-SAT pronadje validan raspored za **5.40 s** -- za celu
-godinu, svih 937 sesija, 35 ucionica. MIP/SCIP ne uspe da vrati nijedno
+**Komentar:** CP-SAT pronadje validan raspored za **5.40 s**.
+MIP/SCIP ne uspe da vrati nijedno
 resenje u 5-minutnom limitu. Gubi ~40 s na konstrukciju 1.43M binarnih
 promenljivih, a preostalo vreme (~300 s) nije dovoljno da SCIP zavrsi
 LP relaxation i pronadje celobrojno resenje za model te velicine.
@@ -270,18 +250,6 @@ Kljucni nalaz: **CP-SAT je 46-110x brzi** na skalama gde oba solvera uspeju.
 Na MATF-L skali CP zavrsava za 5.4 s dok MIP ne vraca nijedno resenje
 ni nakon 5 minuta.
 
-Bez funkcije cilja oba solvera su **dramaticno brzi** nego sa optimizacijom
-(`Minimize(max_slot)`):
-
-| Skala  | CP sa obj. | CP bez obj. | Ubrzanje |
-|--------|------------|-------------|----------|
-| MATF-S | 0.49 s     | 0.08 s      | 6x       |
-| MATF-M | 13.22 s    | 0.55 s      | 24x      |
-| MATF-L | 300+ s     | 5.40 s      | 55x+     |
-
-Ovo potvrdjuje da je **dokazivanje optimalnosti**, a ne samo nalazenje
-resenja, daleko najskuplji deo problema rasporeda.
-
 ### 7.3 Memorija
 
 | Skala  | CP model (KB) | MIP model (KB) | Faktor |
@@ -298,31 +266,6 @@ Maksimalan RSS na MATF-L: CP ~3.9 GB vs MIP ~6.9 GB.
 Sva resenja koja su solveri prijavili **prolaze** post-hoc `validate_solution`
 proveru. Nije bilo lazno-pozitivnih izlaza ni kod jednog solvera, sto znaci
 da su oba modela korektno postavljena.
-
-### 7.5 Trade-off sazetak
-
-CP-SAT pravi **kompaktan model i agresivno koristi propagaciju ogranicenja**
-(`AllDifferent` je u solveru implementiran kao posebno efikasno globalno
-ogranicenje). MIP/SCIP pravi **veliki ali "ravan" model** i oslanja se na
-LP relaxation. Kako problem raste, MIP gubi jer multiplikativni rast broja
-promenljivih dominira nad bilo kakvom korescu od LP relaxation-a.
-
-U feasibility-only rezimu razlika je jos izrazenija jer CP-SAT moze da
-prekine pretragu cim pronadje prvo resenje, dok MIP mora da zavrsi barem
-jednu LP relaxation iteraciju nad ogromnim modelom pre nego sto moze
-da pokuša celobrojnu dodelu.
-
----
-
-## 8. Kako reprodukovati
-
-```bash
-python -m src.algo.benchmark                        # sve tri skale (S, M, L)
-python -m src.algo.benchmark --scales S M           # samo S i M
-python -m src.algo.benchmark --scales L             # samo L (5 min limit)
-python -m src.algo.benchmark --max-time 60          # override svih limita na 60s
-python -m src.algo.benchmark --json results.json    # sacuvaj JSON izvestaj
-```
 
 Pojedinacni solveri (postojeci Bazel target-i u [BUILD.bazel](BUILD.bazel)):
 
@@ -343,8 +286,8 @@ bazel test //src/algo:test_data
 
 ## 9. Zakljucak
 
-Na osnovu merenja iznad, **CP-SAT je jasan pobednik** za nas problem
-nedeljnog rasporeda nastave u feasibility-only rezimu:
+Na osnovu merenja iznad, **CP-SAT je znatno performantiji i pogodniji** za nas problem
+nedeljnog rasporeda nastave.
 
 1. **Velicina modela** -- linearna umesto multiplikativne (**170-306x**
    manje promenljivih).
@@ -354,16 +297,3 @@ nedeljnog rasporeda nastave u feasibility-only rezimu:
 3. **Memorija** -- **256-563x** manje za model; ~1.8x manje RSS.
 4. **Skalabilnost** -- CP-SAT uspesno resava problem sa 937 sesija i 35
    ucionica za 5.4 s, sto omogucuje interaktivnu upotrebu.
-
-### Sledeci koraci
-
-Projekat nastavlja razvoj **na CP-SAT pristupu**:
-
-- Dodavanje funkcije cilja (optimizacija rasporeda): minimizacija kasnih
-  termina, minimizacija praznih casova, balansiranje opterecenja po danu.
-- Dodavanje dodatnih (mekih) ogranicenja: preferencije profesora, blokiranje
-  pauza, ogranicenje promene lokacija u toku dana, uzastopni casovi za
-  iste predmete.
-- Web omotac oko CP solvera za interaktivno generisanje rasporeda.
-- MIP varijanta ostaje u repozitorijumu kao referentna implementacija
-  (sanity check za korektnost CP resenja).
