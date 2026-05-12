@@ -69,5 +69,7 @@ bazel-*
 *.DS_Store
 out/
 
+docs/master.pdf
+
 .cursor/
 AGENTS.md

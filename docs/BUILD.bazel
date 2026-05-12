@@ -1,0 +1,84 @@
+load("@bazel_latex//:latex.bzl", "latex_document")
+
+latex_document(
+    name = "master",
+    main = "master.tex",
+    bib_tool = "bibtex",
+    srcs = [
+        # Local files
+        "master.bib",
+        "matfmaster.sty",
+        "matf.png",
+        "hyperref.cfg",
+        "pangrami.sty",
+        "serbianc.ldf",
+        "serbianc.lbx",
+        "serbian.lbx",
+        # Pre-packaged dependencies from bazel-latex
+        "@bazel_latex//packages:amsmath",
+        "@bazel_latex//packages:amssymb",
+        "@bazel_latex//packages:booktabs",
+        "@bazel_latex//packages:csquotes",
+        "@bazel_latex//packages:graphicx",
+        "@bazel_latex//packages:hyperref",
+        "@bazel_latex//packages:listings",
+        "@bazel_latex//packages:xcolor",
+        "@bazel_latex//packages:calc",
+        "@bazel_latex//packages:url",
+        # memoir
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__memoir",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__makeindex__memoir",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__textcase",
+        # multirow, pdfpages, etoolbox, pdflscape
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__multirow",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__pdfpages",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__pdflscape",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__etoolbox",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__eso-pic",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__oberdiek",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__oberdiek",
+        # Babel and language support
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__babel",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__babel-english",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__babel-serbian",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__babel-serbianc",
+        # Hyphenation patterns
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__hyph-utf8__loadhyph",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__hyph-utf8__patterns__tex",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__hyph-utf8__patterns__txt",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__hyphen",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__luatex__hyph-utf8",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__lualatex__luahyphenrules",
+        # Cyrillic support (fontenc T2A, fonts)
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__cyrillic",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__tfm__public__amsfonts__cyrillic",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__type1__public__amsfonts__cyrillic",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__afm__public__amsfonts__cyrillic",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__enc__t2",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__generic__t2__cyrfinst",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__t2",
+        # LH fonts (Cyrillic Computer Modern)
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__lh",
+        # CM-Super fonts (Type1 for T2A)
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__type1__public__cm-super",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__enc__dvips__cm-super",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__map__dvips__cm-super",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__afm__public__cm-super",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__cm-super",
+        # cmsrb fonts
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__cmsrb",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__tfm__public__cmsrb",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__type1__public__cmsrb",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__vf__public__cmsrb",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__enc__dvips__cmsrb",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__afm__public__cmsrb",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__map__dvips__cmsrb",
+        # OpenSans font (used in matfmaster.sty header)
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__opensans",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__tfm__ascender__opensans",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__type1__ascender__opensans",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__enc__dvips__opensans",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__map__dvips__opensans",
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__fonts__vf__ascender__opensans",
+    ],
+)

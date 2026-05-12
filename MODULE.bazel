@@ -8,6 +8,11 @@
 # https://github.com/bazel-contrib/rules_python/releases.
 
 bazel_dep(name="rules_python", version="1.4.1")
+bazel_dep(name="prodrive_technologies_bazel_latex", version="1.2.2-20250401-c552d5b", repo_name="bazel_latex")
+
+texlive_repositories = use_extension("@bazel_latex//:extensions.bzl", "texlive_repositories")
+texlive_repositories.install()
+use_repo(texlive_repositories, "bazel_latex_texlive")
 
 pip = use_extension("@rules_python//python/extensions:pip.bzl", "pip")
 pip.parse(

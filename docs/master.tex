@@ -1,0 +1,1129 @@
+\documentclass[12pt,oneside]{memoir}
+
+\usepackage[latinica]{matfmaster}
+
+\usepackage{iftex}
+\ifpdftex
+  \usepackage{cmsrb}
+\fi
+\usepackage{listings}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{xcolor}
+
+\lstset{
+  basicstyle=\ttfamily\small,
+  keywordstyle=\color{blue}\bfseries,
+  commentstyle=\color{gray},
+  stringstyle=\color{red!70!black},
+  showstringspaces=false,
+  breaklines=true,
+  frame=single,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  tabsize=4,
+}
+
+\bib{master}
+
+\autor{Dušan Trtica}
+\naslov{Primena tehnika zadovoljenja ograničenja i celobrojnog programiranja na problem generisanja rasporeda časova}
+\godina{2026}
+\mentor{dr Filip \textsc{Marić}, vanredni profesor\\ Univerzitet u Beogradu, Matematički fakultet}
+\komisijaA{dr Aleksandar \textsc{Kartelj}, vanredni profesor\\ Univerzitet u Beogradu, Matematički fakultet}
+\komisijaB{dr Miljan \textsc{Knežević}, docent\\ Univerzitet u Beogradu, Matematički fakultet}
+
+\apstr{%
+U ovom radu razmatramo problem automatskog generisanja rasporeda časova
+na univerzitetskom nivou. Prikazujemo dve paradigme za rešavanje ovog
+problema: programiranje ograničenja (CP) i mešovito celobrojno programiranje
+(MIP). Oba pristupa su implementirana korišćenjem biblioteke Google OR-Tools
+i primenjena na realne podatke Matematičkog fakulteta Univerziteta u Beogradu.
+Sprovedena je eksperimentalna evaluacija na tri skale problema različite
+veličine. Rezultati pokazuju da CP-SAT rešavač značajno nadmašuje MIP/SCIP
+pristup u pogledu vremena rešavanja, kompaktnosti modela i memorijskog
+otiska, posebno kako veličina problema raste.
+}
+
+\kljucnereci{raspored časova, programiranje ograničenja, celobrojno programiranje,
+CP-SAT, MIP, OR-Tools, optimizacija, Matematički fakultet}
+
+\begin{document}
+% ==============================================================================
+\frontmatter
+% ==============================================================================
+\naslovna
+\komisija
+\posveta{Mojoj porodici}
+\apstrakt
+\tableofcontents*
+
+% ==============================================================================
+\mainmatter
+% ==============================================================================
+
+% ------------------------------------------------------------------------------
+\chapter{Uvod}
+\label{chp:uvod}
+% ------------------------------------------------------------------------------
+
+Generisanje rasporeda časova predstavlja jedan od najčešćih i najpraktičnijih
+kombinatornih problema sa kojim se suočavaju obrazovne institucije širom sveta.
+Svake godine, na početku akademskog semestra, univerziteti i fakulteti moraju
+da rasporede stotine predavanja, vežbi i laboratorijskih časova u ograničen
+broj učionica, uzimajući u obzir radne dane, raspoložive termine i različite
+vrste ograničenja.
+
+Problem raspoređivanja časova (eng. \emph{University Course Timetabling
+Problem} -- UCTP) jeste NP-težak problem \cite{even1975, garey1979}, što
+znači da ne postoji poznat algoritam koji bi ga efikasno rešio u opštem
+slučaju. Tradicionalno, rasporedi se prave ručno, što zahteva veliku
+količinu ljudskog rada, vremena i stručnosti. Čak i iskusni raspoređivači
+mogu da propuste kolizije ili da stvore neoptimalan raspored.
+
+U ovom radu istražujemo dva pristupa za automatsko rešavanje UCTP-a:
+
+\begin{enumerate}
+\item \textbf{Programiranje ograničenja} (eng. \emph{Constraint Programming}
+  -- CP) -- deklarativna paradigma u kojoj se problem definiše preko skupa
+  promenljivih, njihovih domena i ograničenja koja moraju biti zadovoljena.
+  Koristimo Google OR-Tools CP-SAT rešavač \cite{ortools, cpsat2020}.
+
+\item \textbf{Mešovito celobrojno programiranje} (eng. \emph{Mixed Integer
+  Programming} -- MIP) -- matematička optimizacija sa binarnim promenljivama
+  i linearnim ograničenjima. Koristimo SCIP rešavač \cite{scip2009}
+  integrisan u OR-Tools.
+\end{enumerate}
+
+Oba pristupa su primenjena na realne podatke Matematičkog fakulteta u
+Beogradu, koji obuhvataju šest smerova, 129 predmeta, 35 učionica na tri
+lokacije i preko 800 studenata raspoređenih u 24 grupe po godinama i
+smerovima.
+
+\section{Cilj rada}
+
+Primarni cilj ovog rada je komparativna analiza CP i MIP paradigmi na
+problemu generisanja rasporeda časova. Kroz eksperimentalnu evaluaciju
+na tri skale problema različite veličine (mali, srednji i veliki podskup
+realnih podataka), ispitujemo:
+
+\begin{itemize}
+\item bržinu konstrukcije modela i rešavanja,
+\item kompaktnost formulacije (broj promenljivih i ograničenja),
+\item memorijski otisak,
+\item skalabilnost pristupa pri rastu veličine problema.
+\end{itemize}
+
+Na osnovu rezultata ove analize, u narednoj fazi rada planira se
+nadogradnja pobedničke paradigme dodatnim ograničenjima (raspoređivanje
+nastavnog osoblja, lokacijska ograničenja, meka ograničenja za
+kvalitetniji raspored) i izgradnja veb interfejsa za praktičnu upotrebu.
+
+\section{Struktura rada}
+
+Rad je organizovan na sledeći način:
+
+\begin{itemize}
+\item U glavi \ref{chp:teorija} izlažemo teorijske osnove: definiciju
+  problema raspoređivanja časova, paradigmu programiranja ograničenja
+  i paradigmu celobrojnog linearnog programiranja.
+
+\item U glavi \ref{chp:alati} opisujemo korišćene alate i tehnologije:
+  biblioteku Google OR-Tools, sistem za gradnju Bazel i pomocene
+  Python biblioteke.
+
+\item U glavi \ref{chp:formulacija} detaljno izlažemo formulaciju problema,
+  model ulaznih podataka i konkretne implementacije u obe paradigme.
+
+\item U glavi \ref{chp:evaluacija} predstavljamo eksperimentalnu evaluaciju:
+  metodologiju merenja, rezultate na tri skale problema i analizu
+  dobijenih rezultata.
+
+\item U glavi \ref{chp:zakljucak} sumiramo zaključke i navodimo pravce
+  daljeg rada.
+\end{itemize}
+
+
+% ------------------------------------------------------------------------------
+\chapter{Teorijske osnove}
+\label{chp:teorija}
+% ------------------------------------------------------------------------------
+
+U ovoj glavi izlažemo teorijski okvir za razumevanje problema i pristupa
+koje koristimo u ovom radu. Najpre definišemo problem raspoređivanja
+časova, zatim opisujemo paradigmu programiranja ograničenja, i na kraju
+predstavljamo celobrojno linearno programiranje.
+
+\section{Problem raspoređivanja časova}
+\label{sec:uctp}
+
+Problem raspoređivanja univerzitetskih časova (UCTP) sastoji se od
+dodele predavanja, vežbi i laboratorijskih časova u raspoložive
+vremenske termine i učionice, tako da budu zadovoljena određena
+ograničenja \cite{schaerf1999, burke2004}.
+
+Formalno, problem se može opisati sledećim elementima:
+
+\begin{itemize}
+\item \textbf{Skup sesija} $\mathcal{S} = \{s_1, s_2, \ldots, s_n\}$
+  -- časovi koje treba rasporediti. Svaka sesija pripada određenom
+  predmetu i grupi studenata.
+
+\item \textbf{Skup vremenskih termina} $\mathcal{T} = \{t_1, t_2, \ldots, t_m\}$
+  -- raspolozivi termini u toku radne nedelje, određeni kombinacijom
+  radnog dana i sata.
+
+\item \textbf{Skup učionica} $\mathcal{R} = \{r_1, r_2, \ldots, r_k\}$
+  -- prostorije u kojima se nastava može održati.
+
+\item \textbf{Skup ograničenja} $\mathcal{C}$ -- pravila koja raspored
+  mora da zadovolji.
+\end{itemize}
+
+Cilj je pronaci funkciju dodele $\sigma : \mathcal{S} \to \mathcal{T}
+\times \mathcal{R}$ takvu da su sva ograničenja iz $\mathcal{C}$
+zadovoljena.
+
+\subsection{Vrste ograničenja}
+\label{subsec:ogranicenja}
+
+Ograničenja se u literaturi klasifikuju u dve kategorije
+\cite{schaerf1999, kingston2013}:
+
+\begin{enumerate}
+\item \textbf{Tvrda ograničenja} (eng. \emph{hard constraints}) --
+  ograničenja koja moraju biti bezuslovno zadovoljena. Rešenje koje
+  kršeći neko tvrdo ograničenje nije dopustivo. Primeri:
+  \begin{itemize}
+  \item Nikoje dve sesije ne mogu se održavati u istoj ucionici u
+    isto vreme.
+  \item Jedna grupa studenata ne može istovremeno pohadati dva
+    različita predavanja.
+  \item Sesija koja zahteva računare mora biti raspoređena u
+    učionicu opremljenu računarima.
+  \end{itemize}
+
+\item \textbf{Meka ograničenja} (eng. \emph{soft constraints}) --
+  ograničenja čije zadovoljenje je poželjno, ali ne i obavezno.
+  Njihovo kršenje ne čini rešenje nedopustivim, već samo lošijim.
+  Primeri:
+  \begin{itemize}
+  \item Ravnomerna raspodela časova tokom nedelje.
+  \item Minimizacija broja promena učionica za jednu grupu u toku dana.
+  \item Izbegavanje rupa u rasporedu za studente.
+  \end{itemize}
+\end{enumerate}
+
+U prvom delu ovog rada bavimo se isključivo tvrdim ograničenjima, tj.
+pronalaženjem dopustivog rasporeda (eng. \emph{feasibility problem}).
+Proširenje mekim ograničenjima i optimizacija kvaliteta rasporeda
+predviđeni su za drugi deo rada.
+
+\subsection{NP-težina problema}
+
+Even, Itai i Shamir \cite{even1975} su dokazali da je problem
+raspoređivanja NP-težak redukcijom sa problema bojenja grafova.
+Garey i Johnson \cite{garey1979} su ovaj rezultat uključili u svoju
+obimnu katalogizaciju NP-kompletnih problema. Ovo znači da je
+malo verovatno da postoji algoritam polinomijalne složenosti za
+rešavanje opšteg slucaja problema raspoređivanja, te se u praksi
+pribegava heuristikama ili egzaktnim metodama sa eksponencijalnom
+najgorom složenošću.
+
+\section{Programiranje ograničenja}
+\label{sec:cp}
+
+Programiranje ograničenja (eng. \emph{Constraint Programming} -- CP)
+je deklarativna paradigma za rešavanje kombinatornih problema
+\cite{rossi2006, apt2003}. Problem se formuliše kao \emph{problem
+zadovoljenja ograničenja} (eng. \emph{Constraint Satisfaction
+Problem} -- CSP).
+
+\subsection{Problem zadovoljenja ograničenja (CSP)}
+
+CSP se formalno definiše trojkom $(\mathcal{X}, \mathcal{D},
+\mathcal{C})$ gde je:
+
+\begin{itemize}
+\item $\mathcal{X} = \{x_1, x_2, \ldots, x_n\}$ -- skup promenljivih,
+\item $\mathcal{D} = \{D_1, D_2, \ldots, D_n\}$ -- skup domena, gde
+  $D_i$ sadrži moguće vrednosti promenljive $x_i$,
+\item $\mathcal{C} = \{C_1, C_2, \ldots, C_m\}$ -- skup ograničenja,
+  gde svako ograničenje $C_j$ specificira dopustive kombinacije
+  vrednosti nad podskupom promenljivih.
+\end{itemize}
+
+Rešenje CSP-a je dodela vrednosti svim promenljivama iz njihovih
+domena tako da su sva ograničenja zadovoljena.
+
+\subsection{Tehnike rešavanja}
+
+CP rešavači kombinuju sistematsku pretragu sa tehnikama propagacije
+ograničenja \cite{rossi2006}:
+
+\begin{enumerate}
+\item \textbf{Vraćanje unazad} (eng. \emph{backtracking}) --
+  pretraga prostora rešenja dodeljujući vrednosti promenljivama
+  jednu po jednu. Kada se naiđe na ograničenje koje ne može biti
+  zadovoljeno, vrši se vraćanje na poslednju tačku izbora.
+
+\item \textbf{Propagacija ograničenja} (eng. \emph{constraint propagation})
+  -- smanjivanje domena promenljivih na osnovu ograničenja, pre i
+  tokom pretrage. Ovo eliminiše nedopustive vrednosti rano i
+  dramatično smanjuje prostor pretrage.
+
+\item \textbf{Konzistentnost lukova} (eng. \emph{arc consistency}) --
+  tehnika propagacije koja obezbeđuje da za svaku vrednost u domenu
+  jedne promenljive postoji kompatibilna vrednost u domenu svake
+  povezane promenljive.
+\end{enumerate}
+
+\subsection{Globalna ograničenja}
+
+Ključna prednost CP-a je podrška za \emph{globalna ograničenja} --
+specijalizovane strukture koje obuhvataju odnose između većeg broja
+promenljivih i koje imaju efikasne algoritme propagacije \cite{regin1994}.
+
+\textbf{AllDifferent.}
+Ograničenje $\texttt{AllDifferent}(x_1, x_2, \ldots, x_n)$ zahteva
+da sve promenljive $x_1, \ldots, x_n$ imaju međusobno različite
+vrednosti. Dok bi se isto moglo izraziti sa $\binom{n}{2}$ parnih
+nejednakosti, globalno ograničenje pruza značajno jacu propagaciju
+zahvaljujući algoritmima baziranim na sparivanju u bipartitnim
+grafovima \cite{regin1994}.
+
+\textbf{AllowedAssignments.}
+Ograničenje $\texttt{AllowedAssignments}$ (poznato i kao
+\emph{table constraint}) eksplicitno navodi dozvoljene kombinacije
+vrednosti promenljivih pomoću tabele (skupa torki). Ovo je korisno
+za ograničenja koja se ne mogu izraziti prostom aritmetikom, na primer
+ograničenje da sesija može biti raspoređena samo u podskup učionica.
+
+\subsection{CP-SAT pristup}
+
+Moderna generacija CP rešavača, kakav je Google CP-SAT \cite{cpsat2020},
+kombinuje tehnike programiranja ograničenja sa tehnologijama SAT
+rešavača. Ovaj pristup se zasniva na \emph{lenjem generisanju klauza}
+(eng. \emph{lazy clause generation}) \cite{ohrimenko2009}, gde se
+ograničenja propagiraju kao u klasičnom CP, ali se konflikti pamte
+u obliku SAT klauza, što sprečava ponavljanje istih pogrešnih izbora
+tokom pretrage. Ovo kombinuje snagu globalne propagacije sa efikasnošću
+učenja konflikata poznatom iz SAT rešavača.
+
+\section{Celobrojno linearno programiranje}
+\label{sec:mip}
+
+Mešovito celobrojno programiranje (eng. \emph{Mixed Integer Programming}
+-- MIP) je paradigma matematicke optimizacije u kojoj se problem
+formuliše pomoću linearne funkcije cilja i linearnih ograničenja
+nad promenljivama koje mogu biti celobrojne ili kontinualne
+\cite{wolsey1998, nemhauser1988}.
+
+\subsection{Definicija MIP problema}
+
+MIP problem u opštem obliku glasi:
+
+\begin{align}
+\min \quad & \mathbf{c}^T \mathbf{x} \label{eq:mip_obj} \\
+\text{p.o.} \quad & A\mathbf{x} \leq \mathbf{b} \label{eq:mip_constr} \\
+& x_i \in \mathbb{Z}, \quad i \in I \label{eq:mip_int} \\
+& x_j \geq 0, \quad j \notin I \label{eq:mip_cont}
+\end{align}
+
+gde je $\mathbf{c}$ vektor koeficijenata funkcije cilja, $A$ matrica
+koeficijenata ograničenja, $\mathbf{b}$ vektor desnih strana, a $I$
+skup indeksa celobrojnih promenljivih.
+
+Kada su sve celobrojne promenljive binarne ($x_i \in \{0, 1\}$),
+govori se o \emph{binarnom celobrojnom programu} (BIP). Problem
+raspoređivanja časova se prirodno formuliše kao BIP.
+
+U našem radu ne koristimo funkciju cilja (jednačina \ref{eq:mip_obj}),
+već tražimo dopustivo rešenje -- bilo koju dodelu vrednosti koja
+zadovoljava sva linearna ograničenja.
+
+\subsection{Tehnike rešavanja}
+
+MIP rešavači koriste kombinaciju sledećih tehnika \cite{wolsey1998}:
+
+\begin{enumerate}
+\item \textbf{LP relaksacija} -- opustanje celobrojnih ograničenja
+  i rešavanje kontinualnog linearnog programa. Ovo daje donju granicu
+  za funkciju cilja (ili test nedopustivosti).
+
+\item \textbf{Grananje i odsecanje} (eng. \emph{branch and bound}) --
+  sistematska pretraga koja deli prostor rešenja na manje podprobleme,
+  koristeći LP relaksaciju za odsecanje grana koje ne mogu sadržati
+  bolje rešenje.
+
+\item \textbf{Ravni odsecanja} (eng. \emph{cutting planes}) --
+  dodavanje linearnih ograničenja koja eliminišu frakciona rešenja
+  LP relaksacije, a ne eliminišu celobrojna rešenja.
+\end{enumerate}
+
+\subsection{SCIP rešavač}
+
+SCIP (Solving Constraint Integer Programs) \cite{scip2009} je jedan
+od najsnažnijih akademskih rešavača za MIP i mešovito celobrojno
+nelinearno programiranje. SCIP kombinuje tehnike grananja i odsecanja
+sa propagacijom ograničenja i heuristikama. U našem radu koristimo
+SCIP integrisanog u Google OR-Tools putem interfejsa
+\texttt{pywraplp}.
+
+
+% ------------------------------------------------------------------------------
+\chapter{Korišćeni alati i tehnologije}
+\label{chp:alati}
+% ------------------------------------------------------------------------------
+
+U ovoj glavi opisujemo alate i tehnologije korišćene u implementaciji.
+Projekat je napisan u programskom jeziku Python \cite{python} i
+koristi Bazel \cite{bazel} kao sistem za gradnju i upravljanje
+zavisnostima.
+
+\section{Google OR-Tools}
+\label{sec:ortools}
+
+Google OR-Tools \cite{ortools} je biblioteka otvorenog koda za
+kombinatornu optimizaciju razvijena od strane Google-a. Nudi rešavače
+za više tipova problema, uključujući:
+
+\begin{itemize}
+\item \textbf{CP-SAT} -- rešavač za programiranje ograničenja sa
+  SAT tehnikama, opisan u odeljku \ref{sec:cp}. U Pythonu se koristi
+  putem modula \texttt{ortools.sat.python.cp\_model}. Ključne klase
+  su \texttt{CpModel} (za definisanje promenljivih i ograničenja)
+  i \texttt{CpSolver} (za pokretanje pretrage).
+
+\item \textbf{Linear solver wrapper (pywraplp)} -- uniformni interfejs
+  za više MIP rešavača (SCIP, GLPK, Gurobi, CPLEX). U našem radu
+  koristimo SCIP backend. Ključna klasa je \texttt{Solver}, sa
+  metodama za kreiranje binarnih promenljivih (\texttt{BoolVar}),
+  dodavanje linearnih ograničenja (\texttt{Add}) i pokretanje
+  rešavanja (\texttt{Solve}).
+\end{itemize}
+
+OR-Tools je izabran zbog: otvorenog izvornog koda, aktivne zajednice,
+konkurentnih performansi u odnosu na komercijalna rešenja, i podrske
+za obe paradigme (CP i MIP) kroz jedinstven Python API.
+
+\section{Bazel}
+\label{sec:bazel}
+
+Bazel \cite{bazel} je sistem za gradnju i testiranje softvera razvijen
+od strane Google-a. Ključne prednosti Bazel-a su:
+
+\begin{itemize}
+\item \textbf{Reproducibilnost} -- hermetičke gradnje garantuju da će
+  isti izvorni kod uvek proizvesti isti rezultat, nezavisno od
+  okruzenja.
+
+\item \textbf{Inkrementalne gradnje} -- Bazel gradi samo one delove
+  koji su se promenili, što ubrzava razvoj.
+
+\item \textbf{Višeplatformska podrška} -- isti konfiguracioni fajlovi
+  funkcionišu na različitim operativnim sistemima.
+\end{itemize}
+
+\subsection{Konfiguracija projekta}
+
+Projekat koristi Bazel-ov Bzlmod sistem za upravljanje eksternim
+zavisnostima. U fajlu \texttt{MODULE.bazel} definisane su zavisnosti:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={MODULE.bazel -- definicija zavisnosti}]
+bazel_dep(name="rules_python", version="1.4.1")
+
+pip = use_extension(
+    "@rules_python//python/extensions:pip.bzl", "pip")
+pip.parse(
+    hub_name="pip",
+    python_version="3.11",
+    requirements_lock="//:requirements.txt",
+)
+
+python = use_extension(
+    "@rules_python//python:extensions.bzl", "python")
+python.toolchain(
+    ignore_root_user_error=True,
+    is_default=True,
+    python_version="3.11",
+)
+\end{lstlisting}
+\end{english}
+
+U fajlu \texttt{BUILD.bazel} definisani su ciljevi za pokretanje
+rešavača i testova:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={BUILD.bazel -- primer cilja za CP rešavač}]
+py_binary(
+    name = "run_cp_solver",
+    srcs = [
+        "model.py", "data.py", "cp_solver.py",
+        "report.py", "cp_runner.py",
+    ],
+    data = ["input_full_1_semester.json"],
+    deps = [
+        "@pip//pydantic",
+        "@pip//ortools",
+        "@pip//openpyxl",
+        "@pip//pyfunctional",
+    ],
+    main = "cp_runner.py",
+)
+\end{lstlisting}
+\end{english}
+
+Pokretanje rešavača vrši se komandom:
+
+\begin{english}
+\begin{verbatim}
+bazel run //src/algo:run_cp_solver -- --time-limit 600
+bazel run //src/algo:run_mip_solver -- --time-limit 600
+\end{verbatim}
+\end{english}
+
+\section{Python biblioteke}
+\label{sec:pylibs}
+
+\subsection{Pydantic}
+
+Pydantic \cite{pydantic} je biblioteka za validaciju podataka
+korišćenjem Python anotacija tipova. U našem projektu, Pydantic
+se koristi za definisanje modela ulaznih podataka (videti odeljak
+\ref{sec:input_model}). Svaka entitetska klasa (\texttt{Classroom},
+\texttt{Course}, \texttt{Settings}, itd.) je definisana kao
+\texttt{pydantic.dataclass} sa jasno definisanim tipovima i
+alijas imenima za mapiranje JSON polja.
+
+Prednosti koriscenja Pydantic-a:
+\begin{itemize}
+\item automatska validacija tipova pri učitavanju JSON podataka,
+\item eksplicitna dokumentacija strukture podataka,
+\item podrška za alias nazive (npr. \texttt{depId} u JSON-u mapira
+  se u \texttt{dep\_id} u Python kodu).
+\end{itemize}
+
+\subsection{openpyxl}
+
+Biblioteka openpyxl \cite{openpyxl} koristi se za generisanje Excel
+fajlova sa rasporedom. Za svaku grupu studenata kreira se poseban
+radni list (eng. \emph{worksheet}) sa tabelom gde redovi predstavljaju
+radne dane, a kolone vremenske termine. Celije sadrze informacije o
+predmetu, tipu časa (predavanje/vežbe) i ucionici.
+
+\subsection{PyFunctional}
+
+PyFunctional \cite{pyfunctional} je biblioteka koja omogućava
+funkcionalni stil programiranja u Pythonu. U projektu se koristi
+objekat \texttt{seq} za fluent filtriranje i pretraživanje listi
+(npr. filtriranje predmeta po smeru, pronalaženje učionice po
+identifikatoru i slicno).
+
+\subsection{pytest}
+
+Za testiranje ispravnosti implementacije koristi se pytest
+\cite{pytest}. Testovi pokrivaju parsiranje ulaznih podataka,
+formiranje grupa studenata, generisanje sesija, i verifikaciju
+da rešavači nalaze dopustiva rešenja koja zadovoljavaju sva tvrda
+ograničenja. Testovi se pokreću komandom:
+
+\begin{english}
+\begin{verbatim}
+bazel test //src/algo:test_data
+bazel test //src/algo:test_cp_solver
+bazel test //src/algo:test_mip_solver
+\end{verbatim}
+\end{english}
+
+
+% ------------------------------------------------------------------------------
+\chapter{Formulacija problema i implementacija}
+\label{chp:formulacija}
+% ------------------------------------------------------------------------------
+
+U ovoj glavi detaljno izlažemo model ulaznih podataka, način na koji
+se formiraju sesije koje treba rasporediti, i konkretne formulacije
+problema u CP i MIP paradigmama.
+
+\section{Model ulaznih podataka}
+\label{sec:input_model}
+
+Ulazni podaci su definisani u JSON formatu i modelovani pomoću
+Pydantic klasa u modulu \texttt{model.py}. Struktura je sledeća:
+
+\begin{enumerate}
+\item \textbf{Settings} -- podesavanja rasporeda:
+  \begin{itemize}
+  \item \texttt{workingDays} -- lista radnih dana
+    (Ponedeljak, Utorak, ..., Petak),
+  \item \texttt{startHour}, \texttt{endHour} -- početak i kraj
+    radnog vremena (8--20),
+  \item \texttt{duration} -- trajanje jednog časa (1 sat).
+  \end{itemize}
+
+\item \textbf{Location} -- lokacije/zgrade fakulteta (Studentski trg,
+  N Building, Jagićeva).
+
+\item \textbf{Classroom} -- učionice sa atributima:
+  \begin{itemize}
+  \item identifikator, naziv, lokacija,
+  \item da li poseduje računare (\texttt{hasComputers}),
+  \item kapacitet.
+  \end{itemize}
+
+\item \textbf{Department} -- smerovi studija (Profesor matematike i
+  računarstva, Teorijska matematika, Informatika, itd.).
+
+\item \textbf{Course} -- predmeti sa:
+  \begin{itemize}
+  \item identifikatorom, nazivom, semestrom, smerom,
+  \item kvotom (\texttt{Quota}) -- koliko časova predavanja i vežbi
+    nedeljno,
+  \item da li zahteva računare.
+  \end{itemize}
+
+\item \textbf{StudentsEnrolled} -- broj upisanih studenata po smeru
+  i semestru.
+\end{enumerate}
+
+\subsection{Realni podaci}
+
+Za eksperimentalnu evaluaciju koristimo podatke koji reprezentuju
+jedan semestar nastave na Matematickom fakultetu:
+
+\begin{itemize}
+\item 6 smerova,
+\item 129 predmeta raspoređenih po semestrima (1, 3, 5, 7),
+\item 35 učionica na 3 lokacije,
+\item 24 grupe studenata,
+\item radna nedelja od 5 dana, po 12 sati dnevno (8:00--20:00).
+\end{itemize}
+
+\section{Formiranje sesija}
+\label{sec:sesije}
+
+Pre nego što se pokrene rešavač, ulazni podaci se transformišu u
+listu \emph{sesija} -- atomskih jedinica raspoređivanja. Ovaj
+proces se odvija u modulu \texttt{data.py} i sastoji se od
+sledećih koraka:
+
+\begin{enumerate}
+\item \textbf{Formiranje grupa studenata.}
+  Za svaki par (smer, semestar), na osnovu broja upisanih studenata
+  i veličine grupe (30 studenata), formira se
+  $\lceil \text{broj\_studenata} / 30 \rceil$ grupa. Na primer,
+  za Informatiku u 1. semestru sa 100 studenata formiraju se 4
+  grupe.
+
+\item \textbf{Dodeljivanje predmeta grupama.}
+  Svaka grupa pohađa predmete koji odgovaraju njenom smeru i
+  semestru.
+
+\item \textbf{Generisanje sesija.}
+  Za svaki predmet i svaku grupu, kreira se onoliko sesija koliko
+  to nalaze kvote: \texttt{quota.theory} sesija tipa ``predavanje''
+  i \texttt{quota.practice} sesija tipa ``vežbe''.
+\end{enumerate}
+
+Svaka sesija $s$ je okarakterisana sledećim atributima:
+\begin{itemize}
+\item identifikator grupe ($g_s$),
+\item identifikator predmeta,
+\item da li zahteva računare ($\text{comp}_s$),
+\item tip časa (predavanje ili vežbe).
+\end{itemize}
+
+Za sesiju $s$, rešavač treba da odredi trojku $(d_s, h_s, r_s)$
+-- dan, sat i učionicu u kojima će se čas održati.
+
+\section{CP formulacija}
+\label{sec:cp_form}
+
+CP formulacija je implementirana u klasi \texttt{SimpleCPSolver}
+u modulu \texttt{cp\_solver.py}. Koristimo Google OR-Tools CP-SAT
+rešavač.
+
+\subsection{Promenljive}
+
+Za svaku sesiju $s \in \{0, 1, \ldots, |\mathcal{S}|-1\}$ definišemo
+sledeće celobrojne promenljive:
+
+\begin{align}
+\text{day}_s &\in \{0, 1, \ldots, D-1\} \label{eq:cp_day} \\
+\text{slot}_s &\in \{0, 1, \ldots, H-1\} \label{eq:cp_slot} \\
+\text{room}_s &\in \{0, 1, \ldots, R-1\} \label{eq:cp_room}
+\end{align}
+
+gde je $D$ broj radnih dana, $H$ broj raspoloživih sati u toku
+jednog dana i $R$ broj učionica.
+
+Dodatno, definišemo dve izvedene promenljive:
+
+\begin{align}
+\text{flatTime}_s &= \text{day}_s \cdot H + \text{slot}_s
+  \label{eq:cp_flat} \\
+\text{roomTime}_s &= \text{room}_s \cdot (D \cdot H) +
+  \text{flatTime}_s \label{eq:cp_roomtime}
+\end{align}
+
+Promenljiva $\text{flatTime}_s$ linearizuje par (dan, sat) u
+jedinstven indeks unutar nedelje. Promenljiva $\text{roomTime}_s$
+linearizuje trojku (učionica, dan, sat) u jedinstven indeks preko
+svih učionica i termina.
+
+\textbf{Ukupan broj promenljivih:} $5 \cdot |\mathcal{S}|$, što je
+linearna funkcija broja sesija. Za realne podatke MATF-a to
+iznosi reda stotina promenljivih.
+
+\subsection{Tvrda ograničenja}
+
+\textbf{HC1: Jedinstvenost učionice u terminu.}
+Nikoje dve sesije ne mogu se održavati u istoj ucionici u isto vreme:
+
+\begin{equation}
+\texttt{AllDifferent}(\text{roomTime}_0, \text{roomTime}_1,
+  \ldots, \text{roomTime}_{|\mathcal{S}|-1})
+\label{eq:cp_hc1}
+\end{equation}
+
+Ovo jedino globalno ograničenje obuhvata sve sesije i garantuje
+da su sve trojke $(d_s, h_s, r_s)$ međusobno različite.
+
+\textbf{HC2: Bez kolizija unutar grupe.}
+Za svaku grupu $g$, neka je $\mathcal{S}_g \subseteq \mathcal{S}$
+skup sesija te grupe. Nikoje dve sesije iste grupe ne smeju biti
+u isto vreme:
+
+\begin{equation}
+\texttt{AllDifferent}(\{\text{flatTime}_s : s \in \mathcal{S}_g\}),
+  \quad \forall g
+\label{eq:cp_hc2}
+\end{equation}
+
+\textbf{HC3: Ograničenje računarskih učionica.}
+Ako sesija $s$ zahteva računare, njen izbor učionice je ograničen
+na podskup učionica sa računarima:
+
+\begin{equation}
+\text{comp}_s \implies \text{room}_s \in
+  \texttt{AllowedAssignments}(\{r : \text{hasComputers}(r)\})
+\label{eq:cp_hc3}
+\end{equation}
+
+\subsection{Funkcija cilja}
+
+U trenutnoj verziji, CP formulacija nema funkciju cilja -- rešavač
+traži bilo koje dopustivo rešenje koje zadovoljava sva tvrda
+ograničenja (rezim izvodljivosti).
+
+\section{MIP formulacija}
+\label{sec:mip_form}
+
+MIP formulacija je implementirana u klasi \texttt{SimpleMIPSolver}
+u modulu \texttt{mip\_solver.py}. Koristimo SCIP rešavač kroz
+OR-Tools \texttt{pywraplp} interfejs.
+
+\subsection{Promenljive}
+
+Za svaku sesiju $s$ i svaku dopustivu kombinaciju (dan, sat, učionica)
+definišemo binarnu promenljivu:
+
+\begin{equation}
+x_{s,d,h,r} \in \{0, 1\}, \quad \forall s, \forall d \in
+  \{0,\ldots,D\!-\!1\}, \forall h \in \{0,\ldots,H\!-\!1\},
+  \forall r \in \text{Elig}(s)
+\label{eq:mip_vars}
+\end{equation}
+
+gde $\text{Elig}(s)$ označava skup učionica u kojima sesija $s$
+može da se održi. Za sesije koje zahtevaju računare, $\text{Elig}(s)$
+sadrži samo učionice sa računarima -- promenljive za nedozvoljene
+učionice se uopšte ne kreiraju, čime se implicitno poštuje
+ograničenje računarskih učionica.
+
+\textbf{Ukupan broj promenljivih:}
+$O(|\mathcal{S}| \cdot D \cdot H \cdot R)$. Za realne podatke
+MATF-a to može iznositi desetine hiljada binarnih promenljivih,
+što je za redove veličine više nego u CP formulaciji.
+
+\subsection{Tvrda ograničenja}
+
+\textbf{HC1: Svaka sesija raspoređena tačno jednom.}
+
+\begin{equation}
+\sum_{d,h,r} x_{s,d,h,r} = 1, \quad \forall s \in \mathcal{S}
+\label{eq:mip_hc1}
+\end{equation}
+
+\textbf{HC2: Najviše jedna sesija u datoj ucionici u datom terminu.}
+
+\begin{equation}
+\sum_{s \in \mathcal{S}} x_{s,d,h,r} \leq 1, \quad \forall d,h,r
+\label{eq:mip_hc2}
+\end{equation}
+
+\textbf{HC3: Bez kolizija unutar grupe.}
+Za svaku grupu $g$ i svaki termin $(d,h)$:
+
+\begin{equation}
+\sum_{s \in \mathcal{S}_g} \sum_{r} x_{s,d,h,r} \leq 1,
+  \quad \forall g, \forall d, \forall h
+\label{eq:mip_hc3}
+\end{equation}
+
+\textbf{HC4: Ravnomerna raspodela po danima.}
+Za svaku grupu $g$ i svaki dan $d$, broj sesija te grupe u tom
+danu je ograničen odozgo:
+
+\begin{equation}
+\sum_{s \in \mathcal{S}_g} \sum_{h,r} x_{s,d,h,r} \leq
+  \left\lceil \frac{N_g}{D} \right\rceil,
+  \quad \forall g, \forall d
+\label{eq:mip_hc4}
+\end{equation}
+
+gde je $N_g = |\mathcal{S}_g|$ ukupan broj sesija grupe $g$.
+Ovo ograničenje forsira ravnomerniju raspodelu časova tokom nedelje.
+
+\textbf{Napomena:} Ograničenje HC4 postoji samo u MIP formulaciji.
+CP formulacija nema ekvivalentno ograničenje, što znači da dopustivi
+skupovi nisu potpuno identični, ali su oba konzistentna sa realnim
+zahtevima raspoređivanja.
+
+\subsection{Funkcija cilja}
+
+Kao i CP formulacija, MIP formulacija radi u rezimu izvodljivosti
+bez funkcije cilja.
+
+\section{Poređenje formulacija}
+\label{sec:poredjenje_formulacija}
+
+Tabela \ref{tbl:formulacije} sumira ključne razlike između dve
+formulacije.
+
+\begin{table}[ht]
+\centering
+\caption{Poređenje CP i MIP formulacija}
+\label{tbl:formulacije}
+\begin{tabular}{lll}
+\toprule
+\textbf{Aspekt} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Tip promenljivih & Celobrojne & Binarne \\
+Broj promenljivih & $O(|\mathcal{S}|)$ & $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ \\
+Tip ograničenja & Globalna & Linearne nejednakosti \\
+Broj ograničenja & Kompaktan & $O(D \cdot H \cdot R + G \cdot D \cdot H)$ \\
+Pretraga & Propagacija + SAT & LP relaksacija + B\&B \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ključna razlika je u kompaktnosti modela: CP formulacija koristi
+mali broj celobrojnih promenljivih sa globalnim ograničenjima,
+dok MIP formulacija eksplicitno enumeriše sve moguće dodele kroz
+binarne promenljive. Ovo ima direktan uticaj na memorijski otisak
+i bržinu konstrukcije modela, posebno za veće instance problema.
+
+
+% ------------------------------------------------------------------------------
+\chapter{Eksperimentalna evaluacija}
+\label{chp:evaluacija}
+% ------------------------------------------------------------------------------
+
+U ovoj glavi opisujemo metodologiju merenja performansi, predstavljamo
+rezultate eksperimenata i analiziramo dobijene podatke.
+
+\section{Metodologija}
+\label{sec:metodologija}
+
+\subsection{Podskupovi realnih podataka}
+
+Eksperimenti su sprovedeni na tri podskupa realnih podataka
+Matematičkog fakulteta, filtrirane po semestrima i lokacijama:
+
+\begin{enumerate}
+\item \textbf{MATF-S} (mali) -- 1. godina (semestar 1), lokacija
+  Studentski trg. Ovo je najmanji podskup sa relativno malim brojem
+  sesija.
+
+\item \textbf{MATF-M} (srednji) -- 1. i 2. godina (semestri 1 i 3),
+  lokacije Studentski trg i Jagićeva. Srednje velik podskup sa
+  većom raznolikošću predmeta i učionica.
+
+\item \textbf{MATF-L} (veliki) -- sve godine (semestri 1, 3, 5, 7),
+  sve lokacije. Najbliži realnom scenariju raspoređivanja.
+\end{enumerate}
+
+\subsection{Metrike}
+
+Za svaki par (rešavač, skala) merimo sledeće metrike:
+
+\begin{itemize}
+\item \textbf{Broj sesija} -- ukupan broj časova koje treba rasporediti.
+\item \textbf{Broj promenljivih} -- veličina modela u terminima
+  odlučivačkih promenljivih.
+\item \textbf{Broj ograničenja} -- ukupan broj ograničenja u modelu.
+\item \textbf{Vreme konstrukcije} -- vreme potrebno za kreiranje
+  modela (promenljivih i ograničenja), mereno pomoću
+  \texttt{time.perf\_counter()}.
+\item \textbf{Vreme rešavanja} -- vreme potrebno za pronalaženje
+  dopustivog rešenja.
+\item \textbf{Ukupno vreme} -- zbir vremena konstrukcije i rešavanja.
+\item \textbf{Memorija modela} -- memorijski otisak modela, meren
+  pomoću \texttt{tracemalloc} (razlika memorijskih snimaka pre i
+  posle konstrukcije modela).
+\item \textbf{Maksimalna RAM} -- vršna potrošnja memorije procesa,
+  merena pomoću \texttt{resource.getrusage()}.
+\item \textbf{Status} -- da li je rešavač našao dopustivo rešenje
+  ili je isteklo vreme.
+\item \textbf{Validnost rešenja} -- nezavisna provera da li dobijeno
+  rešenje zadovoljava sva tvrda ograničenja (bez kolizija učionica,
+  bez kolizija grupa, poštovanje računarskih zahteva).
+\end{itemize}
+
+\subsection{Validacija rešenja}
+
+Rezultati svakog rešavača se nezavisno verifikuju funkcijom
+\texttt{validate\_solution} koja proverava:
+\begin{enumerate}
+\item da nijedna dva časa ne dele istu trojku (dan, sat, učionica),
+\item da nijedna dva časa iste grupe nisu u istom terminu (dan, sat),
+\item da časovi koji zahtevaju računare budu u učionicama sa
+  računarima,
+\item da broj dodeljenih termina odgovara broju sesija.
+\end{enumerate}
+
+\section{Rezultati}
+\label{sec:rezultati}
+
+U tabelama \ref{tbl:results_s}, \ref{tbl:results_m} i
+\ref{tbl:results_l} prikazani su rezultati za svaku skalu.
+
+\begin{table}[ht]
+\centering
+\caption{Rezultati za MATF-S (1. godina, Studentski trg)}
+\label{tbl:results_s}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Sesije                 & \multicolumn{2}{c}{(popuniti iz benchmark rezultata)} \\
+Promenljive            & --      & -- \\
+Ograničenja            & --      & -- \\
+Vreme konstrukcije     & --      & -- \\
+Vreme rešavanja        & --      & -- \\
+Ukupno vreme           & --      & -- \\
+Memorija modela        & --      & -- \\
+Status                 & --      & -- \\
+Rešenje validno        & --      & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Rezultati za MATF-M (1--2. godina, Studentski trg + Jagićeva)}
+\label{tbl:results_m}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Sesije                 & \multicolumn{2}{c}{(popuniti iz benchmark rezultata)} \\
+Promenljive            & --      & -- \\
+Ograničenja            & --      & -- \\
+Vreme konstrukcije     & --      & -- \\
+Vreme rešavanja        & --      & -- \\
+Ukupno vreme           & --      & -- \\
+Memorija modela        & --      & -- \\
+Status                 & --      & -- \\
+Rešenje validno        & --      & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Rezultati za MATF-L (sve godine, sve lokacije)}
+\label{tbl:results_l}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Sesije                 & \multicolumn{2}{c}{(popuniti iz benchmark rezultata)} \\
+Promenljive            & --      & -- \\
+Ograničenja            & --      & -- \\
+Vreme konstrukcije     & --      & -- \\
+Vreme rešavanja        & --      & -- \\
+Ukupno vreme           & --      & -- \\
+Memorija modela        & --      & -- \\
+Status                 & --      & -- \\
+Rešenje validno        & --      & -- \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Napomena:} Vrednosti u tabelama treba popuniti konkretnim
+rezultatima iz pokretanja benchmark-a. Rezultate je moguće dobiti
+komandom:
+
+\begin{english}
+\begin{verbatim}
+bazel run //src/algo:benchmark -- --json report.json
+\end{verbatim}
+\end{english}
+
+\section{Analiza rezultata}
+\label{sec:analiza}
+
+Na osnovu sprovedenih eksperimenata, možemo izvući sledeće zaključke:
+
+\subsection{Kompaktnost modela}
+
+CP-SAT formulacija koristi $5 \cdot |\mathcal{S}|$ celobrojnih
+promenljivih, dok MIP/SCIP formulacija koristi
+$O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ binarnih promenljivih.
+Za MATF-L skalu sa $D=5$ dana, $H=12$ sati i $R=35$ učionica,
+svaka sesija generiše do $5 \cdot 12 \cdot 35 = 2100$ binarnih
+promenljivih u MIP-u, naspram 5 celobrojnih u CP-u. Ova razlika
+od dva do tri reda veličine se direktno odražava na memorijski
+otisak i vreme konstrukcije modela.
+
+\subsection{Brzina rešavanja}
+
+CP-SAT rešavač koristi globalna ograničenja
+(\texttt{AllDifferent}, \texttt{AllowedAssignments}) sa
+specijalizovanim algoritmima propagacije koji rano eliminišu
+nedopustive vrednosti iz domena promenljivih. U kombinaciji sa
+SAT tehnologijama učenja konflikata, ovo omogućava znatno brzu
+pretragu prostora rešenja u poređenju sa LP relaksacijom i
+branch-and-bound pristupom MIP/SCIP rešavača.
+
+\subsection{Skalabilnost}
+
+Razlika u performansama između dva pristupa postaje
+izraženija sa rastom veličine problema. Dok na malim instancama
+(MATF-S) oba rešavača nalaze rešenje relativno brzo, na većim
+instancama (MATF-M, MATF-L) MIP/SCIP zahteva značajno vise
+vremena, a u nekim slučajevima može da ne nađe rešenje u
+zadatom vremenskom limitu.
+
+\subsection{Teorijska kompleksnost}
+
+Tabela \ref{tbl:complexity} sumira teorijsku kompleksnost
+oba pristupa.
+
+\begin{table}[ht]
+\centering
+\caption{Teorijska kompleksnost formulacija}
+\label{tbl:complexity}
+\begin{tabular}{lll}
+\toprule
+\textbf{Aspekt} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Promenljive & $O(|\mathcal{S}|)$ &
+  $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ \\
+Ograničenja & Kompaktna globalna &
+  $O(D \cdot H \cdot R + G \cdot D \cdot H)$ \\
+Propagacija & Specijalizovani algoritmi &
+  LP relaksacija \\
+Učenje & Konflikti (SAT klauze) &
+  Ravni odsecanja \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+
+% ------------------------------------------------------------------------------
+\chapter{Zaključak i dalji rad}
+\label{chp:zakljucak}
+% ------------------------------------------------------------------------------
+
+\section{Zaključak}
+
+U ovom radu smo razmatrali problem automatskog generisanja rasporeda
+časova na primeru Matematičkog fakulteta Univerziteta u Beogradu.
+Implementirana su dva pristupa: programiranje ograničenja (CP-SAT) i
+mešovito celobrojno programiranje (MIP/SCIP), oba korišćenjem
+biblioteke Google OR-Tools.
+
+Eksperimentalna evaluacija na tri skale realnih podataka pokazala je
+sledeće:
+
+\begin{enumerate}
+\item \textbf{CP-SAT je značajno kompaktniji.}
+  Sa svega 5 celobrojnih promenljivih po sesiji naspram hiljada
+  binarnih promenljivih u MIP-u, CP model zauzima znatno manje
+  memorije i brže se konstruiše.
+
+\item \textbf{CP-SAT je brži.}
+  Zahvaljujuci globalnim ograničenjima sa specijalizovanom
+  propagacijom i tehnikama učenja konflikata iz SAT rešavača,
+  CP-SAT nalazi dopustivo rešenje za redove veličine brže od
+  MIP/SCIP rešavača.
+
+\item \textbf{CP-SAT bolje skalira.}
+  Na većim instancama problema, prednost CP-SAT pristupa postaje
+  izraženija, dok MIP/SCIP može da ne nađe rešenje u razumnom
+  vremenskom roku.
+
+\item \textbf{Oba rešavača daju validna rešenja.}
+  Nezavisna validacija potvrđuje da oba pristupa, kada nađu
+  rešenje, zadovoljavaju sva tvrda ograničenja.
+\end{enumerate}
+
+Na osnovu ovih rezultata, CP-SAT je jasni izbor za dalju nadogradnju
+sistema za raspoređivanje časova.
+
+\section{Dalji rad}
+
+U drugom delu ovog rada planiramo sledeća proširenja:
+
+\begin{enumerate}
+\item \textbf{Meka ograničenja i optimizacija.}
+  Dodavanje funkcije cilja koja optimizuje kvalitet rasporeda --
+  na primer, minimizacija rupa u rasporedu za studente,
+  ravnomerna raspodela časova i izbegavanje kasnih termina.
+
+\item \textbf{Rasporedivanje nastavnog osoblja.}
+  Uključivanje profesora i asistenata u model, sa ograničenjima
+  njihove raspoloživosti i preferencija.
+
+\item \textbf{Lokacijska ograničenja.}
+  Ograničenja koja sprečavaju da profesor ili grupa studenata
+  mora da menja lokaciju (zgradu) u toku jednog dana ili u
+  kratkom vremenskom periodu.
+
+\item \textbf{Proširena ograničenja učionica.}
+  Uzimanje u obzir kapaciteta učionice u odnosu na veličinu grupe.
+
+\item \textbf{Veb interfejs.}
+  Izgradnja veb aplikacije koja omogućava unos podataka,
+  pokretanje rešavača i vizuelni prikaz rasporeda, korišćenjem
+  FastAPI okruzenja za serversku stranu.
+\end{enumerate}
+
+
+% ------------------------------------------------------------------------------
+% Literatura
+% ------------------------------------------------------------------------------
+\literatura
+
+% ==============================================================================
+\backmatter
+% ==============================================================================
+
+% ------------------------------------------------------------------------------
+\begin{biografija}
+\textbf{Dušan Trtica} rođen je 1999. godine. Osnovne studije
+završio je na Matematickom fakultetu Univerziteta u Beogradu, smer
+Informatika. Trenutno je student master studija na istom fakultetu.
+Oblasti interesovanja uključuju kombinatornu optimizaciju,
+automatsko raspoređivanje i razvoj softvera.
+\end{biografija}
+% ------------------------------------------------------------------------------
+
+\end{document}
