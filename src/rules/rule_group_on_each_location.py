@@ -1,0 +1,1 @@
+print("Svaka grupa mora u nedelji biti na svim lokacijama");
