@@ -62,6 +62,12 @@ class Settings:
 
 
 @dataclass(config=_config)
+class RuleConfig:
+    enabled: bool = True
+    penalty: int = 0
+
+
+@dataclass(config=_config)
 class SchedulingInput:
     settings: Settings
     locations: List[Location]
@@ -69,5 +75,6 @@ class SchedulingInput:
     departments: List[Department]
     courses: List[Course]
     students_enrolled: List[StudentsEnrolled] = Field(alias="studentsEnrolled")
+    rules: dict[str, RuleConfig] = Field(default_factory=dict)
 
 

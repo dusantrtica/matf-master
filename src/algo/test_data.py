@@ -121,9 +121,11 @@ def test_generate_session_id():
     course_id = 17
     course_type = "p"
 
-    session_id = generate_session_id(group_id, department_id, course_id, course_type)
+    session_id = generate_session_id(group_id, department_id, course_id, course_type, 0)
+    assert session_id == "5_2_17_p_0"
 
-    assert session_id == "5_2_17_p"
+    session_id = generate_session_id(group_id, department_id, course_id, course_type, 2)
+    assert session_id == "5_2_17_p_2"
 
 
 def test_department_by_id():
@@ -241,18 +243,18 @@ def test_course_sessions():
     assert len(theory_sessions) == 2
     assert len(practice_sessions) == 3
 
-    # Da li su ID-evi sesija u ispravnom formatu
-    expected_theory_id = generate_session_id(group_id, course.dep_id, course.id, "t")
-    expected_practice_id = generate_session_id(group_id, course.dep_id, course.id, "p")
-    for s in theory_sessions:
-        assert s.id == expected_theory_id
+    # Each session now has a unique ID with an index suffix
+    for i, s in enumerate(theory_sessions):
+        expected_id = generate_session_id(group_id, course.dep_id, course.id, "t", i)
+        assert s.id == expected_id
         assert s.group_id == group_id
         assert s.department_id == course.dep_id
         assert s.course_id == course.id
         assert s.needs_computers == True
         assert s.session_type == "theory"
-    for s in practice_sessions:
-        assert s.id == expected_practice_id
+    for i, s in enumerate(practice_sessions):
+        expected_id = generate_session_id(group_id, course.dep_id, course.id, "p", i)
+        assert s.id == expected_id
         assert s.group_id == group_id
         assert s.department_id == course.dep_id
         assert s.course_id == course.id
@@ -312,25 +314,25 @@ def test_generate_sessions():
 
     # Act
     result = list(generate_sessions(scheduling_input, group_size=50))
-    assert result[0].id == "10_1_0_10_101_t"
-    assert result[1].id == "10_1_0_10_101_p"
-    assert result[2].id == "10_1_0_10_101_p"
+    assert result[0].id == "10_1_0_10_101_t_0"
+    assert result[1].id == "10_1_0_10_101_p_0"
+    assert result[2].id == "10_1_0_10_101_p_1"
 
-    assert result[3].id == "10_1_1_10_101_t"
-    assert result[4].id == "10_1_1_10_101_p"
-    assert result[5].id == "10_1_1_10_101_p"
+    assert result[3].id == "10_1_1_10_101_t_0"
+    assert result[4].id == "10_1_1_10_101_p_0"
+    assert result[5].id == "10_1_1_10_101_p_1"
 
-    assert result[6].id == "20_1_0_20_103_t"
-    assert result[7].id == "20_1_0_20_103_t"
-    assert result[8].id == "20_1_0_20_103_p"
-    assert result[9].id == "20_1_0_20_103_p"
-    assert result[10].id == "20_1_0_20_103_p"
+    assert result[6].id == "20_1_0_20_103_t_0"
+    assert result[7].id == "20_1_0_20_103_t_1"
+    assert result[8].id == "20_1_0_20_103_p_0"
+    assert result[9].id == "20_1_0_20_103_p_1"
+    assert result[10].id == "20_1_0_20_103_p_2"
 
-    assert result[11].id == "20_1_1_20_103_t"
-    assert result[12].id == "20_1_1_20_103_t"
-    assert result[13].id == "20_1_1_20_103_p"
-    assert result[14].id == "20_1_1_20_103_p"
-    assert result[15].id == "20_1_1_20_103_p"
+    assert result[11].id == "20_1_1_20_103_t_0"
+    assert result[12].id == "20_1_1_20_103_t_1"
+    assert result[13].id == "20_1_1_20_103_p_0"
+    assert result[14].id == "20_1_1_20_103_p_1"
+    assert result[15].id == "20_1_1_20_103_p_2"
 
 
 if __name__ == "__main__":

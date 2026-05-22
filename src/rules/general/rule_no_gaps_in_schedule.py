@@ -1,0 +1,1 @@
+print("Bez rupa u rasporedu");

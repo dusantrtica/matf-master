@@ -76,9 +76,9 @@ def split_students_into_groups(
 
 
 def generate_session_id(
-    group_id: int, department_id: int, course_id, course_type
+    group_id: int, department_id: int, course_id, course_type, index: int
 ) -> str:
-    return f"{group_id}_{department_id}_{course_id}_{course_type}"
+    return f"{group_id}_{department_id}_{course_id}_{course_type}_{index}"
 
 
 class Session:
@@ -109,9 +109,9 @@ def department_by_id(departments: List[Department], id: int) -> Department:
 
 
 def course_sessions(course: Course, group_id: int) -> Generator[Session, None, None]:    
-    for _ in range(course.quota.theory):
+    for i in range(course.quota.theory):
         yield Session(
-            generate_session_id(group_id, course.dep_id, course.id, "t"),
+            generate_session_id(group_id, course.dep_id, course.id, "t", i),
             group_id,
             course.dep_id,
             course.id,
@@ -119,9 +119,9 @@ def course_sessions(course: Course, group_id: int) -> Generator[Session, None, N
             "theory",
         )
 
-    for _ in range(course.quota.practice):
+    for i in range(course.quota.practice):
         yield Session(
-            generate_session_id(group_id, course.dep_id, course.id, "p"),
+            generate_session_id(group_id, course.dep_id, course.id, "p", i),
             group_id,
             course.dep_id,
             course.id,

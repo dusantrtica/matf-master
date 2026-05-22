@@ -1,1 +1,0 @@
-print("Dvocasi i trocasi u bloku");

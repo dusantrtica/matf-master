@@ -7,6 +7,12 @@ from src.algo.model import (
     Settings,
     Course,
 )
+from src.rules.base import SchedulingRule
+from src.rules.general.rule_join_same_classes import JoinSameClassesRule
+
+RULE_REGISTRY: dict[str, type[SchedulingRule]] = {
+    "joinSameClasses": JoinSameClassesRule,
+}
 
 class SimpleCPSolver:
     """
@@ -25,15 +31,17 @@ class SimpleCPSolver:
 
         # Ubrzava rešavanje tako sto koristimo vise jezgara i tako sto
         # skracujemo simetrije u modelu.
-        #self.solver.parameters.num_search_workers = 8  # use all M4 cores
-        #self.solver.parameters.symmetry_level = 2
+        self.solver.parameters.num_search_workers = 8  # use all M4 cores
+        self.solver.parameters.symmetry_level = 2
 
         self.init_input(scheduling_input)
         
         self.create_assignment_variables()
         self.create_hard_constraints()
+        self.apply_rules()
 
     def init_input(self, scheduling_input: SchedulingInput):
+        self.scheduling_input = scheduling_input
         self.settings: Settings = scheduling_input.settings
         self.classrooms = scheduling_input.classrooms
         self.courses: List[Course] = scheduling_input.courses
@@ -129,6 +137,26 @@ class SimpleCPSolver:
                     [self.room_var[s]],
                     [[idx] for idx in computer_room_indices],
                 )
+
+    def apply_rules(self):
+        """Instantiate and apply all enabled rule plugins from config."""
+        self.penalty_vars: list[tuple[int, cp_model.IntVar]] = []
+
+        for rule_name, config in self.scheduling_input.rules.items():
+            if not config.enabled:
+                continue
+            rule_class = RULE_REGISTRY.get(rule_name)
+            if rule_class is None:
+                raise ValueError(f"Unknown rule: '{rule_name}'")
+            rule = rule_class(enabled=config.enabled, penalty=config.penalty)
+            violations = rule.apply(self)
+            for v in violations:
+                self.penalty_vars.append((config.penalty, v))
+
+        if self.penalty_vars:
+            self.model.Minimize(
+                sum(weight * var for weight, var in self.penalty_vars)
+            )
 
     def solve(self):
         status = self.solver.Solve(self.model)

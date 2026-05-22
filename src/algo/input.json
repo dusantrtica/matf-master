@@ -5,6 +5,12 @@
         "endHour": 20,
         "duration": 1
     },
+    "rules": {
+        "joinSameClasses": {
+            "enabled": true,
+            "penalty": 0
+        }
+    },
     "locations": [
         {"id": 1, "name": "Studentski trg"},
         {"id": 2, "name": "N Building"},

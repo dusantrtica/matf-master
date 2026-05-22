@@ -15,6 +15,7 @@ py_test(
     name = "test_cp_solver",
     srcs=["model.py", "data.py", "cp_solver.py", "test_cp_solver.py"],
     deps = [
+        "//src/rules",
         "@pip//pytest",
         "@pip//pydantic",
         "@pip//pyfunctional",
@@ -39,6 +40,7 @@ py_binary(
     ],
     data = ["input_full_1_semester.json"],
     deps = [
+        "//src/rules",
         "@pip//pydantic",
         "@pip//ortools",
         "@pip//openpyxl",
@@ -89,6 +91,7 @@ py_binary(
         "600",
     ],
     deps = [
+        "//src/rules",
         "@pip//pydantic",
         "@pip//ortools",
         "@pip//openpyxl",
