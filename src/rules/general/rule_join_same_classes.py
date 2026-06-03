@@ -41,9 +41,10 @@ class JoinSameClassesRule(SchedulingRule):
         H = len(solver.working_hours)
         violations: list[cp_model.IntVar] = []
 
-        for _family_key, indices in families.items():
+        for _family_key, family_sessions in families.items():
             # pravimo blokove - dvo, trosatni blokovi
-            block_sizes = split_into_blocks(len(indices))
+            # blokovi su oblika: [1], [2], [3], [2, 2]
+            block_sizes = split_into_blocks(len(family_sessions))
 
             offset = 0
             for block_size in block_sizes:
@@ -51,7 +52,7 @@ class JoinSameClassesRule(SchedulingRule):
                     offset += block_size
                     continue
 
-                block = indices[offset : offset + block_size]
+                block = family_sessions[offset : offset + block_size]
                 # anchor je prva sesija u bloku
                 # koristimo je kao referentnu sesiju za ostale sesije u bloku
                 # da bi ostale sesije bile u istom danu, ucionici i satu za satom.
