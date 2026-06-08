@@ -1,1 +1,0 @@
-print("Ista lokacija u danu");

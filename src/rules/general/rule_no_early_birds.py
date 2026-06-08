@@ -1,1 +1,0 @@
-print("Da ne bude u 8 ujutru ako ne mora")

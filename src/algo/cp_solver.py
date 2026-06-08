@@ -9,9 +9,11 @@ from src.algo.model import (
 )
 from src.rules.base import SchedulingRule
 from src.rules.general.rule_join_same_classes import JoinSameClassesRule
+from src.rules.general.rule_single_location_in_day_for_group import SingleLocationInDayForGroupRule
 
 RULE_REGISTRY: dict[str, type[SchedulingRule]] = {
     "joinSameClasses": JoinSameClassesRule,
+    "singleLocationInDayForGroup": SingleLocationInDayForGroupRule,
 }
 
 class SimpleCPSolver:
