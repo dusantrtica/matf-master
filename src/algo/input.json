@@ -9,6 +9,10 @@
         "joinSameClasses": {
             "enabled": true,
             "penalty": 0
+        },
+        "noGapsInSchedule": {
+            "enabled": true,
+            "penalty": 5
         }
     },
     "locations": [

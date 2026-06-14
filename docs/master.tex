@@ -1038,6 +1038,424 @@ Učenje & Konflikti (SAT klauze) &
 
 
 % ------------------------------------------------------------------------------
+\chapter{Nadogradnja CP rešavača dodatnim ograničenjima}
+\label{chp:nadogradnja}
+% ------------------------------------------------------------------------------
+
+Na osnovu rezultata iz glave \ref{chp:evaluacija}, CP-SAT rešavač je
+izabran kao osnova za dalji razvoj sistema. U ovoj glavi opisujemo
+nadogradnju modela dodatnim ograničenjima koja raspored približavaju
+realnim potrebama Matematičkog fakulteta. Za razliku od prvog dela rada,
+gde smo tražili bilo koje dopustivo rešenje, ovde uvodimo i funkciju
+cilja koja optimizuje kvalitet rasporeda kroz meka ograničenja.
+
+Implementirana su tri nova ograničenja:
+\begin{itemize}
+\item \textbf{spajanje časova u blokove} -- časovi istog predmeta, grupe
+  i tipa grupišu se u uzastopne blokove (na primer dvočasi i tročasi);
+\item \textbf{jedna lokacija po danu za grupu} -- grupa studenata ne menja
+  zgradu u toku jednog radnog dana;
+\item \textbf{bez procepa u rasporedu} -- izbegavanje slobodnih sati
+  između dva zauzeta sata u istom danu.
+\end{itemize}
+
+\section{Arhitektura pravila}
+\label{sec:arhitektura_pravila}
+
+Svako ograničenje je modelovano kao zaseban dodatak (eng. \emph{plugin})
+koji se priključuje rešavaču. Ovakva arhitektura omogućava da se pravila
+nezavisno uključuju, isključuju i konfigurišu, bez izmena u jezgru
+rešavača.
+
+Osnovu čini apstraktna klasa \texttt{SchedulingRule} (modul
+\texttt{src/rules/base.py}):
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Apstraktna klasa pravila}]
+class SchedulingRule(ABC):
+    def __init__(self, enabled=True, penalty=0, **kwargs):
+        self.enabled = enabled
+        self.penalty = penalty
+
+    @property
+    def is_hard(self) -> bool:
+        return self.penalty == 0
+
+    @abstractmethod
+    def apply(self, solver) -> list[cp_model.IntVar]:
+        ...
+\end{lstlisting}
+\end{english}
+
+Svako pravilo ima dva parametra: \texttt{enabled} (da li je pravilo
+aktivno) i \texttt{penalty} (cena kršenja). Vrednost \texttt{penalty}
+istovremeno određuje i \emph{tip} ograničenja:
+
+\begin{itemize}
+\item \texttt{penalty == 0} -- \textbf{tvrdo} (eng. \emph{hard})
+  ograničenje. Mora biti zadovoljeno; u suprotnom rešavač prijavljuje
+  da je problem nedopustiv (\texttt{INFEASIBLE}). Metoda \texttt{apply}
+  dodaje ograničenja direktno u model i vraća praznu listu.
+\item \texttt{penalty > 0} -- \textbf{meko} (eng. \emph{soft})
+  ograničenje. Rešavač pokušava da ga zadovolji, ali ga može prekršiti
+  uz datu cenu. Metoda \texttt{apply} vraća listu binarnih promenljivih
+  prekršaja (vrednost 1 označava prekršaj).
+\end{itemize}
+
+\subsection{Konfiguracija pravila}
+
+Pravila se konfigurišu u ulaznom JSON fajlu pomoću sekcije
+\texttt{rules}, gde svaki ključ odgovara nazivu pravila:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Primer konfiguracije pravila u JSON-u}]
+"rules": {
+    "joinSameClasses":  { "enabled": true, "penalty": 0 },
+    "noGapsInSchedule": { "enabled": true, "penalty": 5 }
+}
+\end{lstlisting}
+\end{english}
+
+Ova konfiguracija se učitava u Pydantic model \texttt{RuleConfig}
+(modul \texttt{model.py}). U gornjem primeru, pravilo
+\texttt{joinSameClasses} je tvrdo (penalty 0), dok je
+\texttt{noGapsInSchedule} meko sa cenom 5 po prekršaju.
+
+\subsection{Primena pravila i funkcija cilja}
+
+Rešavač održava registar pravila \texttt{RULE\_REGISTRY} koji preslikava
+naziv pravila u odgovarajuću klasu. Metoda \texttt{apply\_rules}
+instancira sva uključena pravila, prikuplja promenljive prekršaja i
+formira funkciju cilja:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Primena pravila i formiranje funkcije cilja}]
+def apply_rules(self):
+    self.penalty_vars = []
+    for rule_name, config in self.scheduling_input.rules.items():
+        if not config.enabled:
+            continue
+        rule_class = RULE_REGISTRY.get(rule_name)
+        rule = rule_class(enabled=config.enabled, penalty=config.penalty)
+        violations = rule.apply(self)
+        for v in violations:
+            self.penalty_vars.append((config.penalty, v))
+
+    if self.penalty_vars:
+        self.model.Minimize(
+            sum(weight * var for weight, var in self.penalty_vars)
+        )
+\end{lstlisting}
+\end{english}
+
+Funkcija cilja je dakle težinska suma svih prekršaja mekih ograničenja:
+
+\begin{equation}
+\min \sum_{r} \text{penalty}_r \cdot \sum_{v \in V_r} v
+\label{eq:objective}
+\end{equation}
+
+gde je $V_r$ skup promenljivih prekršaja koje vraća pravilo $r$, a
+$\text{penalty}_r$ njegova cena. Tvrda ograničenja ne učestvuju u
+funkciji cilja jer vraćaju praznu listu prekršaja.
+
+\section{CP-SAT tehnike modeliranja}
+\label{sec:cpsat_tehnike}
+
+Nova pravila koriste nekoliko naprednih tehnika modeliranja koje pruža
+CP-SAT \cite{cpsat2020}. U ovom odeljku ih ukratko objašnjavamo, jer se
+koriste u sve tri implementacije.
+
+\subsection{Reifikacija i \texttt{OnlyEnforceIf}}
+
+\emph{Reifikacija} povezuje istinitost nekog ograničenja sa binarnom
+\emph{indikatorskom} promenljivom (literalom). U CP-SAT, metoda
+\texttt{OnlyEnforceIf(b)} čini da ograničenje važi \emph{samo ako} je
+literal $b$ tačan:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Uslovno (reifikovano) ograničenje}]
+# lit == 1  =>  flat_time[s] == t
+model.Add(flat_time[s] == t).OnlyEnforceIf(lit)
+# lit == 0  =>  flat_time[s] != t
+model.Add(flat_time[s] != t).OnlyEnforceIf(lit.Not())
+\end{lstlisting}
+\end{english}
+
+Navođenjem oba smera (za $b$ i za $\neg b$, tj. \texttt{lit.Not()})
+dobija se puna ekvivalencija $b \Leftrightarrow (\text{flat\_time}_s = t)$,
+čime literal $b$ tačno odražava istinitost ograničenja.
+
+\subsection{Logičko ILI preko \texttt{AddMaxEquality}}
+
+Za binarne promenljive (vrednosti 0 ili 1), maksimum je jednak logičkom
+ILI. CP-SAT to izražava ograničenjem \texttt{AddMaxEquality}:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Logicko ILI nad binarnim promenljivama}]
+# b == 1 ako je bar jedan od literala u "lits" jednak 1
+model.AddMaxEquality(b, lits)   # b = max(lits) = OR(lits)
+\end{lstlisting}
+\end{english}
+
+Ovo koristimo da utvrdimo da li je grupa zauzeta u nekom terminu (bar
+jedna sesija je u tom terminu).
+
+\subsection{\texttt{AddBoolAnd} i \texttt{AddBoolOr}}
+
+Ograničenja \texttt{AddBoolAnd} (konjunkcija) i \texttt{AddBoolOr}
+(disjunkcija) nameću da svi, odnosno bar jedan literal budu tačni. U
+kombinaciji sa \texttt{OnlyEnforceIf} koriste se za potpunu reifikaciju
+složenih logičkih izraza:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Reifikacija ekvivalencije logickog izraza}]
+# gap == 1  <=>  (has_before AND has_after AND NOT busy)
+model.AddBoolAnd([has_before, has_after, busy.Not()]).OnlyEnforceIf(gap)
+model.AddBoolOr([has_before.Not(), has_after.Not(), busy]).OnlyEnforceIf(gap.Not())
+\end{lstlisting}
+\end{english}
+
+Prvi red obezbeđuje smer $gap \Rightarrow (\ldots)$, a drugi
+(primenom De Morganovih zakona) smer $\neg gap \Rightarrow \neg(\ldots)$.
+
+\subsection{Indeksiranje niza preko \texttt{AddElement}}
+
+Ograničenje \texttt{AddElement(index, array, target)} nameće
+$\text{target} = \text{array}[\text{index}]$, gde je \texttt{index}
+promenljiva. Ovo omogućava ``pretragu'' kroz niz na osnovu vrednosti
+druge promenljive:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Indeksiranje niza promenljivom}]
+# loc[s] == locations_of_classrooms[room_var[s]]
+model.AddElement(room_var[s], locations_of_classrooms, loc[s])
+\end{lstlisting}
+\end{english}
+
+\section{Pravilo: spajanje časova u blokove}
+\label{sec:rule_join}
+
+Pravilo \texttt{JoinSameClassesRule} (modul
+\texttt{rule\_join\_same\_classes.py}) grupiše časove istog predmeta,
+grupe i tipa (predavanje/vežbe) u uzastopne blokove. Cilj je izbeći
+rascepkane rasporede gde su, na primer, četiri časa istog predmeta
+razbacana kroz nedelju.
+
+\subsection{Formiranje blokova}
+
+Sesije se najpre grupišu u \emph{familije} po ključu
+(predmet, grupa, tip). Za svaku familiju, broj sesija se deli na blokove
+funkcijom \texttt{split\_into\_blocks}:
+
+\begin{equation}
+\text{split}(n) =
+\begin{cases}
+[n] & \text{ako } n \leq 3 \\
+[2, 2] & \text{ako } n = 4
+\end{cases}
+\label{eq:blocks}
+\end{equation}
+
+Tako se tročasovni blok drži zajedno, dok se četiri časa dele na dva
+dvočasa. Unutar svakog bloka, prva sesija se bira kao \emph{sidro}
+(eng. \emph{anchor}), a ostale se vezuju za nju.
+
+\subsection{Tvrda varijanta}
+
+U tvrdoj varijanti, svaka sesija $s_i$ u bloku (sa rednim brojem $i$ u
+odnosu na sidro $a$) mora biti istog dana, u istoj učionici i u
+uzastopnom satu:
+
+\begin{align}
+\text{day}_{s_i} &= \text{day}_a \\
+\text{slot}_{s_i} &= \text{slot}_a + i \\
+\text{room}_{s_i} &= \text{room}_a \\
+\text{slot}_a + |B| - 1 &\leq H - 1
+\end{align}
+
+gde je $|B|$ veličina bloka, a poslednji uslov obezbeđuje da blok stane
+unutar radnog vremena. U kodu:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Tvrdo spajanje bloka oko sidra}]
+for i, s in enumerate(block[1:], start=1):
+    solver.model.Add(solver.day_var[s]  == solver.day_var[anchor])
+    solver.model.Add(solver.slot_var[s] == solver.slot_var[anchor] + i)
+    solver.model.Add(solver.room_var[s] == solver.room_var[anchor])
+solver.model.Add(solver.slot_var[anchor] + len(block) - 1 <= H - 1)
+\end{lstlisting}
+\end{english}
+
+\subsection{Meka varijanta}
+
+U mekoj varijanti, ista ograničenja se uvode uslovno, preko literala
+$b$ (``blok je spojen''). Ako blok ne može biti spojen, $b$ je netačno
+i uvodi se promenljiva prekršaja:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Meko spajanje sa promenljivom prekrsaja}]
+b = solver.model.NewBoolVar(f"joined_{block[0]}_{block[-1]}")
+for i, s in enumerate(block[1:], start=1):
+    solver.model.Add(solver.day_var[s]  == solver.day_var[anchor]).OnlyEnforceIf(b)
+    solver.model.Add(solver.slot_var[s] == solver.slot_var[anchor] + i).OnlyEnforceIf(b)
+    solver.model.Add(solver.room_var[s] == solver.room_var[anchor]).OnlyEnforceIf(b)
+
+violation = solver.model.NewBoolVar(f"violation_{block[0]}_{block[-1]}")
+solver.model.Add(violation == 1).OnlyEnforceIf(b.Not())
+solver.model.Add(violation == 0).OnlyEnforceIf(b)
+\end{lstlisting}
+\end{english}
+
+Promenljiva \texttt{violation} ulazi u funkciju cilja
+(jednačina \ref{eq:objective}), pa rešavač spaja blokove kad god je to
+moguće, a krši pravilo samo kada je neophodno.
+
+\section{Pravilo: jedna lokacija po danu za grupu}
+\label{sec:rule_location}
+
+Pravilo \texttt{SingleLocationInDayForGroupRule} (modul
+\texttt{rule\_single\_location\_in\_day\_for\_group.py}) sprečava da
+grupa studenata menja zgradu (lokaciju) tokom jednog radnog dana.
+Matematički fakultet izvodi nastavu na više lokacija (Studentski trg,
+zgrada N, Jagićeva), pa bi promena zgrade između dva uzastopna časa
+bila nepraktična. Ovo je tvrdo ograničenje.
+
+\subsection{Mehanizam}
+
+Ključ implementacije je dvostruka primena ograničenja
+\texttt{AddElement}. Najpre, za svaku sesiju $s$ uvodimo promenljivu
+$\text{loc}_s$ koja predstavlja lokaciju dodeljene učionice:
+
+\begin{equation}
+\text{loc}_s = \text{locOfClassroom}[\text{room}_s]
+\end{equation}
+
+Pošto je $\text{room}_s$ promenljiva, koristimo \texttt{AddElement} da
+indeksiramo niz lokacija učionica:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Kanalisanje ucionice u lokaciju}]
+loc[s] = solver.model.NewIntVar(0, max_loc, f"loc_{s}")
+solver.model.AddElement(
+    solver.room_var[s], self.locations_of_classrooms, loc[s]
+)
+\end{lstlisting}
+\end{english}
+
+Zatim, za svaku grupu $g$ i dan $d$ uvodimo promenljivu
+$\text{groupDayLoc}_{g,d}$ -- lokaciju te grupe tog dana. Za svaku
+sesiju $s$ grupe $g$ namećemo da njena lokacija bude jednaka lokaciji
+grupe na dan kada se sesija održava:
+
+\begin{equation}
+\text{loc}_s = \text{groupDayLoc}_{g}[\text{day}_s]
+\end{equation}
+
+Ponovo koristimo \texttt{AddElement}, ovog puta indeksirajući niz
+dnevnih lokacija promenljivom $\text{day}_s$:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Vezivanje lokacije sesije za lokaciju grupe po danu}]
+for g, indices in group_session_indices.items():
+    day_locs = [group_day_loc[g, d] for d in range(D)]
+    for s in indices:
+        # loc[s] == group_day_loc[g][day_var[s]]
+        solver.model.AddElement(solver.day_var[s], day_locs, loc[s])
+\end{lstlisting}
+\end{english}
+
+Pošto sve sesije grupe $g$ u danu $d$ moraju imati istu vrednost
+$\text{loc}_s$ (jednaku $\text{groupDayLoc}_{g,d}$), rešavač je prinuđen
+da ih sve smesti u učionice na istoj lokaciji.
+
+\section{Pravilo: bez procepa u rasporedu}
+\label{sec:rule_nogaps}
+
+Pravilo \texttt{NoGapsInScheduleRule} (modul
+\texttt{rule\_no\_gaps\_in\_schedule.py}) cilja na kvalitet rasporeda
+iz ugla studenata: izbegava \emph{procepe} -- slobodne sate koji se
+nalaze između dva zauzeta sata u istom danu za istu grupu. Na primer,
+ako grupa ima čas u 8h i u 11h, a 9h i 10h su slobodni, to su dva
+procepa.
+
+\subsection{Matrica zauzetosti}
+
+Najpre se za svaku grupu gradi matrica zauzetosti
+$\text{busy}_{d,h}$ koja je tačna ako grupa ima neki čas u danu $d$,
+satu $h$. Za svaku sesiju i svaki termin $t = d \cdot H + h$ uvodimo
+reifikovani literal koji je tačan kada je sesija u tom terminu, a zatim
+ih agregiramo logičkim ILI preko \texttt{AddMaxEquality}:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Gradnja matrice zauzetosti}]
+for s in sess:
+    lit = solver.model.NewBoolVar(f"at_{s}_{t}")
+    solver.model.Add(solver.flat_time_var[s] == t).OnlyEnforceIf(lit)
+    solver.model.Add(solver.flat_time_var[s] != t).OnlyEnforceIf(lit.Not())
+    lits.append(lit)
+b = solver.model.NewBoolVar(f"busy_{g}_{d}_{h}")
+solver.model.AddMaxEquality(b, lits)   # OR preko svih sesija grupe
+\end{lstlisting}
+\end{english}
+
+\subsection{Detekcija procepa}
+
+Sat $h$ je procep ako je slobodan ($\neg \text{busy}_{d,h}$), a postoji
+zauzet sat i pre i posle njega u istom danu. Pomoćni literali
+$\text{hasBefore}$ i $\text{hasAfter}$ se računaju kao logičko ILI nad
+prefiksom, odnosno sufiksom reda zauzetosti. Sama promenljiva
+$\text{gap}$ se reifikuje kao konjunkcija:
+
+\begin{equation}
+\text{gap}_{d,h} \Leftrightarrow
+\text{hasBefore}_{d,h} \land \text{hasAfter}_{d,h} \land
+\neg \text{busy}_{d,h}
+\end{equation}
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Detekcija unutrasnjeg procepa}]
+has_before = solver.model.NewBoolVar(f"hb_{g}_{d}_{h}")
+solver.model.AddMaxEquality(has_before, busy_day[:h])
+has_after = solver.model.NewBoolVar(f"ha_{g}_{d}_{h}")
+solver.model.AddMaxEquality(has_after, busy_day[h + 1:])
+
+gap = solver.model.NewBoolVar(f"gap_{g}_{d}_{h}")
+solver.model.AddBoolAnd(
+    [has_before, has_after, busy_day[h].Not()]
+).OnlyEnforceIf(gap)
+solver.model.AddBoolOr(
+    [has_before.Not(), has_after.Not(), busy_day[h]]
+).OnlyEnforceIf(gap.Not())
+\end{lstlisting}
+\end{english}
+
+Rubni sati (prvi i poslednji u danu) ne mogu biti unutrašnji procepi,
+pa se preskaču.
+
+\subsection{Tvrda i meka varijanta}
+
+U tvrdoj varijanti svaki procep se zabranjuje ograničenjem
+$\text{gap}_{d,h} = 0$. U mekoj varijanti, promenljive $\text{gap}_{d,h}$
+se vraćaju kao prekršaji i ulaze u funkciju cilja, pa rešavač
+minimizuje ukupan broj procepa:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Tvrda naspram meke varijante}]
+if self.is_hard:
+    for gap in gap_vars:
+        solver.model.Add(gap == 0)   # zabrana svih procepa
+    return []
+return gap_vars                       # meko: minimizuj broj procepa
+\end{lstlisting}
+\end{english}
+
+Ispravnost pravila proverava se testom
+\texttt{test\_no\_gaps\_in\_schedule.py}, koji potvrđuje da rešenje na
+malom ulazu nema nijedan unutrašnji procep.
+
+
+% ------------------------------------------------------------------------------
 \chapter{Zaključak i dalji rad}
 \label{chp:zakljucak}
 % ------------------------------------------------------------------------------
@@ -1075,35 +1493,38 @@ sledeće:
   rešenje, zadovoljavaju sva tvrda ograničenja.
 \end{enumerate}
 
-Na osnovu ovih rezultata, CP-SAT je jasni izbor za dalju nadogradnju
-sistema za raspoređivanje časova.
+Na osnovu ovih rezultata, CP-SAT je izabran kao osnova za dalju
+nadogradnju sistema za raspoređivanje časova. U glavi
+\ref{chp:nadogradnja} prikazana je ta nadogradnja: uvedena je
+arhitektura pravila (eng. \emph{plugin}) sa podrškom za tvrda i meka
+ograničenja, funkcija cilja koja minimizuje težinsku sumu prekršaja, i
+tri nova ograničenja -- spajanje časova u blokove, jedna lokacija po
+danu za grupu i izbegavanje procepa u rasporedu. Time je pokazano da se
+CP-SAT model lako i modularno proširuje ka realnijim scenarijima.
 
 \section{Dalji rad}
 
-U drugom delu ovog rada planiramo sledeća proširenja:
+U glavi \ref{chp:nadogradnja} već su implementirana meka ograničenja sa
+funkcijom cilja, lokacijska ograničenja za grupe i grupisanje časova u
+blokove. Preostali pravci daljeg rada su:
 
 \begin{enumerate}
-\item \textbf{Meka ograničenja i optimizacija.}
-  Dodavanje funkcije cilja koja optimizuje kvalitet rasporeda --
-  na primer, minimizacija rupa u rasporedu za studente,
-  ravnomerna raspodela časova i izbegavanje kasnih termina.
-
-\item \textbf{Rasporedivanje nastavnog osoblja.}
+\item \textbf{Raspoređivanje nastavnog osoblja.}
   Uključivanje profesora i asistenata u model, sa ograničenjima
-  njihove raspoloživosti i preferencija.
-
-\item \textbf{Lokacijska ograničenja.}
-  Ograničenja koja sprečavaju da profesor ili grupa studenata
-  mora da menja lokaciju (zgradu) u toku jednog dana ili u
-  kratkom vremenskom periodu.
+  njihove raspoloživosti i preferencija, kao i lokacijskim
+  ograničenjima za nastavnike (početak modula \texttt{src/rules/staff}).
 
 \item \textbf{Proširena ograničenja učionica.}
   Uzimanje u obzir kapaciteta učionice u odnosu na veličinu grupe.
 
+\item \textbf{Dodatna meka ograničenja kvaliteta.}
+  Na primer, ravnomerna raspodela časova kroz nedelju i izbegavanje
+  kasnih termina, uz fino podešavanje težina u funkciji cilja.
+
 \item \textbf{Veb interfejs.}
   Izgradnja veb aplikacije koja omogućava unos podataka,
   pokretanje rešavača i vizuelni prikaz rasporeda, korišćenjem
-  FastAPI okruzenja za serversku stranu.
+  FastAPI okruženja za serversku stranu.
 \end{enumerate}
 
 

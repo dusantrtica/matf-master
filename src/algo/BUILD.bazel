@@ -23,6 +23,18 @@ py_test(
     ],
 )
 
+py_test(
+    name = "test_no_gaps_in_schedule",
+    srcs = ["model.py", "data.py", "cp_solver.py", "test_no_gaps_in_schedule.py"],
+    deps = [
+        "//src/rules",
+        "@pip//pytest",
+        "@pip//pydantic",
+        "@pip//pyfunctional",
+        "@pip//ortools",
+    ],
+)
+
 py_binary(
     name = "run_cp_solver",
     srcs = [
