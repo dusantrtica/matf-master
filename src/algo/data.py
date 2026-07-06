@@ -13,7 +13,7 @@ from src.algo.model import (
     Classroom
 )
 
-GROUP_SIZE = 30  # 30 ucenika po grupi
+GROUP_SIZE = 50  # 50 ucenika po grupi
 
 
 def courses_for_department(courses: List[Course], department_id) -> List[Course]:

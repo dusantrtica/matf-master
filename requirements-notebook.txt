@@ -1,0 +1,8 @@
+# Dependencies for the interactive JupyterLab playground (see notebook.sh).
+# Installed into a local .venv; kept minimal and focused on the CP solver.
+ortools
+pydantic
+pyfunctional
+openpyxl
+jupyterlab
+ipykernel

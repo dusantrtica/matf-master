@@ -2,6 +2,10 @@
 
 \usepackage[latinica]{matfmaster}
 
+% Vise prostora izmedju zaglavlja (header) i teksta
+\setheaderspaces{*}{1.7\onelineskip}{*}
+\checkandfixthelayout
+
 \usepackage{iftex}
 \ifpdftex
   \usepackage{cmsrb}
@@ -25,6 +29,9 @@
   numberstyle=\tiny\color{gray},
   tabsize=4,
 }
+
+% Prelomljiv tt font za duga imena fajlova (prelama na _ . /)
+\DeclareUrlCommand\code{\urlstyle{tt}}
 
 \bib{master}
 
@@ -1040,6 +1047,7 @@ Učenje & Konflikti (SAT klauze) &
 % ------------------------------------------------------------------------------
 \chapter{Nadogradnja CP rešavača dodatnim ograničenjima}
 \label{chp:nadogradnja}
+\chaptermark{Nadogradnja CP rešavača}
 % ------------------------------------------------------------------------------
 
 Na osnovu rezultata iz glave \ref{chp:evaluacija}, CP-SAT rešavač je
@@ -1237,7 +1245,7 @@ model.AddElement(room_var[s], locations_of_classrooms, loc[s])
 \label{sec:rule_join}
 
 Pravilo \texttt{JoinSameClassesRule} (modul
-\texttt{rule\_join\_same\_classes.py}) grupiše časove istog predmeta,
+\code{rule_join_same_classes.py}) grupiše časove istog predmeta,
 grupe i tipa (predavanje/vežbe) u uzastopne blokove. Cilj je izbeći
 rascepkane rasporede gde su, na primer, četiri časa istog predmeta
 razbacana kroz nedelju.
@@ -1315,7 +1323,7 @@ moguće, a krši pravilo samo kada je neophodno.
 \label{sec:rule_location}
 
 Pravilo \texttt{SingleLocationInDayForGroupRule} (modul
-\texttt{rule\_single\_location\_in\_day\_for\_group.py}) sprečava da
+\code{rule_single_location_in_day_for_group.py}) sprečava da
 grupa studenata menja zgradu (lokaciju) tokom jednog radnog dana.
 Matematički fakultet izvodi nastavu na više lokacija (Studentski trg,
 zgrada N, Jagićeva), pa bi promena zgrade između dva uzastopna časa
@@ -1373,7 +1381,7 @@ da ih sve smesti u učionice na istoj lokaciji.
 \label{sec:rule_nogaps}
 
 Pravilo \texttt{NoGapsInScheduleRule} (modul
-\texttt{rule\_no\_gaps\_in\_schedule.py}) cilja na kvalitet rasporeda
+\code{rule_no_gaps_in_schedule.py}) cilja na kvalitet rasporeda
 iz ugla studenata: izbegava \emph{procepe} -- slobodne sate koji se
 nalaze između dva zauzeta sata u istom danu za istu grupu. Na primer,
 ako grupa ima čas u 8h i u 11h, a 9h i 10h su slobodni, to su dva
@@ -1451,7 +1459,7 @@ return gap_vars                       # meko: minimizuj broj procepa
 \end{english}
 
 Ispravnost pravila proverava se testom
-\texttt{test\_no\_gaps\_in\_schedule.py}, koji potvrđuje da rešenje na
+\code{test_no_gaps_in_schedule.py}, koji potvrđuje da rešenje na
 malom ulazu nema nijedan unutrašnji procep.
 
 

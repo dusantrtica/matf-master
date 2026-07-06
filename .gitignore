@@ -1,5 +1,7 @@
 __pycache__
 venv
+.venv
+.ipynb_checkpoints
 .pytest_cache
 bazel-bin
 bazel-out
