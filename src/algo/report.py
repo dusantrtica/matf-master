@@ -39,6 +39,11 @@ def export_schedule_to_excel(solver: ScheduleSolver,
         scheduling_input.students_enrolled, GROUP_SIZE
     )
 
+    # teacher_id -> ime nastavnika (prazno ako solver nema staff input)
+    teacher_names = {
+        t.id: t.name for t in getattr(solver, "teachers", [])
+    }
+
     # Napravimo lookup: group_id -> lista (session, assignment)
     group_entries = defaultdict(list)
     for session, var in zip(sessions, variables):
@@ -95,6 +100,7 @@ def export_schedule_to_excel(solver: ScheduleSolver,
                 scheduling_input.courses,
                 scheduling_input.departments,
                 room_name=room.name,
+                teacher_name=teacher_names.get(session.teacher_id, ""),
             )
             grid[(var["day"], var["hour"])].append(label)
 

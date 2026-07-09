@@ -35,6 +35,18 @@ py_test(
     ],
 )
 
+py_test(
+    name = "test_staff_rules",
+    srcs = ["model.py", "data.py", "cp_solver.py", "test_staff_rules.py"],
+    deps = [
+        "//src/rules",
+        "@pip//pytest",
+        "@pip//pydantic",
+        "@pip//pyfunctional",
+        "@pip//ortools",
+    ],
+)
+
 py_binary(
     name = "run_cp_solver",
     srcs = [
@@ -50,7 +62,11 @@ py_binary(
         "--time-limit",
         "600",
     ],
-    data = ["input_full_1_semester.json"],
+    data = [
+        "input_full_1_semester.json",
+        "input_full_2_semester.json",
+        "staff_2_semester.json",
+    ],
     deps = [
         "//src/rules",
         "@pip//pydantic",

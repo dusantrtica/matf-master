@@ -1,9 +1,15 @@
 from collections import defaultdict
 from ortools.sat.python import cp_model
 from typing import List
-from src.algo.data import Session, generate_sessions, GROUP_SIZE
+from src.algo.data import (
+    Session,
+    generate_sessions,
+    assign_teachers_to_sessions,
+    GROUP_SIZE,
+)
 from src.algo.model import (
     SchedulingInput,
+    StaffInput,
     Settings,
     Course,
 )
@@ -11,11 +17,17 @@ from src.rules.base import SchedulingRule
 from src.rules.general.rule_join_same_classes import JoinSameClassesRule
 from src.rules.general.rule_single_location_in_day_for_group import SingleLocationInDayForGroupRule
 from src.rules.general.rule_no_gaps_in_schedule import NoGapsInScheduleRule
+from src.rules.staff.rule_staff_max_working_days import StaffMaxWorkingDaysRule
+from src.rules.staff.rule_staff_no_gap_greater_than import StaffMaxGapHoursRule
+from src.rules.staff.rule_staff_single_location_in_day import StaffSingleLocationInDayRule
 
 RULE_REGISTRY: dict[str, type[SchedulingRule]] = {
     "joinSameClasses": JoinSameClassesRule,
     "singleLocationInDayForGroup": SingleLocationInDayForGroupRule,
     "noGapsInSchedule": NoGapsInScheduleRule,
+    "staffMaxWorkingDays": StaffMaxWorkingDaysRule,
+    "staffMaxGapHoursPerWeek": StaffMaxGapHoursRule,
+    "staffSingleLocationInDay": StaffSingleLocationInDayRule,
 }
 
 class SimpleCPSolver:
@@ -24,7 +36,8 @@ class SimpleCPSolver:
     """
     def __init__(
         self,
-        scheduling_input: SchedulingInput,        
+        scheduling_input: SchedulingInput,
+        staff_input: StaffInput | None = None,
         max_time_seconds: float = 30.0,
         log_progress: bool = True,
     ):
@@ -39,7 +52,8 @@ class SimpleCPSolver:
         self.solver.parameters.symmetry_level = 2
 
         self.init_input(scheduling_input)
-        
+        self.init_staff_input(staff_input)
+
         self.create_assignment_variables()
         self.create_hard_constraints()
         self.apply_rules()
@@ -56,26 +70,44 @@ class SimpleCPSolver:
         ]
         self.sessions = generate_sessions(scheduling_input, GROUP_SIZE)
 
+    def init_staff_input(self, staff_input: StaffInput | None):
+        """Dodeljuje nastavnike sesijama i gradi mapu nastavnik -> sesije."""
+        self.staff_input = staff_input
+        self.teachers = staff_input.teachers if staff_input else []
+
+        if staff_input is not None:
+            assign_teachers_to_sessions(self.sessions, staff_input)
+
+        # teacher_id -> globalni indeksi sesija tog nastavnika
+        self.teacher_sessions: dict[int, list[int]] = defaultdict(list)
+        for s, session in enumerate(self.sessions):
+            if session.teacher_id is not None:
+                self.teacher_sessions[session.teacher_id].append(s)
+
     def create_assignment_variables(self):
         """
         Za svaku sesiju (sesija je jedno predavanje u vremenskoj jedinici 1 čas)
-        imamo 5 promenljivih
+        imamo 6 promenljivih
           day_var[s]       -- koji radni dan (0..D-1, Pon, Utorak, ..., Petak)
           slot_var[s]      -- koji sat u toku radnog dana (0..H-1)
           room_var[s]      -- koju učionicu će zauzeti (0..R-1)
           flat_time_var[s] -- apsolutuna vrednost vremena u nedelji u odnosu na početak nedelje (ponedeljak, 8č)
           room_time_var[s] -- apsolutna vrendost učionica u datom vremenu: room * D*H + flat_time
+          loc_var[s]       -- loc_id lokacije na kojoj se nalazi dodeljena učionica
         """
         D = len(self.settings.working_days)
         H = len(self.working_hours)
         R = len(self.classrooms)
         total_slots = D * H
+        locations_of_classrooms = [c.loc_id for c in self.classrooms]
+        max_loc = max(locations_of_classrooms, default=0)
 
         self.day_var: dict[int, cp_model.IntVar] = {}
         self.slot_var: dict[int, cp_model.IntVar] = {}
         self.room_var: dict[int, cp_model.IntVar] = {}
         self.flat_time_var: dict[int, cp_model.IntVar] = {}
         self.room_time_var: dict[int, cp_model.IntVar] = {}
+        self.loc_var: dict[int, cp_model.IntVar] = {}
 
         for s in range(len(self.sessions)):
             self.day_var[s] = self.model.NewIntVar(0, D - 1, f"day_{s}")
@@ -106,12 +138,20 @@ class SimpleCPSolver:
                 == self.room_var[s] * total_slots + self.flat_time_var[s]
             )
 
+            # loc_var[s] = loc_id ucionice dodeljene sesiji s; koriste ga
+            # pravila vezana za lokacije (grupe i nastavnici)
+            self.loc_var[s] = self.model.NewIntVar(0, max_loc, f"loc_{s}")
+            self.model.AddElement(
+                self.room_var[s], locations_of_classrooms, self.loc_var[s]
+            )
+
     def create_hard_constraints(self):
         """
         Hard constraint 1: Nikoje 2 sesije ne mogu biti u istoj učionici u datom satu-danu
         Hard constraint 2: Nikoje 2 sesije za istu grupu tj. tok ne mogu biti u istom trenutku
         Npr. Tok A informatika ne može imati 2 različita predavanja u utorak u 10č
         Hard constraint 3: Sessions needing computers go to rooms that have them.
+        Hard constraint 4: Nastavnik ne moze drzati 2 sesije u istom trenutku
         """
         if not self.sessions:
             return
@@ -142,17 +182,31 @@ class SimpleCPSolver:
                     [[idx] for idx in computer_room_indices],
                 )
 
+        # 4) nastavnik ne moze drzati 2 sesije u isto vreme
+        # (isti princip kao za grupe, AllDifferent nad flat_time)
+        for teacher_id, session_indices in self.teacher_sessions.items():
+            if len(session_indices) > 1:
+                self.model.AddAllDifferent(
+                    [self.flat_time_var[s] for s in session_indices]
+                )
+
     def apply_rules(self):
         """Instantiate and apply all enabled rule plugins from config."""
         self.penalty_vars: list[tuple[int, cp_model.IntVar]] = []
 
-        for rule_name, config in self.scheduling_input.rules.items():
+        rule_configs = dict(self.scheduling_input.rules)
+        if self.staff_input is not None:
+            rule_configs.update(self.staff_input.rules)
+
+        for rule_name, config in rule_configs.items():
             if not config.enabled:
                 continue
             rule_class = RULE_REGISTRY.get(rule_name)
             if rule_class is None:
                 raise ValueError(f"Unknown rule: '{rule_name}'")
-            rule = rule_class(enabled=config.enabled, penalty=config.penalty)
+            rule = rule_class(
+                enabled=config.enabled, penalty=config.penalty, **config.params
+            )
             violations = rule.apply(self)
             for v in violations:
                 self.penalty_vars.append((config.penalty, v))

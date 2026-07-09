@@ -5,10 +5,10 @@ import time
 
 from ortools.sat.python import cp_model
 
-from src.algo.data import load_input, GROUP_SIZE, Session
+from src.algo.data import load_input, load_staff_input, GROUP_SIZE, Session
 from src.algo.cp_solver import SimpleCPSolver
 from src.algo.report import export_schedule_to_excel
-from src.algo.model import SchedulingInput
+from src.algo.model import SchedulingInput, StaffInput
 
 
 def print_table(rows, headers):
@@ -46,6 +46,13 @@ if __name__ == "__main__":
         help="Vremenski limit za solver u sekundama",
     )
 
+    parser.add_argument(
+        "--staff",
+        type=str,
+        default=None,
+        help="Putanja do JSON fajla sa nastavnicima i njihovim dodelama (opciono)",
+    )
+
     args = parser.parse_args()
 
     input_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), args.input or "input.json")
@@ -55,8 +62,20 @@ if __name__ == "__main__":
     print(f"Loaded {len(scheduling_input.courses)} courses, "
           f"{len(scheduling_input.classrooms)} rooms", flush=True)
 
+    staff_input: StaffInput | None = None
+    if args.staff:
+        staff_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)), args.staff
+        )
+        print(f"Loading staff input from {staff_path}...", flush=True)
+        staff_input = load_staff_input(staff_path)
+        print(f"Loaded {len(staff_input.teachers)} teachers, "
+              f"{len(staff_input.assignments)} assignments", flush=True)
+
     print(f"Creating CP solver {(args.time_limit)}s limit)...", flush=True)
-    solver = SimpleCPSolver(scheduling_input, max_time_seconds=args.time_limit)
+    solver = SimpleCPSolver(
+        scheduling_input, staff_input=staff_input, max_time_seconds=args.time_limit
+    )
     print(f"Model has {len(solver.sessions)} sessions to schedule.", flush=True)
 
     print("Solving...", flush=True)

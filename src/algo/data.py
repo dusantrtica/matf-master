@@ -10,7 +10,9 @@ from src.algo.model import (
     Course,
     Department,
     StudentsEnrolled,
-    Classroom
+    Classroom,
+    StaffInput,
+    TeachingAssignment,
 )
 
 GROUP_SIZE = 50  # 50 ucenika po grupi
@@ -83,7 +85,8 @@ def generate_session_id(
 
 class Session:
     def __init__(
-        self, id, group_id, department_id, course_id, needs_computers, session_type: str
+        self, id, group_id, department_id, course_id, needs_computers, session_type: str,
+        teacher_id: int | None = None,
     ):
         self.id = id
         self.group_id = group_id
@@ -91,14 +94,25 @@ class Session:
         self.department_id = department_id
         self.needs_computers = needs_computers
         self.session_type = session_type
+        # None znaci da nema dodeljenog nastavnika pa se staff pravila
+        # ne primenjuju na ovu sesiju
+        self.teacher_id = teacher_id
+
+
+def format_teacher_name(name: str) -> str:
+    """'predrag.janicic' -> 'Predrag Janicic'."""
+    return " ".join(part.capitalize() for part in name.split("."))
 
 
 def print_session(session: Session, groups: List[Group], courses: List[Course],
-                   departments: List[Department], room_name: str = "") -> str:
+                   departments: List[Department], room_name: str = "",
+                   teacher_name: str = "") -> str:
     course_name = seq(courses).find(lambda c: c.id == session.course_id).name
     session_type = "T" if session.session_type == "theory" else "P"
 
     label = f"{course_name} ({session_type})"
+    if teacher_name:
+        label += f"\n{format_teacher_name(teacher_name)}"
     if room_name:
         label += f"\n{room_name}"
     return label
@@ -154,3 +168,48 @@ def load_input(path: str) -> SchedulingInput:
     raw = Path(path).read_text(encoding="utf-8")
     adapter = TypeAdapter(SchedulingInput)
     return adapter.validate_python(json.loads(raw))
+
+
+def load_staff_input(path: str) -> StaffInput:
+    raw = Path(path).read_text(encoding="utf-8")
+    adapter = TypeAdapter(StaffInput)
+    return adapter.validate_python(json.loads(raw))
+
+
+def group_index_from_group_id(group_id: str) -> int:
+    """Grupe se generisu sa id-jem oblika '{dep_id}_{semester}_{index}'."""
+    return int(str(group_id).split("_")[-1])
+
+
+def _find_assignment(
+    session: Session, assignments: List[TeachingAssignment]
+) -> TeachingAssignment | None:
+    """Nadji dodelu nastavnika za sesiju.
+
+    Dodela za konkretnu grupu (group_index) ima prednost nad opstom
+    dodelom (group_index == None) za isti (course_id, session_type).
+    """
+    session_group_index = group_index_from_group_id(session.group_id)
+    generic = None
+    for a in assignments:
+        if a.course_id != session.course_id or a.session_type != session.session_type:
+            continue
+        if a.group_index is None:
+            generic = a
+        elif a.group_index == session_group_index:
+            return a
+    return generic
+
+
+def assign_teachers_to_sessions(
+    sessions: Iterable[Session], staff_input: StaffInput
+) -> None:
+    """Upisuje teacher_id u sesije na osnovu dodela iz staff fajla.
+
+    Sesije bez odgovarajuce dodele ostaju bez nastavnika (teacher_id=None)
+    i na njih se staff pravila ne primenjuju.
+    """
+    for session in sessions:
+        assignment = _find_assignment(session, staff_input.assignments)
+        if assignment is not None:
+            session.teacher_id = assignment.teacher_id
