@@ -6,7 +6,7 @@ from openpyxl import Workbook
 from openpyxl.styles import Alignment, Font, Border, Side, PatternFill
 
 from src.algo.data import (
-    Session, Group, print_group, split_students_into_groups, print_session, GROUP_SIZE,
+    Session, Group, print_group, build_groups, print_session, GROUP_SIZE,
 )
 from src.algo.model import SchedulingInput
 
@@ -35,9 +35,7 @@ def export_schedule_to_excel(solver: ScheduleSolver,
     day_names = scheduling_input.settings.working_days
     hours = solver.working_hours
     classrooms = scheduling_input.classrooms
-    groups = split_students_into_groups(
-        scheduling_input.students_enrolled, GROUP_SIZE
-    )
+    groups = build_groups(scheduling_input, GROUP_SIZE)
 
     # teacher_id -> ime nastavnika (prazno ako solver nema staff input)
     teacher_names = {
@@ -45,9 +43,11 @@ def export_schedule_to_excel(solver: ScheduleSolver,
     }
 
     # Napravimo lookup: group_id -> lista (session, assignment)
+    # zajednicka sesija se pojavljuje na tabu svake grupe koja je pohadja
     group_entries = defaultdict(list)
     for session, var in zip(sessions, variables):
-        group_entries[session.group_id].append((session, var))
+        for group_id in session.group_ids:
+            group_entries[group_id].append((session, var))
 
     wb = Workbook()
     wb.remove(wb.active)

@@ -63,7 +63,8 @@ def _interior_gaps(variables, sessions):
     """
     occupied: dict[tuple, list[int]] = defaultdict(list)
     for v, session in zip(variables, sessions):
-        occupied[(session.group_id, v["day"])].append(v["hour"])
+        for group_id in session.group_ids:
+            occupied[(group_id, v["day"])].append(v["hour"])
 
     total = 0
     for hours in occupied.values():

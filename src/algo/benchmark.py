@@ -70,12 +70,13 @@ def validate_solution(
         room_time_set.add(rt_key)
 
         gt_key = (d, h)
-        if gt_key in group_time_map[session.group_id]:
-            violations.append(
-                f"Kolizija sesije grupe={session.group_id} "
-                f"dan={d} sat={h} (sesija {s})"
-            )
-        group_time_map[session.group_id].add(gt_key)
+        for group_id in session.group_ids:
+            if gt_key in group_time_map[group_id]:
+                violations.append(
+                    f"Kolizija sesije grupe={group_id} "
+                    f"dan={d} sat={h} (sesija {s})"
+                )
+            group_time_map[group_id].add(gt_key)
 
         if session.needs_computers and r not in computer_room_indices:
             violations.append(
@@ -252,6 +253,9 @@ def generate_real_subset(
             s for s in scheduling_input.students_enrolled
             if s.semester in semesters
         ],
+        groups=[
+            g for g in scheduling_input.groups if g.semester in semesters
+        ],
     )
 
 
@@ -401,7 +405,7 @@ def print_summary(results: List[BenchmarkResult]):
     - Snaga:    LP relaxation daje tesne granice objektivne vrednosti
 
   Rezim:      FEASIBILITY-ONLY (bez funkcije cilja)
-  Pitanje:    da li solver moze da nadje bilo koji validan raspored?
+  Cilj je naci bilo koji validan raspored.
 """)
 
 

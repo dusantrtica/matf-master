@@ -54,6 +54,19 @@ class StudentsEnrolled:
 
 
 @dataclass(config=_config)
+class GroupDef:
+    """Eksplicitno definisana grupa (kohorta) studenata.
+
+    Ako je sekcija `groups` prisutna u ulazu, grupe se ne izvode iz
+    studentsEnrolled + GROUP_SIZE nego se koriste ovako zadate.
+    """
+    id: str
+    dep_id: int = Field(alias="depId")
+    semester: int = 0
+    count: int = 0
+
+
+@dataclass(config=_config)
 class Settings:
     working_days: List[str] = Field(alias="workingDays")
     start_hour: int = Field(alias="startHour")
@@ -77,6 +90,7 @@ class SchedulingInput:
     courses: List[Course]
     students_enrolled: List[StudentsEnrolled] = Field(alias="studentsEnrolled")
     rules: dict[str, RuleConfig] = Field(default_factory=dict)
+    groups: List[GroupDef] = Field(default_factory=list)
 
 
 @dataclass(config=_config)
@@ -92,14 +106,18 @@ class Teacher:
 class TeachingAssignment:
     """Ko drzi koji kurs: (courseId, sessionType) -> nastavnik.
 
-    sessionType je "theory" ili "practice". Ako je group_index zadat,
-    dodela vazi samo za tu grupu (vezbe cesto drze razliciti asistenti
-    po grupama); inace vazi za sve grupe kursa.
+    sessionType je "theory" ili "practice".
+
+    - group_ids sa vise grupa: te grupe slusaju ZAJEDNO, pravi se jedna
+      zajednicka sesija (npr. zajednicko predavanje za oba toka).
+    - group_ids sa jednom grupom: dodela vazi samo za tu grupu.
+    - group_ids None: dodela vazi za svaku (preostalu) grupu kursa
+      pojedinacno - svaka grupa ima svoju sesiju sa ovim nastavnikom.
     """
     teacher_id: int = Field(alias="teacherId")
     course_id: int = Field(alias="courseId")
     session_type: str = Field(alias="sessionType")
-    group_index: Optional[int] = Field(default=None, alias="groupIndex")
+    group_ids: Optional[List[str]] = Field(default=None, alias="groupIds")
 
 
 @dataclass(config=_config)

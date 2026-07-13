@@ -18,9 +18,11 @@ class SingleLocationInDayForGroupRule(SchedulingRule):
         max_loc = max(c.loc_id for c in solver.classrooms)
 
         # group_id -> globalni indeksi sesija te grupe
+        # (zajednicka sesija se racuna svakoj grupi koja je pohadja)
         group_session_indices: dict[int, list[int]] = defaultdict(list)
         for s, session in enumerate(solver.sessions):
-            group_session_indices[session.group_id].append(s)
+            for group_id in session.group_ids:
+                group_session_indices[group_id].append(s)
 
         return self._add_hard(solver, group_session_indices, max_loc)
 

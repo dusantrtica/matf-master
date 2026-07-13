@@ -167,7 +167,7 @@ def test_get_eligible_rooms_when_session_requires_computers():
 
     session = Session(
         id="",
-        group_id="",
+        group_ids=[],
         department_id="",
         course_id="",
         needs_computers=True,
@@ -196,7 +196,7 @@ def test_get_eligible_rooms_when_session_does_not_require_computers():
 
     session = Session(
         id="",
-        group_id="",
+        group_ids=[],
         department_id="",
         course_id="",
         needs_computers=False,
@@ -210,56 +210,112 @@ def test_get_eligible_rooms_when_session_does_not_require_computers():
     assert eligible_room_ids == [1, 2, 3, 4]
 
 
-def test_course_sessions():
-    from src.algo.data import (
-        course_sessions,
-        Session,
-        generate_session_id,
-    )
-    from src.algo.model import Course, Quota
-
+def test_get_eligible_rooms_respects_capacity_when_enabled():
     # Arrange
-    quota = Quota(theory=2, practice=3)
-    course = Course(
-        id=10,
-        name="Test Course",
-        semester=1,
-        dep_id=22,
-        quota=quota,
-        needsComputers=True,
+    classrooms = [
+        Classroom(**{"id": 1, "name": "Mala", "has_computers": False, "locId": 1,
+                     "capacity": 20}),
+        Classroom(**{"id": 2, "name": "Velika", "has_computers": False, "locId": 1,
+                     "capacity": 100}),
+    ]
+    session = Session(
+        id="",
+        group_ids=["g1", "g2"],
+        department_id="",
+        course_id="",
+        needs_computers=False,
+        session_type="",
+        size=60,
     )
-    group_id = "100"
 
-    # Act
-    sessions = list(course_sessions(course, group_id))
+    # bez check_capacity kapacitet se ignorise
+    assert get_eligible_rooms(session, classrooms) == [1, 2]
+    # sa check_capacity samo dovoljno velike ucionice
+    assert get_eligible_rooms(session, classrooms, check_capacity=True) == [2]
 
-    # Assert
-    # Ukupno 5 sesija, 2 za predavanja t
-    assert len(sessions) == 5
 
-    # Proveriti da li ima 2 sesije za predavanja i 3 sesije za vezbe
-    theory_sessions = [s for s in sessions if s.session_type == "theory"]
-    practice_sessions = [s for s in sessions if s.session_type == "practice"]
-    assert len(theory_sessions) == 2
-    assert len(practice_sessions) == 3
+def test_build_groups_prefers_explicit_groups():
+    from src.algo.data import build_groups
+    from src.algo.model import SchedulingInput, GroupDef, StudentsEnrolled
 
-    # Each session now has a unique ID with an index suffix
-    for i, s in enumerate(theory_sessions):
-        expected_id = generate_session_id(group_id, course.dep_id, course.id, "t", i)
-        assert s.id == expected_id
-        assert s.group_id == group_id
-        assert s.department_id == course.dep_id
-        assert s.course_id == course.id
-        assert s.needs_computers == True
-        assert s.session_type == "theory"
-    for i, s in enumerate(practice_sessions):
-        expected_id = generate_session_id(group_id, course.dep_id, course.id, "p", i)
-        assert s.id == expected_id
-        assert s.group_id == group_id
-        assert s.department_id == course.dep_id
-        assert s.course_id == course.id
-        assert s.needs_computers == True
-        assert s.session_type == "practice"
+    scheduling_input = SchedulingInput(
+        settings=mock_settings,
+        locations=[],
+        classrooms=[],
+        departments=[],
+        courses=[],
+        students_enrolled=[StudentsEnrolled(dep_id=1, semester=1, count=90)],
+        groups=[
+            GroupDef(id="1i1", dep_id=1, semester=1, count=35),
+            GroupDef(id="1i2", dep_id=1, semester=1, count=35),
+        ],
+    )
+
+    groups = build_groups(scheduling_input, group_size=50)
+    assert [g.id for g in groups] == ["1i1", "1i2"]
+    assert all(g.count == 35 for g in groups)
+
+
+def test_build_groups_falls_back_to_students_enrolled():
+    from src.algo.data import build_groups
+    from src.algo.model import SchedulingInput, StudentsEnrolled
+
+    scheduling_input = SchedulingInput(
+        settings=mock_settings,
+        locations=[],
+        classrooms=[],
+        departments=[],
+        courses=[],
+        students_enrolled=[StudentsEnrolled(dep_id=1, semester=1, count=90)],
+    )
+
+    groups = build_groups(scheduling_input, group_size=50)
+    assert [g.id for g in groups] == ["1_1_0", "1_1_1"]
+
+
+def test_build_cohorts_joint_and_individual():
+    from src.algo.data import Group, build_cohorts
+    from src.algo.model import Course, Quota, TeachingAssignment
+
+    course = Course(
+        id=10, name="Test", semester=1, dep_id=1,
+        quota=Quota(theory=2, practice=2), needsComputers=False,
+    )
+    groups = [Group("ga", 1, 30, 1), Group("gb", 1, 30, 1), Group("gc", 1, 30, 1)]
+    assignments = [
+        # ga i gb slusaju teoriju zajedno kod nastavnika 7
+        TeachingAssignment(teacher_id=7, course_id=10, session_type="theory",
+                           group_ids=["ga", "gb"]),
+        # genericka dodela vezbi: svaka grupa pojedinacno kod nastavnika 9
+        TeachingAssignment(teacher_id=9, course_id=10, session_type="practice"),
+    ]
+
+    theory = build_cohorts(course, "theory", groups, assignments)
+    assert [c.group_ids for c in theory] == [["ga", "gb"], ["gc"]]
+    assert [c.teacher_id for c in theory] == [7, None]
+    assert theory[0].size == 60
+
+    practice = build_cohorts(course, "practice", groups, assignments)
+    assert [c.group_ids for c in practice] == [["ga"], ["gb"], ["gc"]]
+    assert all(c.teacher_id == 9 for c in practice)
+
+
+def test_build_cohorts_unknown_group_raises():
+    from src.algo.data import Group, build_cohorts
+    from src.algo.model import Course, Quota, TeachingAssignment
+
+    course = Course(
+        id=10, name="Test", semester=1, dep_id=1,
+        quota=Quota(theory=1, practice=0), needsComputers=False,
+    )
+    groups = [Group("ga", 1, 30, 1)]
+    assignments = [
+        TeachingAssignment(teacher_id=7, course_id=10, session_type="theory",
+                           group_ids=["nonexistent"]),
+    ]
+
+    with pytest.raises(ValueError):
+        build_cohorts(course, "theory", groups, assignments)
 
 
 def test_generate_sessions():
@@ -313,26 +369,76 @@ def test_generate_sessions():
     )
 
     # Act
+    # redosled: kurs po kurs, prvo teorija pa vezbe, kohorta po kohorta
     result = list(generate_sessions(scheduling_input, group_size=50))
     assert result[0].id == "10_1_0_10_101_t_0"
-    assert result[1].id == "10_1_0_10_101_p_0"
-    assert result[2].id == "10_1_0_10_101_p_1"
-
-    assert result[3].id == "10_1_1_10_101_t_0"
+    assert result[1].id == "10_1_1_10_101_t_0"
+    assert result[2].id == "10_1_0_10_101_p_0"
+    assert result[3].id == "10_1_0_10_101_p_1"
     assert result[4].id == "10_1_1_10_101_p_0"
     assert result[5].id == "10_1_1_10_101_p_1"
 
     assert result[6].id == "20_1_0_20_103_t_0"
     assert result[7].id == "20_1_0_20_103_t_1"
-    assert result[8].id == "20_1_0_20_103_p_0"
-    assert result[9].id == "20_1_0_20_103_p_1"
-    assert result[10].id == "20_1_0_20_103_p_2"
-
-    assert result[11].id == "20_1_1_20_103_t_0"
-    assert result[12].id == "20_1_1_20_103_t_1"
+    assert result[8].id == "20_1_1_20_103_t_0"
+    assert result[9].id == "20_1_1_20_103_t_1"
+    assert result[10].id == "20_1_0_20_103_p_0"
+    assert result[11].id == "20_1_0_20_103_p_1"
+    assert result[12].id == "20_1_0_20_103_p_2"
     assert result[13].id == "20_1_1_20_103_p_0"
     assert result[14].id == "20_1_1_20_103_p_1"
     assert result[15].id == "20_1_1_20_103_p_2"
+
+    # svaka sesija ima jednu grupu (nema staff inputa, nema zajednickih)
+    assert all(len(s.group_ids) == 1 for s in result)
+    # size = broj studenata u grupi (90 // 2 = 45)
+    assert result[0].size == 45
+
+
+def test_generate_sessions_with_joint_assignment():
+    from src.algo.model import (
+        SchedulingInput, GroupDef, Course, Quota, StaffInput, TeachingAssignment,
+    )
+    from src.algo.data import generate_sessions
+
+    scheduling_input = SchedulingInput(
+        settings=mock_settings,
+        locations=[],
+        classrooms=[],
+        departments=[],
+        courses=[
+            Course(id=1, name="Kurs", semester=1, dep_id=1,
+                   quota=Quota(theory=2, practice=1), needsComputers=False),
+        ],
+        students_enrolled=[],
+        groups=[
+            GroupDef(id="ga", dep_id=1, semester=1, count=30),
+            GroupDef(id="gb", dep_id=1, semester=1, count=25),
+        ],
+    )
+    staff_input = StaffInput(
+        teachers=[],
+        assignments=[
+            TeachingAssignment(teacher_id=7, course_id=1, session_type="theory",
+                               group_ids=["ga", "gb"]),
+        ],
+    )
+
+    result = list(generate_sessions(scheduling_input, 50, staff_input))
+
+    theory = [s for s in result if s.session_type == "theory"]
+    practice = [s for s in result if s.session_type == "practice"]
+
+    # teorija: jedna zajednicka sesija po casu (2 casa), a ne po grupi
+    assert len(theory) == 2
+    assert all(s.group_ids == ["ga", "gb"] for s in theory)
+    assert all(s.teacher_id == 7 for s in theory)
+    assert all(s.size == 55 for s in theory)
+
+    # vezbe: bez dodele -> svaka grupa svoju sesiju, bez nastavnika
+    assert len(practice) == 2
+    assert sorted(s.group_ids[0] for s in practice) == ["ga", "gb"]
+    assert all(s.teacher_id is None for s in practice)
 
 
 if __name__ == "__main__":

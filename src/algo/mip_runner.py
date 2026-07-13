@@ -98,7 +98,7 @@ if __name__ == "__main__":
             course = courses_id_map.get(session.course_id)
             row = [
                 session.id,
-                session.group_id,
+                "+".join(session.group_ids),
                 session.department_id,
                 course.name if course else session.course_id,
                 session.session_type,

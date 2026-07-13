@@ -5,10 +5,11 @@ import pytest
 from ortools.sat.python import cp_model
 
 from src.algo.cp_solver import SimpleCPSolver
-from src.algo.data import assign_teachers_to_sessions, generate_sessions, GROUP_SIZE
+from src.algo.data import generate_sessions, GROUP_SIZE
 from src.algo.model import (
     Classroom,
     Course,
+    GroupDef,
     Quota,
     RuleConfig,
     SchedulingInput,
@@ -118,8 +119,7 @@ def _weekly_gaps(times):
 
 
 def test_teachers_resolved_on_sessions(scheduling_input, staff_input):
-    sessions = generate_sessions(scheduling_input, GROUP_SIZE)
-    assign_teachers_to_sessions(sessions, staff_input)
+    sessions = generate_sessions(scheduling_input, GROUP_SIZE, staff_input)
 
     by_teacher = defaultdict(list)
     for s in sessions:
@@ -199,6 +199,90 @@ def test_solver_without_staff_input_unchanged(scheduling_input):
     status = solver.solve()
     assert status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
     assert all(s.teacher_id is None for s in solver.sessions)
+
+
+@pytest.fixture
+def joint_scheduling_input():
+    """Dve eksplicitne grupe; teoriju slusaju zajedno, vezbe odvojeno.
+    Samo jedna ucionica ima kapacitet za zajednicku sesiju (55 studenata).
+    """
+    return SchedulingInput(
+        settings=Settings(
+            **{
+                "working_days": ["Ponedeljak", "Utorak"],
+                "start_hour": 8,
+                "end_hour": 14,
+            }
+        ),
+        classrooms=[
+            Classroom(**{"id": 1, "name": "Mala1", "locId": 1,
+                         "has_computers": False, "capacity": 30}),
+            Classroom(**{"id": 2, "name": "Mala2", "locId": 1,
+                         "has_computers": False, "capacity": 30}),
+            Classroom(**{"id": 3, "name": "Amfiteatar", "locId": 1,
+                         "has_computers": False, "capacity": 100}),
+        ],
+        courses=[
+            Course(
+                **{
+                    "id": 1,
+                    "name": "Analiza 1",
+                    "semester": 1,
+                    "depId": 1,
+                    "quota": Quota(**{"theory": 2, "practice": 2}),
+                    "needsComputers": 0,
+                }
+            ),
+        ],
+        locations=[],
+        departments=[],
+        students_enrolled=[],
+        groups=[
+            GroupDef(id="ga", dep_id=1, semester=1, count=30),
+            GroupDef(id="gb", dep_id=1, semester=1, count=25),
+        ],
+        rules={},
+    )
+
+
+@pytest.fixture
+def joint_staff_input():
+    return StaffInput(
+        teachers=[Teacher(id=1, name="predrag.janicic")],
+        assignments=[
+            TeachingAssignment(teacher_id=1, course_id=1, session_type="theory",
+                               group_ids=["ga", "gb"]),
+        ],
+        rules={},
+    )
+
+
+def test_joint_session_solved(joint_scheduling_input, joint_staff_input):
+    solver = SimpleCPSolver(
+        joint_scheduling_input, staff_input=joint_staff_input, log_progress=False
+    )
+
+    # 2 zajednicke teorijske + po 2 vezbe za svaku grupu = 6 sesija
+    assert len(solver.sessions) == 6
+
+    status = solver.solve()
+    assert status in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+
+    variables = solver.get_solution_variables()
+
+    # nijedna grupa nema 2 sesije u isto vreme (racunajuci i zajednicke)
+    group_times = set()
+    for v, session in zip(variables, solver.sessions):
+        for group_id in session.group_ids:
+            key = (group_id, v["day"], v["hour"])
+            assert key not in group_times, f"Group-time collision: {key}"
+            group_times.add(key)
+
+    # zajednicka sesija (55 studenata) mora biti u amfiteatru (kapacitet 100)
+    for v, session in zip(variables, solver.sessions):
+        if len(session.group_ids) > 1:
+            room = joint_scheduling_input.classrooms[v["room"]]
+            assert room.capacity >= session.size
 
 
 if __name__ == "__main__":

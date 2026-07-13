@@ -4,7 +4,6 @@ from typing import List
 from src.algo.data import (
     Session,
     generate_sessions,
-    assign_teachers_to_sessions,
     GROUP_SIZE,
 )
 from src.algo.model import (
@@ -51,15 +50,20 @@ class SimpleCPSolver:
         self.solver.parameters.num_search_workers = 8  # use all M4 cores
         self.solver.parameters.symmetry_level = 2
 
-        self.init_input(scheduling_input)
-        self.init_staff_input(staff_input)
+        self.init_input(scheduling_input, staff_input)
 
         self.create_assignment_variables()
         self.create_hard_constraints()
         self.apply_rules()
 
-    def init_input(self, scheduling_input: SchedulingInput):
+    def init_input(
+        self,
+        scheduling_input: SchedulingInput,
+        staff_input: StaffInput | None = None,
+    ):
         self.scheduling_input = scheduling_input
+        self.staff_input = staff_input
+        self.teachers = staff_input.teachers if staff_input else []
         self.settings: Settings = scheduling_input.settings
         self.classrooms = scheduling_input.classrooms
         self.courses: List[Course] = scheduling_input.courses
@@ -68,15 +72,13 @@ class SimpleCPSolver:
         self.working_hours = [
             hour for hour in range(self.settings.start_hour, self.settings.end_hour)
         ]
-        self.sessions = generate_sessions(scheduling_input, GROUP_SIZE)
+        # dodele iz staff fajla odredjuju i zajednicke sesije (kohorte)
+        # i nastavnika svake sesije
+        self.sessions = generate_sessions(scheduling_input, GROUP_SIZE, staff_input)
 
-    def init_staff_input(self, staff_input: StaffInput | None):
-        """Dodeljuje nastavnike sesijama i gradi mapu nastavnik -> sesije."""
-        self.staff_input = staff_input
-        self.teachers = staff_input.teachers if staff_input else []
-
-        if staff_input is not None:
-            assign_teachers_to_sessions(self.sessions, staff_input)
+        # kapacitet ucionica se postuje samo kada su grupe eksplicitno
+        # zadate u ulazu (tada su velicine sesija pouzdane)
+        self.enforce_capacity = bool(scheduling_input.groups)
 
         # teacher_id -> globalni indeksi sesija tog nastavnika
         self.teacher_sessions: dict[int, list[int]] = defaultdict(list)
@@ -150,7 +152,9 @@ class SimpleCPSolver:
         Hard constraint 1: Nikoje 2 sesije ne mogu biti u istoj učionici u datom satu-danu
         Hard constraint 2: Nikoje 2 sesije za istu grupu tj. tok ne mogu biti u istom trenutku
         Npr. Tok A informatika ne može imati 2 različita predavanja u utorak u 10č
-        Hard constraint 3: Sessions needing computers go to rooms that have them.
+        (zajednicka sesija ulazi u ogranicenje svake grupe koja je pohadja)
+        Hard constraint 3: Ucionica mora imati racunare ako sesija to zahteva
+        i dovoljan kapacitet (kapacitet samo kada su grupe eksplicitno zadate).
         Hard constraint 4: Nastavnik ne moze drzati 2 sesije u istom trenutku
         """
         if not self.sessions:
@@ -163,23 +167,32 @@ class SimpleCPSolver:
         # uzimamo sve sesije jedne grupe i trazimo da flat_time budu razlicite
         groups = defaultdict(list)
         for s, session in enumerate(self.sessions):
-            groups[session.group_id].append(s)
+            for group_id in session.group_ids:
+                groups[group_id].append(s)
 
         for group_id, session_indices in groups.items():
             self.model.AddAllDifferent([self.flat_time_var[s] for s in session_indices])
 
-        # 3) sesije koje zahtevaju racunare, moraju imati ucionice sa racunarima
-        # uzimamo indekse ucionica sa racunarima
-        computer_room_indices = [
-            i for i, room in enumerate(self.classrooms) if room.has_computers
-        ]
+        # 3) dozvoljene ucionice po sesiji: racunari + kapacitet
         for s, session in enumerate(self.sessions):
-            if session.needs_computers:
-                # predavanje koje zahteva racunare, moze uzeti samo
-                # oredjenedozvoljene vrednosti.
+            allowed = [
+                i for i, room in enumerate(self.classrooms)
+                if (not session.needs_computers or room.has_computers)
+                and (
+                    not self.enforce_capacity
+                    or session.size <= 0
+                    or room.capacity >= session.size
+                )
+            ]
+            if not allowed:
+                raise ValueError(
+                    f"No eligible room for session '{session.id}' "
+                    f"(size={session.size}, needs_computers={session.needs_computers})"
+                )
+            if len(allowed) < len(self.classrooms):
                 self.model.AddAllowedAssignments(
                     [self.room_var[s]],
-                    [[idx] for idx in computer_room_indices],
+                    [[idx] for idx in allowed],
                 )
 
         # 4) nastavnik ne moze drzati 2 sesije u isto vreme

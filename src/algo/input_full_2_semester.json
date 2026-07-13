@@ -9,6 +9,10 @@
         "joinSameClasses": {
             "enabled": true,
             "penalty": 0
+        },
+        "noGapsInSchedule": {
+            "enabled": true,
+            "penalty": 2
         }
     },
     "locations": [
@@ -195,6 +199,38 @@
         {"id": 132, "name": "Uvod u kompleksnu analizu (Informatika)", "semester": 8, "depId": 6, "quota": {"theory": 3, "practice": 2}, "needsComputers": 0},
         {"id": 133, "name": "Racunarske mreze (Informatika)", "semester": 8, "depId": 6, "quota": {"theory": 2, "practice": 3}, "needsComputers": 1},
         {"id": 134, "name": "Praksa (Informatika)", "semester": 8, "depId": 6, "quota": {"theory": 0, "practice": 0}, "needsComputers": 0}
+    ],
+    "groups": [
+        {"id": "1pmr", "depId": 1, "semester": 2, "count": 30},
+        {"id": "2pmr", "depId": 1, "semester": 4, "count": 28},
+        {"id": "3pmr", "depId": 1, "semester": 6, "count": 25},
+        {"id": "4pmr", "depId": 1, "semester": 8, "count": 22},
+        {"id": "1m", "depId": 2, "semester": 2, "count": 20},
+        {"id": "2m", "depId": 2, "semester": 4, "count": 18},
+        {"id": "3m", "depId": 2, "semester": 6, "count": 16},
+        {"id": "4m", "depId": 2, "semester": 8, "count": 14},
+        {"id": "1la", "depId": 3, "semester": 2, "count": 30},
+        {"id": "1lb", "depId": 3, "semester": 2, "count": 30},
+        {"id": "2la", "depId": 3, "semester": 4, "count": 28},
+        {"id": "2lb", "depId": 3, "semester": 4, "count": 27},
+        {"id": "3l", "depId": 3, "semester": 6, "count": 40},
+        {"id": "4l", "depId": 3, "semester": 8, "count": 40},
+        {"id": "1p", "depId": 4, "semester": 2, "count": 25},
+        {"id": "2p", "depId": 4, "semester": 4, "count": 23},
+        {"id": "3p", "depId": 4, "semester": 6, "count": 21},
+        {"id": "4p", "depId": 4, "semester": 8, "count": 19},
+        {"id": "1s", "depId": 5, "semester": 2, "count": 30},
+        {"id": "2s", "depId": 5, "semester": 4, "count": 28},
+        {"id": "3s", "depId": 5, "semester": 6, "count": 26},
+        {"id": "4s", "depId": 5, "semester": 8, "count": 24},
+        {"id": "1i1", "depId": 6, "semester": 2, "count": 35},
+        {"id": "1i2", "depId": 6, "semester": 2, "count": 35},
+        {"id": "2i1", "depId": 6, "semester": 4, "count": 35},
+        {"id": "2i2", "depId": 6, "semester": 4, "count": 35},
+        {"id": "3i1", "depId": 6, "semester": 6, "count": 35},
+        {"id": "3i2", "depId": 6, "semester": 6, "count": 35},
+        {"id": "4i1", "depId": 6, "semester": 8, "count": 35},
+        {"id": "4i2", "depId": 6, "semester": 8, "count": 35}
     ],
     "studentsEnrolled": [
         {"depId": 1, "semester": 2, "count": 30},

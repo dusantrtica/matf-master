@@ -2,9 +2,8 @@ import math
 import json
 from functional import seq
 from pathlib import Path
-from tokenize import group
 from pydantic import TypeAdapter
-from typing import Generator, Iterable, List
+from typing import Iterable, List
 from src.algo.model import (
     SchedulingInput,
     Course,
@@ -50,8 +49,12 @@ class Group:
         return f"{self.id}_{self.count}"
 
     def group_label(self):
-        grp_index = int(self.id.split("_")[-1])
-        return "ABCDE"[grp_index]
+        # sinteticke grupe imaju id oblika '{dep}_{sem}_{index}' -> slovo;
+        # eksplicitne grupe (npr. '1i1') koriste svoj id kao labelu
+        parts = self.id.split("_")
+        if len(parts) > 1 and parts[-1].isdigit():
+            return "ABCDE"[int(parts[-1])]
+        return self.id
 
 def print_group(group: Group, departments: List[Department]) -> str:
     department_name = department_by_id(departments, group.department_id).name
@@ -77,6 +80,17 @@ def split_students_into_groups(
     return groups
 
 
+def build_groups(scheduling_input: SchedulingInput, group_size: int) -> List[Group]:
+    """Grupe iz eksplicitne `groups` sekcije ako postoji, inace se
+    izvode iz studentsEnrolled deljenjem na grupe velicine group_size."""
+    if scheduling_input.groups:
+        return [
+            Group(g.id, g.dep_id, g.count, g.semester)
+            for g in scheduling_input.groups
+        ]
+    return split_students_into_groups(scheduling_input.students_enrolled, group_size)
+
+
 def generate_session_id(
     group_id: int, department_id: int, course_id, course_type, index: int
 ) -> str:
@@ -85,11 +99,13 @@ def generate_session_id(
 
 class Session:
     def __init__(
-        self, id, group_id, department_id, course_id, needs_computers, session_type: str,
-        teacher_id: int | None = None,
+        self, id, group_ids, department_id, course_id, needs_computers,
+        session_type: str, teacher_id: int | None = None, size: int = 0,
     ):
         self.id = id
-        self.group_id = group_id
+        # sve grupe koje prisustvuju sesiji; vise grupa = zajednicko
+        # predavanje (npr. oba toka slusaju isti cas)
+        self.group_ids: list[str] = list(group_ids)
         self.course_id = course_id
         self.department_id = department_id
         self.needs_computers = needs_computers
@@ -97,6 +113,8 @@ class Session:
         # None znaci da nema dodeljenog nastavnika pa se staff pravila
         # ne primenjuju na ovu sesiju
         self.teacher_id = teacher_id
+        # ukupan broj studenata (zbir po grupama), za kapacitet ucionice
+        self.size = size
 
 
 def format_teacher_name(name: str) -> str:
@@ -122,44 +140,120 @@ def department_by_id(departments: List[Department], id: int) -> Department:
     return seq(departments).find(lambda dep: dep.id == id)
 
 
-def course_sessions(course: Course, group_id: int) -> Generator[Session, None, None]:    
-    for i in range(course.quota.theory):
-        yield Session(
-            generate_session_id(group_id, course.dep_id, course.id, "t", i),
-            group_id,
-            course.dep_id,
-            course.id,
-            course.needs_computers,
-            "theory",
+class Cohort:
+    """Skup grupa koje zajedno slusaju sesije jednog kursa/tipa,
+    sa (opcionim) nastavnikom koji ih drzi."""
+
+    def __init__(self, groups: List[Group], teacher_id: int | None):
+        self.groups = groups
+        self.teacher_id = teacher_id
+
+    @property
+    def group_ids(self) -> list[str]:
+        return [g.id for g in self.groups]
+
+    @property
+    def size(self) -> int:
+        return sum(g.count for g in self.groups)
+
+    @property
+    def label(self) -> str:
+        return "+".join(self.group_ids)
+
+
+def build_cohorts(
+    course: Course,
+    session_type: str,
+    course_groups: List[Group],
+    assignments: List[TeachingAssignment],
+) -> List[Cohort]:
+    """Deli grupe kursa u kohorte za dati tip sesije.
+
+    - Dodela sa group_ids pravi jednu zajednicku kohortu tih grupa.
+    - Dodela bez group_ids (genericka) vazi za svaku preostalu grupu
+      pojedinacno.
+    - Grupe bez ikakve dodele postaju pojedinacne kohorte bez nastavnika.
+    """
+    groups_by_id = {g.id: g for g in course_groups}
+    remaining = dict(groups_by_id)  # cuva redosled ubacivanja
+
+    cohorts: List[Cohort] = []
+    generic_teacher: int | None = None
+
+    for a in assignments:
+        if a.course_id != course.id or a.session_type != session_type:
+            continue
+        if a.group_ids is None:
+            generic_teacher = a.teacher_id
+            continue
+
+        unknown = [g for g in a.group_ids if g not in groups_by_id]
+        if unknown:
+            raise ValueError(
+                f"Assignment for course {course.id} ({session_type}) references "
+                f"unknown group(s) {unknown}; valid groups: {sorted(groups_by_id)}"
+            )
+        cohorts.append(
+            Cohort([groups_by_id[g] for g in a.group_ids], a.teacher_id)
         )
+        for g in a.group_ids:
+            remaining.pop(g, None)
 
-    for i in range(course.quota.practice):
-        yield Session(
-            generate_session_id(group_id, course.dep_id, course.id, "p", i),
-            group_id,
-            course.dep_id,
-            course.id,
-            course.needs_computers,
-            "practice",
-        )
+    for g in remaining.values():
+        cohorts.append(Cohort([g], generic_teacher))
+
+    return cohorts
 
 
-def generate_sessions(scheduling_input: SchedulingInput, group_size: int) -> Iterable[Session]:
-    groups: List[Group] = split_students_into_groups(scheduling_input.students_enrolled, group_size)
+def generate_sessions(
+    scheduling_input: SchedulingInput,
+    group_size: int,
+    staff_input: StaffInput | None = None,
+) -> Iterable[Session]:
+    groups: List[Group] = build_groups(scheduling_input, group_size)
+    assignments = staff_input.assignments if staff_input else []
+
     sessions: List[Session] = []
-    for group in groups:
-        for course in courses_for_group(
-            scheduling_input.courses, group.department_id, group.semester
+    for course in scheduling_input.courses:
+        course_groups = [
+            g for g in groups
+            if g.department_id == course.dep_id and g.semester == course.semester
+        ]
+        if not course_groups:
+            continue
+
+        for session_type, type_code, quota in (
+            ("theory", "t", course.quota.theory),
+            ("practice", "p", course.quota.practice),
         ):
-            for session in course_sessions(course, group.id):
-                sessions.append(session)
+            for cohort in build_cohorts(course, session_type, course_groups, assignments):
+                for i in range(quota):
+                    sessions.append(
+                        Session(
+                            generate_session_id(
+                                cohort.label, course.dep_id, course.id, type_code, i
+                            ),
+                            cohort.group_ids,
+                            course.dep_id,
+                            course.id,
+                            course.needs_computers,
+                            session_type,
+                            teacher_id=cohort.teacher_id,
+                            size=cohort.size,
+                        )
+                    )
 
     return sessions
 
-def get_eligible_rooms(session: Session, classrooms: list[Classroom]) -> list[int]:
+
+def get_eligible_rooms(
+    session: Session, classrooms: list[Classroom], check_capacity: bool = False
+) -> list[int]:
     eligible: list[int] = []
     for room in classrooms:    
         if session.needs_computers and not room.has_computers:
+            continue
+        if check_capacity and session.size > 0 and room.capacity < session.size:
             continue
         eligible.append(room.id)
     return eligible
@@ -174,42 +268,3 @@ def load_staff_input(path: str) -> StaffInput:
     raw = Path(path).read_text(encoding="utf-8")
     adapter = TypeAdapter(StaffInput)
     return adapter.validate_python(json.loads(raw))
-
-
-def group_index_from_group_id(group_id: str) -> int:
-    """Grupe se generisu sa id-jem oblika '{dep_id}_{semester}_{index}'."""
-    return int(str(group_id).split("_")[-1])
-
-
-def _find_assignment(
-    session: Session, assignments: List[TeachingAssignment]
-) -> TeachingAssignment | None:
-    """Nadji dodelu nastavnika za sesiju.
-
-    Dodela za konkretnu grupu (group_index) ima prednost nad opstom
-    dodelom (group_index == None) za isti (course_id, session_type).
-    """
-    session_group_index = group_index_from_group_id(session.group_id)
-    generic = None
-    for a in assignments:
-        if a.course_id != session.course_id or a.session_type != session.session_type:
-            continue
-        if a.group_index is None:
-            generic = a
-        elif a.group_index == session_group_index:
-            return a
-    return generic
-
-
-def assign_teachers_to_sessions(
-    sessions: Iterable[Session], staff_input: StaffInput
-) -> None:
-    """Upisuje teacher_id u sesije na osnovu dodela iz staff fajla.
-
-    Sesije bez odgovarajuce dodele ostaju bez nastavnika (teacher_id=None)
-    i na njih se staff pravila ne primenjuju.
-    """
-    for session in sessions:
-        assignment = _find_assignment(session, staff_input.assignments)
-        if assignment is not None:
-            session.teacher_id = assignment.teacher_id

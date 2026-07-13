@@ -5,7 +5,7 @@ resavanja problema nedeljnog rasporeda nastave: **CP-SAT** (Constraint
 Programming, OR-Tools) i **MIP/SCIP** (Mixed Integer Programming preko
 OR-Tools `pywraplp` SCIP backend-a).
 
-Pitanje je: **da li solver moze da pronadje bilo koji validan
+Cilj poredjenja je: **da li solver moze da pronadje bilo koji validan
 raspored koji zadovoljava sva tvrda ogranicenja?**
 
 ---

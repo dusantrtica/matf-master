@@ -24,9 +24,11 @@ class NoGapsInScheduleRule(SchedulingRule):
         H = len(solver.working_hours)
 
         # group_id -> globalni indeksi sesija te grupe
+        # (zajednicka sesija se racuna svakoj grupi koja je pohadja)
         group_sessions: dict[int, list[int]] = defaultdict(list)
         for s, session in enumerate(solver.sessions):
-            group_sessions[session.group_id].append(s)
+            for group_id in session.group_ids:
+                group_sessions[group_id].append(s)
 
         gap_vars: list[cp_model.IntVar] = []
         for g, sess in group_sessions.items():

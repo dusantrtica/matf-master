@@ -30,12 +30,12 @@ def split_into_blocks(quota: int) -> list[int]:
 class JoinSameClassesRule(SchedulingRule):
 
     def apply(self, solver: "SimpleCPSolver") -> list[cp_model.IntVar]:
-        # pravimo familije - sesije sa istim kursom, grupom i tipom sesije
+        # pravimo familije - sesije sa istim kursom, grupama i tipom sesije
         # to su sesije koje grupisemo u blokove (dvo, trosatni blokovi)
         # i svaki od tih blokova mora da bude u istom danu, ucionici i sat za satom.
         families: dict[tuple, list[int]] = defaultdict(list)
         for s, session in enumerate(solver.sessions):
-            key = (session.course_id, session.group_id, session.session_type)
+            key = (session.course_id, tuple(session.group_ids), session.session_type)
             families[key].append(s)
 
         H = len(solver.working_hours)

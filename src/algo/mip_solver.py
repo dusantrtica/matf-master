@@ -48,12 +48,20 @@ class SimpleMIPSolver:
             hour for hour in range(self.settings.start_hour, self.settings.end_hour)
         ]
         self.sessions = generate_sessions(scheduling_input, GROUP_SIZE)
+        # kapacitet se postuje samo kada su grupe eksplicitno zadate
+        self.enforce_capacity = bool(scheduling_input.groups)
 
     def _eligible_room_indices(self, session: Session) -> List[int]:
         """Vraca indekse ucionica u kojima sesija moze da se odrzi."""
         indices = []
         for i, room in enumerate(self.classrooms):
             if session.needs_computers and not room.has_computers:
+                continue
+            if (
+                self.enforce_capacity
+                and session.size > 0
+                and room.capacity < session.size
+            ):
                 continue
             indices.append(i)
         return indices
@@ -128,9 +136,11 @@ class SimpleMIPSolver:
                         self.solver.Add(sum(vars_at_dhr) <= 1)
 
         # 3) Jedna grupa ne moze imati 2 sesije u isto vreme
+        # (zajednicka sesija ulazi u ogranicenje svake grupe koja je pohadja)
         groups = defaultdict(list)
         for s, session in enumerate(self.sessions):
-            groups[session.group_id].append(s)
+            for group_id in session.group_ids:
+                groups[group_id].append(s)
 
         for group_id, session_indices in groups.items():
             for d in range(D):
@@ -148,7 +158,8 @@ class SimpleMIPSolver:
         #    sesija po danu, sto forsira ravnomernu raspodelu preko nedelje.
         group_session_counts = defaultdict(int)
         for s, session in enumerate(self.sessions):
-            group_session_counts[session.group_id] += 1
+            for group_id in session.group_ids:
+                group_session_counts[group_id] += 1
 
         for group_id, session_indices in groups.items():
             n_g = group_session_counts[group_id]

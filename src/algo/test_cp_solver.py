@@ -53,12 +53,12 @@ def sessions(scheduling_input):
     result = []
     for i in range(course.quota.theory):
         result.append(
-            Session(f"t_{i}", "grp_1", course.dep_id, course.id,
+            Session(f"t_{i}", ["grp_1"], course.dep_id, course.id,
                     course.needs_computers, "theory")
         )
     for i in range(course.quota.practice):
         result.append(
-            Session(f"p_{i}", "grp_1", course.dep_id, course.id,
+            Session(f"p_{i}", ["grp_1"], course.dep_id, course.id,
                     course.needs_computers, "practice")
         )
     return result
@@ -95,9 +95,10 @@ def test_cp_solver_basic_constraint(scheduling_input, sessions):
     # Proveriti da nikoje 2 sesije za istu grupu ne deli isti vremenski trenutak
     group_times = set()
     for v, session in zip(variables, generated_sessions):
-        key = (session.group_id, v["day"], v["hour"])
-        assert key not in group_times, f"Group-time collision: {key}"
-        group_times.add(key)
+        for group_id in session.group_ids:
+            key = (group_id, v["day"], v["hour"])
+            assert key not in group_times, f"Group-time collision: {key}"
+            group_times.add(key)
 
 if __name__ == "__main__":
     sys.exit(pytest.main(["-v", __file__]))
