@@ -1464,6 +1464,294 @@ malom ulazu nema nijedan unutrašnji procep.
 
 
 % ------------------------------------------------------------------------------
+\chapter{Raspoređivanje nastavnog osoblja}
+\label{chp:osoblje}
+\chaptermark{Raspoređivanje osoblja}
+% ------------------------------------------------------------------------------
+
+Do sada je model raspoređivao samo grupe studenata u učionice i termine.
+U ovoj glavi model proširujemo nastavnim osobljem: svakoj sesiji se
+dodeljuje nastavnik, uvode se ograničenja vezana za nastavnike, i uvodi
+se pojam \emph{kohorte} -- skupa grupa koje zajedno slušaju isti čas.
+Ovaj deo predstavlja poslednji korak u približavanju modela realnom
+scenariju na Matematičkom fakultetu.
+
+Nastavno osoblje se zadaje u \emph{odvojenom} ulaznom fajlu, tako da
+osnovni ulaz (predmeti, grupe, učionice) ostaje nepromenjen. Time se
+podaci o osoblju mogu menjati nezavisno, a raspoređivanje bez osoblja i
+dalje radi kao ranije.
+
+\section{Model osoblja i dodela nastave}
+\label{sec:staff_model}
+
+Podaci o osoblju modelovani su klasom \texttt{StaffInput} (modul
+\code{model.py}) koja sadrži tri celine: listu nastavnika
+(\texttt{teachers}), listu dodela nastave (\texttt{assignments}) i
+konfiguraciju pravila (\texttt{rules}). Nastavnik
+(\texttt{Teacher}) ima identifikator, ime i opciono lično ograničenje
+najvećeg broja radnih dana:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Modeli nastavnika i dodele nastave}]
+@dataclass(config=_config)
+class Teacher:
+    id: int
+    name: str
+    max_working_days: Optional[int] = Field(default=None, alias="maxWorkingDays")
+
+@dataclass(config=_config)
+class TeachingAssignment:
+    teacher_id: int = Field(alias="teacherId")
+    course_id: int = Field(alias="courseId")
+    session_type: str = Field(alias="sessionType")   # "theory" | "practice"
+    group_ids: Optional[List[str]] = Field(default=None, alias="groupIds")
+\end{lstlisting}
+\end{english}
+
+Dodela (\texttt{TeachingAssignment}) povezuje par (predmet, tip nastave)
+sa nastavnikom, i opciono navodi konkretne grupe. Prilikom generisanja
+sesija, svaka sesija dobija polje \texttt{teacher\_id}, a rešavač gradi
+preslikavanje \texttt{teacher\_sessions} (nastavnik $\rightarrow$ indeksi
+njegovih sesija). Sesije bez dodeljenog nastavnika (\texttt{teacher\_id}
+jednako \texttt{None}) ne učestvuju u pravilima osoblja.
+
+\subsection{Nastavnik ne može držati dva časa istovremeno}
+
+Prvo i osnovno ograničenje osoblja je tvrdo i dodaje se u jezgru
+rešavača: nijedan nastavnik ne može držati dve sesije u istom terminu.
+Analogno ograničenju za grupe, koristimo \texttt{AllDifferent} nad
+apsolutnim vremenima svih sesija jednog nastavnika:
+
+\begin{equation}
+\texttt{AllDifferent}(\{\text{flatTime}_s : s \in \mathcal{S}_t\}),
+  \quad \forall t
+\label{eq:staff_nodouble}
+\end{equation}
+
+gde je $\mathcal{S}_t$ skup sesija nastavnika $t$. U kodu
+(modul \code{cp_solver.py}):
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Nastavnik nije dvostruko zauzet}]
+for teacher_id, session_indices in self.teacher_sessions.items():
+    if len(session_indices) > 1:
+        self.model.AddAllDifferent(
+            [self.flat_time_var[s] for s in session_indices]
+        )
+\end{lstlisting}
+\end{english}
+
+\section{Kohorte i zajedničke sesije}
+\label{sec:cohorts}
+
+Bez dodatne pažnje, ako dve grupe slušaju isto predavanje, model bi
+napravio dve odvojene sesije i time primorao nastavnika da isti čas drži
+dva puta. Da bismo to izbegli, uvodimo pojam \emph{kohorte}
+(\texttt{Cohort}) -- skupa grupa koje zajedno pohađaju sesije jednog
+kursa i tipa, sa (opcionim) zajedničkim nastavnikom. Veličina kohorte je
+zbir broja studenata svih njenih grupa, što je bitno za kapacitet
+učionice.
+
+Kohorte se formiraju funkcijom \texttt{build\_cohorts} (modul
+\code{data.py}) na osnovu dodela nastave, po sledećim pravilima:
+
+\begin{itemize}
+\item \textbf{Zajednička (joint) dodela} -- ako dodela navodi više grupa
+  u \texttt{groupIds}, te grupe čine \emph{jednu} kohortu i dobijaju
+  \emph{jednu zajedničku sesiju}. Tako nastavnik drži čas \emph{jednom},
+  a prisustvuju mu sve grupe (npr. oba toka informatike slušaju zajedno
+  predavanje iz predmeta ``Programske paradigme'').
+\item \textbf{Dodela za jednu grupu} -- \texttt{groupIds} sa jednom
+  grupom važi samo za tu grupu.
+\item \textbf{Generička dodela} -- ako \texttt{groupIds} nije naveden,
+  dodela važi za svaku \emph{preostalu} grupu kursa pojedinačno (svaka
+  grupa dobija svoju sesiju sa tim nastavnikom).
+\item Grupe bez ijedne dodele postaju pojedinačne kohorte bez nastavnika.
+\end{itemize}
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Formiranje kohorti iz dodela nastave}]
+for a in assignments:
+    if a.course_id != course.id or a.session_type != session_type:
+        continue
+    if a.group_ids is None:
+        generic_teacher = a.teacher_id          # vazi za sve preostale grupe
+        continue
+    cohorts.append(Cohort([groups_by_id[g] for g in a.group_ids], a.teacher_id))
+    for g in a.group_ids:
+        remaining.pop(g, None)                  # ove grupe su vec pokrivene
+
+for g in remaining.values():                    # grupe bez eksplicitne dodele
+    cohorts.append(Cohort([g], generic_teacher))
+\end{lstlisting}
+\end{english}
+
+Za svaku kohortu i svaki traženi čas iz kvote kreira se tačno jedna
+sesija, čija je lista grupa \texttt{group\_ids} jednaka grupama kohorte.
+Zajednička sesija tako ulazi u ograničenje o koliziji \emph{svake} grupe
+koja je pohađa (tvrdo ograničenje HC2 prolazi kroz sve
+\texttt{session.group\_ids}), a kada su grupe eksplicitno zadate,
+učionica mora imati dovoljan kapacitet za celu kohortu
+($\text{size}_s \leq \text{capacity}_r$).
+
+\paragraph{Primer.} Dve grupe \texttt{ga} (30 studenata) i \texttt{gb}
+(25 studenata) slušaju predavanja zajedno, a vežbe odvojeno. Za predmet
+sa 2 predavanja i 2 vežbe nedeljno dobija se: 2 zajedničke teorijske
+sesije (kohorta \texttt{ga+gb}, veličine 55) i po 2 vežbe za svaku grupu
+-- ukupno 6 sesija umesto 8, uz zajedničku sesiju koja mora stati u
+učionicu kapaciteta bar 55.
+
+\section{Pravila nastavnog osoblja}
+\label{sec:staff_rules}
+
+Pravila osoblja koriste istu \emph{plugin} arhitekturu i CP-SAT tehnike
+(reifikacija, \texttt{AddMaxEquality}, \texttt{AddBoolAnd}/\texttt{AddBoolOr},
+\texttt{AddElement}) uvedene u glavi \ref{chp:nadogradnja}. Konfigurišu
+se u \texttt{rules} sekciji staff fajla i mogu biti tvrda
+(\texttt{penalty} 0) ili meka (\texttt{penalty} > 0).
+
+\subsection{Jedna lokacija po danu za nastavnika}
+
+Pravilo \code{rule_staff_single_location_in_day.py}
+(\texttt{staffSingleLocationInDay}) sprečava da nastavnik menja zgradu
+tokom jednog dana -- fizički bi bilo neizvodljivo držati dva uzastopna
+časa na različitim lokacijama. Mehanizam je isti kao za grupe: za svakog
+nastavnika i dan uvodi se promenljiva lokacije, a sve njegove sesije tog
+dana vezuju se za nju pomoću \texttt{AddElement}:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Nastavnik na jednoj lokaciji dnevno}]
+day_locs = [model.NewIntVar(0, max_loc, f"teacher_day_loc_{teacher_id}_{d}")
+            for d in range(D)]
+for s in session_indices:
+    # loc_var[s] == day_locs[day_var[s]]
+    solver.model.AddElement(solver.day_var[s], day_locs, solver.loc_var[s])
+\end{lstlisting}
+\end{english}
+
+Ovo je tvrdo ograničenje i vraća praznu listu prekršaja.
+
+\subsection{Najveći broj radnih dana nastavnika}
+
+Pravilo \code{rule_staff_max_working_days.py}
+(\texttt{staffMaxWorkingDays}) ograničava koliko različitih dana u
+nedelji nastavnik dolazi na fakultet. Za svaki dan $d$ uvodi se indikator
+$\text{dayUsed}_{t,d}$ (logičko ILI reifikovanih jednakosti
+$\text{day}_s = d$ preko sesija nastavnika), a broj radnih dana je
+njihov zbir:
+
+\begin{equation}
+\text{worked}_t = \sum_{d=0}^{D-1} \text{dayUsed}_{t,d}
+\end{equation}
+
+Tvrda varijanta nameće $\text{worked}_t \leq \text{limit}_t$, gde je
+$\text{limit}_t$ lični limit nastavnika (\texttt{maxWorkingDays}) ili
+podrazumevana vrednost pravila (\texttt{maxDays}). Meka varijanta uvodi
+celobrojnu promenljivu viška i minimizuje ga:
+
+\begin{equation}
+\min \sum_{t} \text{penalty} \cdot \max(0,\ \text{worked}_t - \text{limit}_t)
+\label{eq:staff_days}
+\end{equation}
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Ogranicenje broja radnih dana}]
+worked_days = sum(day_used)                 # day_used[d] = OR preko sesija
+if self.is_hard:
+    solver.model.Add(worked_days <= limit)
+else:
+    excess = solver.model.NewIntVar(0, D, f"staff_days_excess_{teacher_id}")
+    solver.model.Add(excess >= worked_days - limit)
+    violations.append(excess)               # ulazi u funkciju cilja
+\end{lstlisting}
+\end{english}
+
+\subsection{Budžet pauza nastavnika u nedelji}
+
+Pravilo \code{rule_staff_no_gap_greater_than.py}
+(\texttt{staffMaxGapHoursPerWeek}) ograničava ukupan broj pauza (procepa)
+nastavnika \emph{tokom cele nedelje}. Procep se detektuje isto kao u
+pravilu \nameref{sec:rule_nogaps}: matrica zauzetosti se gradi
+reifikovanim jednakostima i \texttt{AddMaxEquality}, a procep je
+konjunkcija ``ima čas pre'', ``ima čas posle'' i ``slobodan sat''. Za
+razliku od pravila za grupe, ovde se procepi \emph{sabiraju kroz sve
+dane}:
+
+\begin{equation}
+\text{weekGaps}_t = \sum_{d=0}^{D-1} \sum_{h} \text{gap}_{t,d,h}
+\end{equation}
+
+Tvrda varijanta nameće $\text{weekGaps}_t \leq B$ (budžet
+$B = \texttt{maxGapHours}$, podrazumevano 1). Meka varijanta minimizuje
+prekoračenje budžeta:
+
+\begin{equation}
+\min \sum_{t} \text{penalty} \cdot \max(0,\ \text{weekGaps}_t - B)
+\label{eq:staff_gaps}
+\end{equation}
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Nedeljni budzet pauza}]
+total_gaps = sum(week_gaps)
+if self.is_hard:
+    solver.model.Add(total_gaps <= self.max_gap_hours)
+else:
+    excess = solver.model.NewIntVar(0, D * H, f"staff_gap_excess_{teacher_id}")
+    solver.model.Add(excess >= total_gaps - self.max_gap_hours)
+    violations.append(excess)
+\end{lstlisting}
+\end{english}
+
+Svi prekršaji mekih pravila osoblja ulaze u istu globalnu funkciju cilja
+iz glave \ref{chp:nadogradnja}:
+$\min \sum_{r} \text{penalty}_r \cdot \sum_{v \in V_r} v$.
+
+\section{Konfiguracija i provera}
+\label{sec:staff_config}
+
+Osoblje se zadaje u zasebnom JSON fajlu (na primer
+\code{staff_2_semester.json}). Sekcija \texttt{rules} bira koja pravila
+su aktivna i sa kojom cenom, \texttt{teachers} navodi nastavnike, a
+\texttt{assignments} povezuje predmete sa nastavnicima (uz opcione
+zajedničke grupe):
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Isecak staff ulaznog fajla}]
+{
+  "rules": {
+    "staffMaxWorkingDays":     {"enabled": true, "penalty": 3, "params": {"maxDays": 4}},
+    "staffMaxGapHoursPerWeek": {"enabled": true, "penalty": 0, "params": {"maxGapHours": 1}},
+    "staffSingleLocationInDay":{"enabled": true, "penalty": 0}
+  },
+  "teachers": [
+    {"id": 4, "name": "milan.mitreski", "maxWorkingDays": 2}
+  ],
+  "assignments": [
+    {"teacherId": 43, "courseId": 54, "sessionType": "theory", "groupIds": ["2la", "2lb"]}
+  ]
+}
+\end{lstlisting}
+\end{english}
+
+Rešavač se pokreće sa dodatnim argumentom \texttt{-{}-staff}:
+
+\begin{english}
+\begin{verbatim}
+bazel run //src/algo:run_cp_solver -- \
+    --input input_full_2_semester.json \
+    --staff staff_2_semester.json --time-limit 600
+\end{verbatim}
+\end{english}
+
+Ispravnost pravila osoblja proverava se testovima u
+\code{test_staff_rules.py}: da nastavnik nije dvostruko zauzet, da se
+poštuje najveći broj radnih dana (uključujući lične limite), da je
+nedeljni budžet pauza ispunjen, da nastavnik ne menja lokaciju u toku
+dana, i da se zajednička sesija dve grupe rešava kao jedan čas u učionici
+dovoljnog kapaciteta.
+
+
+% ------------------------------------------------------------------------------
 \chapter{Zaključak i dalji rad}
 \label{chp:zakljucak}
 % ------------------------------------------------------------------------------
@@ -1502,32 +1790,36 @@ sledeće:
 \end{enumerate}
 
 Na osnovu ovih rezultata, CP-SAT je izabran kao osnova za dalju
-nadogradnju sistema za raspoređivanje časova. U glavi
-\ref{chp:nadogradnja} prikazana je ta nadogradnja: uvedena je
-arhitektura pravila (eng. \emph{plugin}) sa podrškom za tvrda i meka
-ograničenja, funkcija cilja koja minimizuje težinsku sumu prekršaja, i
-tri nova ograničenja -- spajanje časova u blokove, jedna lokacija po
-danu za grupu i izbegavanje procepa u rasporedu. Time je pokazano da se
-CP-SAT model lako i modularno proširuje ka realnijim scenarijima.
+nadogradnju sistema za raspoređivanje časova. Nadogradnja je sprovedena
+u dva koraka. U glavi \ref{chp:nadogradnja} uvedena je arhitektura
+pravila (eng. \emph{plugin}) sa podrškom za tvrda i meka ograničenja i
+funkcija cilja koja minimizuje težinsku sumu prekršaja, zajedno sa tri
+nova ograničenja kvaliteta -- spajanje časova u blokove, jedna lokacija
+po danu za grupu i izbegavanje procepa u rasporedu. U glavi
+\ref{chp:osoblje} model je proširen nastavnim osobljem: uveden je pojam
+kohorte i zajedničkih sesija (kojima se izbegava da nastavnik drži isti
+čas više puta), tvrdo ograničenje da nastavnik nije dvostruko zauzet, i
+tri pravila osoblja -- jedna lokacija po danu, najveći broj radnih dana i
+nedeljni budžet pauza. Time je pokazano da se kompaktni CP-SAT model lako
+i modularno proširuje ka realnim potrebama Matematičkog fakulteta, uz
+poštovanje kapaciteta učionica i ograničenja nastavnika.
 
 \section{Dalji rad}
 
-U glavi \ref{chp:nadogradnja} već su implementirana meka ograničenja sa
-funkcijom cilja, lokacijska ograničenja za grupe i grupisanje časova u
-blokove. Preostali pravci daljeg rada su:
+Kroz glave \ref{chp:nadogradnja} i \ref{chp:osoblje} implementirani su
+meka ograničenja sa funkcijom cilja, lokacijska ograničenja za grupe i
+nastavnike, grupisanje časova u blokove, raspoređivanje nastavnog osoblja
+i poštovanje kapaciteta učionica. Preostali pravci daljeg rada su:
 
 \begin{enumerate}
-\item \textbf{Raspoređivanje nastavnog osoblja.}
-  Uključivanje profesora i asistenata u model, sa ograničenjima
-  njihove raspoloživosti i preferencija, kao i lokacijskim
-  ograničenjima za nastavnike (početak modula \texttt{src/rules/staff}).
-
-\item \textbf{Proširena ograničenja učionica.}
-  Uzimanje u obzir kapaciteta učionice u odnosu na veličinu grupe.
+\item \textbf{Raspoloživost i preferencije nastavnika.}
+  Uključivanje termina u kojima nastavnik ne može ili ne želi da drži
+  nastavu, kao i mekih preferencija (na primer, prepodnevni termini).
 
 \item \textbf{Dodatna meka ograničenja kvaliteta.}
   Na primer, ravnomerna raspodela časova kroz nedelju i izbegavanje
-  kasnih termina, uz fino podešavanje težina u funkciji cilja.
+  kasnih termina, uz fino podešavanje težina u funkciji cilja i analizu
+  njihovog međusobnog odnosa.
 
 \item \textbf{Veb interfejs.}
   Izgradnja veb aplikacije koja omogućava unos podataka,
