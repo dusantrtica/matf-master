@@ -126,7 +126,7 @@ realnih podataka), ispitujemo:
 Na osnovu rezultata ove analize, u narednoj fazi rada planira se
 nadogradnja pobedničke paradigme dodatnim ograničenjima (raspoređivanje
 nastavnog osoblja, lokacijska ograničenja, meka ograničenja za
-kvalitetniji raspored) i izgradnja veb interfejsa za praktičnu upotrebu.
+kvalitetniji raspored).
 
 \section{Struktura rada}
 
@@ -167,7 +167,7 @@ predstavljamo celobrojno linearno programiranje.
 \label{sec:uctp}
 
 Problem raspoređivanja univerzitetskih časova (UCTP) sastoji se od
-dodele predavanja, vežbi i laboratorijskih časova u raspoložive
+dodele časova predavanja, vežbi u raspoložive
 vremenske termine i učionice, tako da budu zadovoljena određena
 ograničenja \cite{schaerf1999, burke2004}.
 
@@ -218,7 +218,7 @@ Ograničenja se u literaturi klasifikuju u dve kategorije
   Primeri:
   \begin{itemize}
   \item Ravnomerna raspodela časova tokom nedelje.
-  \item Minimizacija broja promena učionica za jednu grupu u toku dana.
+  \item Minimizacija broja promena lokacija za jednu grupu u toku dana.
   \item Izbegavanje rupa u rasporedu za studente.
   \end{itemize}
 \end{enumerate}
@@ -312,7 +312,7 @@ ograničenje da sesija može biti raspoređena samo u podskup učionica.
 
 Moderna generacija CP rešavača, kakav je Google CP-SAT \cite{cpsat2020},
 kombinuje tehnike programiranja ograničenja sa tehnologijama SAT
-rešavača. Ovaj pristup se zasniva na \emph{lenjem generisanju klauza}
+rešavača. Ovaj pristup se zasniva na \emph{lenjom generisanju klauza}
 (eng. \emph{lazy clause generation}) \cite{ohrimenko2009}, gde se
 ograničenja propagiraju kao u klasičnom CP, ali se konflikti pamte
 u obliku SAT klauza, što sprečava ponavljanje istih pogrešnih izbora
@@ -569,11 +569,11 @@ Pydantic klasa u modulu \texttt{model.py}. Struktura je sledeća:
     (Ponedeljak, Utorak, ..., Petak),
   \item \texttt{startHour}, \texttt{endHour} -- početak i kraj
     radnog vremena (8--20),
-  \item \texttt{duration} -- trajanje jednog časa (1 sat).
+  \item \texttt{duration} -- trajanje jednog časa predavanja i vežbi (1 sat).
   \end{itemize}
 
 \item \textbf{Location} -- lokacije/zgrade fakulteta (Studentski trg,
-  N Building, Jagićeva).
+  Svetog Nikole, Jagićeva).
 
 \item \textbf{Classroom} -- učionice sa atributima:
   \begin{itemize}
@@ -632,7 +632,7 @@ sledećih koraka:
 
 \item \textbf{Generisanje sesija.}
   Za svaki predmet i svaku grupu, kreira se onoliko sesija koliko
-  to nalaze kvote: \texttt{quota.theory} sesija tipa ``predavanje''
+  to nalaže kvota: \texttt{quota.theory} sesija tipa ``predavanje''
   i \texttt{quota.practice} sesija tipa ``vežbe''.
 \end{enumerate}
 
@@ -697,7 +697,7 @@ Nikoje dve sesije ne mogu se održavati u istoj ucionici u isto vreme:
 \label{eq:cp_hc1}
 \end{equation}
 
-Ovo jedino globalno ograničenje obuhvata sve sesije i garantuje
+Ovo globalno ograničenje obuhvata sve sesije i garantuje
 da su sve trojke $(d_s, h_s, r_s)$ međusobno različite.
 
 \textbf{HC2: Bez kolizija unutar grupe.}
@@ -782,24 +782,14 @@ Za svaku grupu $g$ i svaki termin $(d,h)$:
 \label{eq:mip_hc3}
 \end{equation}
 
-\textbf{HC4: Ravnomerna raspodela po danima.}
-Za svaku grupu $g$ i svaki dan $d$, broj sesija te grupe u tom
-danu je ograničen odozgo:
-
-\begin{equation}
-\sum_{s \in \mathcal{S}_g} \sum_{h,r} x_{s,d,h,r} \leq
-  \left\lceil \frac{N_g}{D} \right\rceil,
-  \quad \forall g, \forall d
-\label{eq:mip_hc4}
-\end{equation}
-
-gde je $N_g = |\mathcal{S}_g|$ ukupan broj sesija grupe $g$.
-Ovo ograničenje forsira ravnomerniju raspodelu časova tokom nedelje.
-
-\textbf{Napomena:} Ograničenje HC4 postoji samo u MIP formulaciji.
-CP formulacija nema ekvivalentno ograničenje, što znači da dopustivi
-skupovi nisu potpuno identični, ali su oba konzistentna sa realnim
-zahtevima raspoređivanja.
+Ova tri ograničenja u potpunosti odgovaraju ograničenjima CP
+formulacije (odeljak \ref{sec:cp_form}): HC1 obezbeđuje da svaka sesija
+ima tačno jednu dodelu (u CP-u je to inherentno, jer svaka sesija ima po
+jednu promenljivu za dan, sat i učionicu), HC2 odgovara ograničenju
+\texttt{AllDifferent} nad \emph{roomTime}, a HC3 ograničenju
+\texttt{AllDifferent} nad \emph{flatTime} po grupi. Time obe formulacije
+opisuju \emph{isti} skup dopustivih rešenja, pa je njihovo poređenje u
+glavi \ref{chp:evaluacija} korektno (poređenje ,,jednakih sa jednakim'').
 
 \subsection{Funkcija cilja}
 
@@ -918,15 +908,15 @@ U tabelama \ref{tbl:results_s}, \ref{tbl:results_m} i
 \toprule
 \textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
 \midrule
-Sesije                 & \multicolumn{2}{c}{(popuniti iz benchmark rezultata)} \\
-Promenljive            & --      & -- \\
-Ograničenja            & --      & -- \\
-Vreme konstrukcije     & --      & -- \\
-Vreme rešavanja        & --      & -- \\
-Ukupno vreme           & --      & -- \\
-Memorija modela        & --      & -- \\
-Status                 & --      & -- \\
-Rešenje validno        & --      & -- \\
+Sesije                 & \multicolumn{2}{c}{192} \\
+Promenljive            & $1\,152$        & $115\,200$ \\
+Ograničenja            & $633$           & $1\,392$ \\
+Vreme konstrukcije     & 0,014 s         & 1,948 s \\
+Vreme rešavanja        & 0,022 s         & 1,186 s \\
+Ukupno vreme           & 0,036 s         & 3,134 s \\
+Memorija modela        & 0,21 MB         & 26,71 MB \\
+Status                 & \textsc{feasible} & \textsc{feasible} \\
+Rešenje validno        & da              & da \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -939,15 +929,15 @@ Rešenje validno        & --      & -- \\
 \toprule
 \textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
 \midrule
-Sesije                 & \multicolumn{2}{c}{(popuniti iz benchmark rezultata)} \\
-Promenljive            & --      & -- \\
-Ograničenja            & --      & -- \\
-Vreme konstrukcije     & --      & -- \\
-Vreme rešavanja        & --      & -- \\
-Ukupno vreme           & --      & -- \\
-Memorija modela        & --      & -- \\
-Status                 & --      & -- \\
-Rešenje validno        & --      & -- \\
+Sesije                 & \multicolumn{2}{c}{410} \\
+Promenljive            & $2\,460$        & $343\,200$ \\
+Ograničenja            & $1\,352$        & $2\,330$ \\
+Vreme konstrukcije     & 0,030 s         & 6,033 s \\
+Vreme rešavanja        & 0,079 s         & 5,299 s \\
+Ukupno vreme           & 0,109 s         & 11,332 s \\
+Memorija modela        & 0,40 MB         & 75,61 MB \\
+Status                 & \textsc{feasible} & \textsc{feasible} \\
+Rešenje validno        & da              & da \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -960,22 +950,21 @@ Rešenje validno        & --      & -- \\
 \toprule
 \textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
 \midrule
-Sesije                 & \multicolumn{2}{c}{(popuniti iz benchmark rezultata)} \\
-Promenljive            & --      & -- \\
-Ograničenja            & --      & -- \\
-Vreme konstrukcije     & --      & -- \\
-Vreme rešavanja        & --      & -- \\
-Ukupno vreme           & --      & -- \\
-Memorija modela        & --      & -- \\
-Status                 & --      & -- \\
-Rešenje validno        & --      & -- \\
+Sesije                 & \multicolumn{2}{c}{762} \\
+Promenljive            & $4\,572$        & $1\,033\,560$ \\
+Ograničenja            & $2\,549$        & $4\,302$ \\
+Vreme konstrukcije     & 0,061 s         & 17,956 s \\
+Vreme rešavanja        & 1,554 s         & 17,830 s \\
+Ukupno vreme           & 1,615 s         & 35,786 s \\
+Memorija modela        & 0,73 MB         & 230,96 MB \\
+Status                 & \textsc{feasible} & \textsc{feasible} \\
+Rešenje validno        & da              & da \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\textbf{Napomena:} Vrednosti u tabelama treba popuniti konkretnim
-rezultatima iz pokretanja benchmark-a. Rezultate je moguće dobiti
-komandom:
+\textbf{Napomena:} Prikazani rezultati su dobijeni pokretanjem
+benchmark-a komandom:
 
 \begin{english}
 \begin{verbatim}
@@ -993,8 +982,8 @@ Na osnovu sprovedenih eksperimenata, možemo izvući sledeće zaključke:
 CP-SAT formulacija koristi $5 \cdot |\mathcal{S}|$ celobrojnih
 promenljivih, dok MIP/SCIP formulacija koristi
 $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ binarnih promenljivih.
-Za MATF-L skalu sa $D=5$ dana, $H=12$ sati i $R=35$ učionica,
-svaka sesija generiše do $5 \cdot 12 \cdot 35 = 2100$ binarnih
+Za MATF-L skalu sa $D=5$ dana, $H=12$ sati i $R=29$ učionica,
+svaka sesija generiše do $5 \cdot 12 \cdot 29 = 1740$ binarnih
 promenljivih u MIP-u, naspram 5 celobrojnih u CP-u. Ova razlika
 od dva do tri reda veličine se direktno odražava na memorijski
 otisak i vreme konstrukcije modela.
@@ -1326,7 +1315,7 @@ Pravilo \texttt{SingleLocationInDayForGroupRule} (modul
 \code{rule_single_location_in_day_for_group.py}) sprečava da
 grupa studenata menja zgradu (lokaciju) tokom jednog radnog dana.
 Matematički fakultet izvodi nastavu na više lokacija (Studentski trg,
-zgrada N, Jagićeva), pa bi promena zgrade između dva uzastopna časa
+zgrada Sv. Nikole, Jagićeva), pa bi promena zgrade između dva uzastopna časa
 bila nepraktična. Ovo je tvrdo ograničenje.
 
 \subsection{Mehanizam}
