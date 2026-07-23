@@ -3,7 +3,7 @@ load("@bazel_latex//:latex.bzl", "latex_document")
 latex_document(
     name = "master",
     main = "master.tex",
-    bib_tool = "bibtex",
+    bib_tool = "biber",
     srcs = [
         # Local files
         "master.bib",
@@ -16,6 +16,7 @@ latex_document(
         "serbian.lbx",
         # Pre-packaged dependencies from bazel-latex
         "@bazel_latex//packages:amsmath",
+        "@bazel_latex//packages:biblatex",
         "@bazel_latex//packages:amssymb",
         "@bazel_latex//packages:booktabs",
         "@bazel_latex//packages:csquotes",
@@ -25,6 +26,8 @@ latex_document(
         "@bazel_latex//packages:xcolor",
         "@bazel_latex//packages:calc",
         "@bazel_latex//packages:url",
+        # BibTeX styles (plain.bst etc.)
+        "@bazel_latex_texlive//:texlive_texmf__texmf-dist__bibtex__bst__base",
         # memoir
         "@bazel_latex_texlive//:texlive_texmf__texmf-dist__tex__latex__memoir",
         "@bazel_latex_texlive//:texlive_texmf__texmf-dist__makeindex__memoir",
