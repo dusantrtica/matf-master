@@ -219,7 +219,8 @@ Ograničenja se u literaturi klasifikuju u dve kategorije
   \begin{itemize}
   \item Ravnomerna raspodela časova tokom nedelje.
   \item Minimizacija broja promena lokacija za jednu grupu u toku dana.
-  \item Izbegavanje rupa u rasporedu za studente.
+  \item Izbegavanje procepa (eng. \emph{gap}) -- slobodnih sati između
+    dva časa -- u rasporedu za studente.
   \end{itemize}
 \end{enumerate}
 
@@ -1655,11 +1656,11 @@ else:
 \end{lstlisting}
 \end{english}
 
-\subsection{Budžet pauza nastavnika u nedelji}
+\subsection{Nedeljni budžet procepa (broj sati pauze) nastavnika}
 
 Pravilo \code{rule_staff_no_gap_greater_than.py}
-(\texttt{staffMaxGapHoursPerWeek}) ograničava ukupan broj pauza (procepa)
-nastavnika \emph{tokom cele nedelje}. Procep se detektuje isto kao u
+(\texttt{staffMaxGapHoursPerWeek}) ograničava ukupan broj procepa
+(pauza) nastavnika \emph{tokom cele nedelje}. Procep se detektuje isto kao u
 pravilu \nameref{sec:rule_nogaps}: matrica zauzetosti se gradi
 reifikovanim jednakostima i \texttt{AddMaxEquality}, a procep je
 konjunkcija ``ima čas pre'', ``ima čas posle'' i ``slobodan sat''. Za
@@ -1680,7 +1681,7 @@ prekoračenje budžeta:
 \end{equation}
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Nedeljni budžet pauza}]
+\begin{lstlisting}[language=Python, caption={Nedeljni budžet procepa}]
 total_gaps = sum(week_gaps)
 if self.is_hard:
     solver.model.Add(total_gaps <= self.max_gap_hours)
@@ -1735,7 +1736,7 @@ bazel run //src/algo:run_cp_solver -- \
 Ispravnost pravila osoblja proverava se testovima u
 \code{test_staff_rules.py}: da nastavnik nije dvostruko zauzet, da se
 poštuje najveći broj radnih dana (uključujući lične limite), da je
-nedeljni budžet pauza ispunjen, da nastavnik ne menja lokaciju u toku
+nedeljni budžet procepa ispunjen, da nastavnik ne menja lokaciju u toku
 dana, i da se zajednička sesija dve grupe rešava kao jedan čas u učionici
 dovoljnog kapaciteta.
 
@@ -1789,7 +1790,7 @@ po danu za grupu i izbegavanje procepa u rasporedu. U glavi
 kohorte i zajedničkih sesija (kojima se izbegava da nastavnik drži isti
 čas više puta), tvrdo ograničenje da nastavnik nije dvostruko zauzet, i
 tri pravila osoblja -- jedna lokacija po danu, najveći broj radnih dana i
-nedeljni budžet pauza. Time je pokazano da se kompaktni CP-SAT model lako
+nedeljni budžet procepa. Time je pokazano da se kompaktni CP-SAT model lako
 i modularno proširuje ka realnim potrebama Matematičkog fakulteta, uz
 poštovanje kapaciteta učionica i ograničenja nastavnika.
 
