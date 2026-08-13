@@ -2,7 +2,7 @@
 
 \usepackage[latinica,biblatex]{matfmaster}
 
-% Vise prostora izmedju zaglavlja (header) i teksta
+% Više prostora između zaglavlja (header) i teksta
 \setheaderspaces{*}{1.7\onelineskip}{*}
 \checkandfixthelayout
 
@@ -117,7 +117,7 @@ na tri skale problema različite veličine (mali, srednji i veliki podskup
 realnih podataka), ispitujemo:
 
 \begin{itemize}
-\item bržinu konstrukcije modela i rešavanja,
+\item brzinu konstrukcije modela i rešavanja,
 \item kompaktnost formulacije (broj promenljivih i ograničenja),
 \item memorijski otisak,
 \item skalabilnost pristupa pri rastu veličine problema.
@@ -138,7 +138,7 @@ Rad je organizovan na sledeći način:
   i paradigmu celobrojnog linearnog programiranja.
 
 \item U glavi \ref{chp:alati} opisujemo korišćene alate i tehnologije:
-  biblioteku Google OR-Tools, sistem za gradnju Bazel i pomocene
+  biblioteku Google OR-Tools, sistem za gradnju Bazel i pomoćne
   Python biblioteke.
 
 \item U glavi \ref{chp:formulacija} detaljno izlažemo formulaciju problema,
@@ -179,7 +179,7 @@ Formalno, problem se može opisati sledećim elementima:
   predmetu i grupi studenata.
 
 \item \textbf{Skup vremenskih termina} $\mathcal{T} = \{t_1, t_2, \ldots, t_m\}$
-  -- raspolozivi termini u toku radne nedelje, određeni kombinacijom
+  -- raspoloživi termini u toku radne nedelje, određeni kombinacijom
   radnog dana i sata.
 
 \item \textbf{Skup učionica} $\mathcal{R} = \{r_1, r_2, \ldots, r_k\}$
@@ -189,7 +189,7 @@ Formalno, problem se može opisati sledećim elementima:
   mora da zadovolji.
 \end{itemize}
 
-Cilj je pronaci funkciju dodele $\sigma : \mathcal{S} \to \mathcal{T}
+Cilj je pronaći funkciju dodele $\sigma : \mathcal{S} \to \mathcal{T}
 \times \mathcal{R}$ takvu da su sva ograničenja iz $\mathcal{C}$
 zadovoljena.
 
@@ -202,11 +202,11 @@ Ograničenja se u literaturi klasifikuju u dve kategorije
 \begin{enumerate}
 \item \textbf{Tvrda ograničenja} (eng. \emph{hard constraints}) --
   ograničenja koja moraju biti bezuslovno zadovoljena. Rešenje koje
-  kršeći neko tvrdo ograničenje nije dopustivo. Primeri:
+  krši neko tvrdo ograničenje nije dopustivo. Primeri:
   \begin{itemize}
-  \item Nikoje dve sesije ne mogu se održavati u istoj ucionici u
+  \item Nikoje dve sesije ne mogu se održavati u istoj učionici u
     isto vreme.
-  \item Jedna grupa studenata ne može istovremeno pohadati dva
+  \item Jedna grupa studenata ne može istovremeno pohađati dva
     različita predavanja.
   \item Sesija koja zahteva računare mora biti raspoređena u
     učionicu opremljenu računarima.
@@ -235,7 +235,7 @@ raspoređivanja NP-težak redukcijom sa problema bojenja grafova.
 Garey i Johnson \cite{garey1979} su ovaj rezultat uključili u svoju
 obimnu katalogizaciju NP-kompletnih problema. Ovo znači da je
 malo verovatno da postoji algoritam polinomijalne složenosti za
-rešavanje opšteg slucaja problema raspoređivanja, te se u praksi
+rešavanje opšteg slučaja problema raspoređivanja, te se u praksi
 pribegava heuristikama ili egzaktnim metodama sa eksponencijalnom
 najgorom složenošću.
 
@@ -297,7 +297,7 @@ promenljivih i koje imaju efikasne algoritme propagacije \cite{regin1994}.
 Ograničenje $\texttt{AllDifferent}(x_1, x_2, \ldots, x_n)$ zahteva
 da sve promenljive $x_1, \ldots, x_n$ imaju međusobno različite
 vrednosti. Dok bi se isto moglo izraziti sa $\binom{n}{2}$ parnih
-nejednakosti, globalno ograničenje pruza značajno jacu propagaciju
+nejednakosti, globalno ograničenje pruža značajno jaču propagaciju
 zahvaljujući algoritmima baziranim na sparivanju u bipartitnim
 grafovima \cite{regin1994}.
 
@@ -323,7 +323,7 @@ učenja konflikata poznatom iz SAT rešavača.
 \label{sec:mip}
 
 Mešovito celobrojno programiranje (eng. \emph{Mixed Integer Programming}
--- MIP) je paradigma matematicke optimizacije u kojoj se problem
+-- MIP) je paradigma matematičke optimizacije u kojoj se problem
 formuliše pomoću linearne funkcije cilja i linearnih ograničenja
 nad promenljivama koje mogu biti celobrojne ili kontinualne
 \cite{wolsey1998, nemhauser1988}.
@@ -356,7 +356,7 @@ zadovoljava sva linearna ograničenja.
 MIP rešavači koriste kombinaciju sledećih tehnika \cite{wolsey1998}:
 
 \begin{enumerate}
-\item \textbf{LP relaksacija} -- opustanje celobrojnih ograničenja
+\item \textbf{LP relaksacija} -- opuštanje celobrojnih ograničenja
   i rešavanje kontinualnog linearnog programa. Ovo daje donju granicu
   za funkciju cilja (ili test nedopustivosti).
 
@@ -413,7 +413,7 @@ za više tipova problema, uključujući:
 \end{itemize}
 
 OR-Tools je izabran zbog: otvorenog izvornog koda, aktivne zajednice,
-konkurentnih performansi u odnosu na komercijalna rešenja, i podrske
+konkurentnih performansi u odnosu na komercijalna rešenja, i podrške
 za obe paradigme (CP i MIP) kroz jedinstven Python API.
 
 \section{Bazel}
@@ -425,7 +425,7 @@ od strane Google-a. Ključne prednosti Bazel-a su:
 \begin{itemize}
 \item \textbf{Reproducibilnost} -- hermetičke gradnje garantuju da će
   isti izvorni kod uvek proizvesti isti rezultat, nezavisno od
-  okruzenja.
+  okruženja.
 
 \item \textbf{Inkrementalne gradnje} -- Bazel gradi samo one delove
   koji su se promenili, što ubrzava razvoj.
@@ -506,7 +506,7 @@ se koristi za definisanje modela ulaznih podataka (videti odeljak
 \texttt{pydantic.dataclass} sa jasno definisanim tipovima i
 alijas imenima za mapiranje JSON polja.
 
-Prednosti koriscenja Pydantic-a:
+Prednosti korišćenja Pydantic-a:
 \begin{itemize}
 \item automatska validacija tipova pri učitavanju JSON podataka,
 \item eksplicitna dokumentacija strukture podataka,
@@ -519,8 +519,8 @@ Prednosti koriscenja Pydantic-a:
 Biblioteka openpyxl \cite{openpyxl} koristi se za generisanje Excel
 fajlova sa rasporedom. Za svaku grupu studenata kreira se poseban
 radni list (eng. \emph{worksheet}) sa tabelom gde redovi predstavljaju
-radne dane, a kolone vremenske termine. Celije sadrze informacije o
-predmetu, tipu časa (predavanje/vežbe) i ucionici.
+radne dane, a kolone vremenske termine. Ćelije sadrže informacije o
+predmetu, tipu časa (predavanje/vežbe) i učionici.
 
 \subsection{PyFunctional}
 
@@ -528,7 +528,7 @@ PyFunctional \cite{pyfunctional} je biblioteka koja omogućava
 funkcionalni stil programiranja u Pythonu. U projektu se koristi
 objekat \texttt{seq} za fluent filtriranje i pretraživanje listi
 (npr. filtriranje predmeta po smeru, pronalaženje učionice po
-identifikatoru i slicno).
+identifikatoru i slično).
 
 \subsection{pytest}
 
@@ -563,7 +563,7 @@ Ulazni podaci su definisani u JSON formatu i modelovani pomoću
 Pydantic klasa u modulu \texttt{model.py}. Struktura je sledeća:
 
 \begin{enumerate}
-\item \textbf{Settings} -- podesavanja rasporeda:
+\item \textbf{Settings} -- podešavanja rasporeda:
   \begin{itemize}
   \item \texttt{workingDays} -- lista radnih dana
     (Ponedeljak, Utorak, ..., Petak),
@@ -600,7 +600,7 @@ Pydantic klasa u modulu \texttt{model.py}. Struktura je sledeća:
 \subsection{Realni podaci}
 
 Za eksperimentalnu evaluaciju koristimo podatke koji reprezentuju
-jedan semestar nastave na Matematickom fakultetu:
+jedan semestar nastave na Matematičkom fakultetu:
 
 \begin{itemize}
 \item 6 smerova,
@@ -689,7 +689,7 @@ iznosi reda stotina promenljivih.
 \subsection{Tvrda ograničenja}
 
 \textbf{HC1: Jedinstvenost učionice u terminu.}
-Nikoje dve sesije ne mogu se održavati u istoj ucionici u isto vreme:
+Nikoje dve sesije ne mogu se održavati u istoj učionici u isto vreme:
 
 \begin{equation}
 \texttt{AllDifferent}(\text{roomTime}_0, \text{roomTime}_1,
@@ -725,7 +725,7 @@ na podskup učionica sa računarima:
 
 U trenutnoj verziji, CP formulacija nema funkciju cilja -- rešavač
 traži bilo koje dopustivo rešenje koje zadovoljava sva tvrda
-ograničenja (rezim izvodljivosti).
+ograničenja (režim izvodljivosti).
 
 \section{MIP formulacija}
 \label{sec:mip_form}
@@ -766,7 +766,7 @@ MATF-a to može iznositi desetine hiljada binarnih promenljivih,
 \label{eq:mip_hc1}
 \end{equation}
 
-\textbf{HC2: Najviše jedna sesija u datoj ucionici u datom terminu.}
+\textbf{HC2: Najviše jedna sesija u datoj učionici u datom terminu.}
 
 \begin{equation}
 \sum_{s \in \mathcal{S}} x_{s,d,h,r} \leq 1, \quad \forall d,h,r
@@ -793,7 +793,7 @@ glavi \ref{chp:evaluacija} korektno (poređenje ,,jednakih sa jednakim'').
 
 \subsection{Funkcija cilja}
 
-Kao i CP formulacija, MIP formulacija radi u rezimu izvodljivosti
+Kao i CP formulacija, MIP formulacija radi u režimu izvodljivosti
 bez funkcije cilja.
 
 \section{Poređenje formulacija}
@@ -823,7 +823,7 @@ Ključna razlika je u kompaktnosti modela: CP formulacija koristi
 mali broj celobrojnih promenljivih sa globalnim ograničenjima,
 dok MIP formulacija eksplicitno enumeriše sve moguće dodele kroz
 binarne promenljive. Ovo ima direktan uticaj na memorijski otisak
-i bržinu konstrukcije modela, posebno za veće instance problema.
+i brzinu konstrukcije modela, posebno za veće instance problema.
 
 
 % ------------------------------------------------------------------------------
@@ -994,7 +994,7 @@ CP-SAT rešavač koristi globalna ograničenja
 (\texttt{AllDifferent}, \texttt{AllowedAssignments}) sa
 specijalizovanim algoritmima propagacije koji rano eliminišu
 nedopustive vrednosti iz domena promenljivih. U kombinaciji sa
-SAT tehnologijama učenja konflikata, ovo omogućava znatno brzu
+SAT tehnologijama učenja konflikata, ovo omogućava znatno bržu
 pretragu prostora rešenja u poređenju sa LP relaksacijom i
 branch-and-bound pristupom MIP/SCIP rešavača.
 
@@ -1003,7 +1003,7 @@ branch-and-bound pristupom MIP/SCIP rešavača.
 Razlika u performansama između dva pristupa postaje
 izraženija sa rastom veličine problema. Dok na malim instancama
 (MATF-S) oba rešavača nalaze rešenje relativno brzo, na većim
-instancama (MATF-M, MATF-L) MIP/SCIP zahteva značajno vise
+instancama (MATF-M, MATF-L) MIP/SCIP zahteva značajno više
 vremena, a u nekim slučajevima može da ne nađe rešenje u
 zadatom vremenskom limitu.
 
@@ -1189,7 +1189,7 @@ Za binarne promenljive (vrednosti 0 ili 1), maksimum je jednak logičkom
 ILI. CP-SAT to izražava ograničenjem \texttt{AddMaxEquality}:
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Logicko ILI nad binarnim promenljivama}]
+\begin{lstlisting}[language=Python, caption={Logičko ILI nad binarnim promenljivama}]
 # b == 1 ako je bar jedan od literala u "lits" jednak 1
 model.AddMaxEquality(b, lits)   # b = max(lits) = OR(lits)
 \end{lstlisting}
@@ -1206,7 +1206,7 @@ kombinaciji sa \texttt{OnlyEnforceIf} koriste se za potpunu reifikaciju
 složenih logičkih izraza:
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Reifikacija ekvivalencije logickog izraza}]
+\begin{lstlisting}[language=Python, caption={Reifikacija ekvivalencije logičkog izraza}]
 # gap == 1  <=>  (has_before AND has_after AND NOT busy)
 model.AddBoolAnd([has_before, has_after, busy.Not()]).OnlyEnforceIf(gap)
 model.AddBoolOr([has_before.Not(), has_after.Not(), busy]).OnlyEnforceIf(gap.Not())
@@ -1291,7 +1291,7 @@ $b$ (``blok je spojen''). Ako blok ne može biti spojen, $b$ je netačno
 i uvodi se promenljiva prekršaja:
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Meko spajanje sa promenljivom prekrsaja}]
+\begin{lstlisting}[language=Python, caption={Meko spajanje sa promenljivom prekršaja}]
 b = solver.model.NewBoolVar(f"joined_{block[0]}_{block[-1]}")
 for i, s in enumerate(block[1:], start=1):
     solver.model.Add(solver.day_var[s]  == solver.day_var[anchor]).OnlyEnforceIf(b)
@@ -1332,7 +1332,7 @@ Pošto je $\text{room}_s$ promenljiva, koristimo \texttt{AddElement} da
 indeksiramo niz lokacija učionica:
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Kanalisanje ucionice u lokaciju}]
+\begin{lstlisting}[language=Python, caption={Kanalisanje učionice u lokaciju}]
 loc[s] = solver.model.NewIntVar(0, max_loc, f"loc_{s}")
 solver.model.AddElement(
     solver.room_var[s], self.locations_of_classrooms, loc[s]
@@ -1411,7 +1411,7 @@ $\text{gap}$ se reifikuje kao konjunkcija:
 \end{equation}
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Detekcija unutrasnjeg procepa}]
+\begin{lstlisting}[language=Python, caption={Detekcija unutrašnjeg procepa}]
 has_before = solver.model.NewBoolVar(f"hb_{g}_{d}_{h}")
 solver.model.AddMaxEquality(has_before, busy_day[:h])
 has_after = solver.model.NewBoolVar(f"ha_{g}_{d}_{h}")
@@ -1564,11 +1564,11 @@ for a in assignments:
     if a.course_id != course.id or a.session_type != session_type:
         continue
     if a.group_ids is None:
-        generic_teacher = a.teacher_id          # vazi za sve preostale grupe
+        generic_teacher = a.teacher_id          # primenjuje se na sve preostale grupe
         continue
     cohorts.append(Cohort([groups_by_id[g] for g in a.group_ids], a.teacher_id))
     for g in a.group_ids:
-        remaining.pop(g, None)                  # ove grupe su vec pokrivene
+        remaining.pop(g, None)                  # ove grupe su pokrivene
 
 for g in remaining.values():                    # grupe bez eksplicitne dodele
     cohorts.append(Cohort([g], generic_teacher))
@@ -1644,7 +1644,7 @@ celobrojnu promenljivu viška i minimizuje ga:
 \end{equation}
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Ogranicenje broja radnih dana}]
+\begin{lstlisting}[language=Python, caption={Ograničenje broja radnih dana}]
 worked_days = sum(day_used)                 # day_used[d] = OR preko sesija
 if self.is_hard:
     solver.model.Add(worked_days <= limit)
@@ -1680,7 +1680,7 @@ prekoračenje budžeta:
 \end{equation}
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Nedeljni budzet pauza}]
+\begin{lstlisting}[language=Python, caption={Nedeljni budžet pauza}]
 total_gaps = sum(week_gaps)
 if self.is_hard:
     solver.model.Add(total_gaps <= self.max_gap_hours)
@@ -1705,7 +1705,7 @@ su aktivna i sa kojom cenom, \texttt{teachers} navodi nastavnike, a
 zajedničke grupe):
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Isecak staff ulaznog fajla}]
+\begin{lstlisting}[language=Python, caption={Isečak staff ulaznog fajla}]
 {
   "rules": {
     "staffMaxWorkingDays":     {"enabled": true, "penalty": 3, "params": {"maxDays": 4}},
@@ -1763,7 +1763,7 @@ sledeće:
   memorije i brže se konstruiše.
 
 \item \textbf{CP-SAT je brži.}
-  Zahvaljujuci globalnim ograničenjima sa specijalizovanom
+  Zahvaljujući globalnim ograničenjima sa specijalizovanom
   propagacijom i tehnikama učenja konflikata iz SAT rešavača,
   CP-SAT nalazi dopustivo rešenje za redove veličine brže od
   MIP/SCIP rešavača.
@@ -1832,7 +1832,7 @@ i poštovanje kapaciteta učionica. Preostali pravci daljeg rada su:
 Devetu beogradsku gimnaziju 2002. godine. Matematički fakultet
 Univerziteta u Beogradu, smer informatika i računarstvo, završio je
 2009. godine. Oblasti interesovanja uključuju razvoj softvera,
-funkctionalno programiranje, kao i algoritme veštačke inteligencije.
+funkcionalno programiranje, kao i algoritme veštačke inteligencije.
 \end{biografija}
 % ------------------------------------------------------------------------------
 
