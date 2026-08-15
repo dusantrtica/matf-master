@@ -511,8 +511,8 @@ Prednosti korišćenja Pydantic-a:
 \begin{itemize}
 \item automatska validacija tipova pri učitavanju JSON podataka,
 \item eksplicitna dokumentacija strukture podataka,
-\item podrška za alias nazive (npr. \texttt{depId} u JSON-u mapira
-  se u \texttt{dep\_id} u Python kodu).
+\item podrška za alias nazive (npr. \texttt{startHour} u JSON-u
+  mapira se u \texttt{start\_hour} u Python kodu).
 \end{itemize}
 
 \subsection{openpyxl}
@@ -561,7 +561,18 @@ problema u CP i MIP paradigmama.
 \label{sec:input_model}
 
 Ulazni podaci su definisani u JSON formatu i modelovani pomoću
-Pydantic klasa u modulu \texttt{model.py}. Struktura je sledeća:
+Pydantic klasa u modulu \texttt{model.py}.
+
+\medskip
+\noindent\textbf{Terminološka napomena.}
+Entitet kojim se studenti grupišu prema nastavnom planu koji pohađaju
+u ovom radu nazivamo \emph{smer}. Reč je o jedinici nastavnog plana, a
+ne o organizacionoj jedinici fakulteta: smer okuplja studente prema
+predmetima koje slušaju, dok katedra okuplja nastavnike prema naučnoj
+oblasti, pa se ta dva pojma ne poklapaju.
+
+\medskip
+Struktura ulaznih podataka je sledeća:
 
 \begin{enumerate}
 \item \textbf{Settings} -- podešavanja rasporeda:
@@ -583,8 +594,10 @@ Pydantic klasa u modulu \texttt{model.py}. Struktura je sledeća:
   \item kapacitet.
   \end{itemize}
 
-\item \textbf{Department} -- smerovi studija (Profesor matematike i
-  računarstva, Teorijska matematika, Informatika, itd.).
+\item \textbf{Smer} -- smerovi studija (Profesor matematike i
+  računarstva, Teorijska matematika, Informatika, itd.). U izvornom
+  kodu odgovara klasi \texttt{StudyTrack}, odnosno polju
+  \texttt{trackId} u JSON ulazu.
 
 \item \textbf{Course} -- predmeti sa:
   \begin{itemize}

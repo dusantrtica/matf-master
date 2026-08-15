@@ -35,8 +35,8 @@ def test_parse_sample_input():
 def test_split_students_into_groups():
     # Arrange
     students_enrollment = [
-        StudentsEnrolled(**{"depId": 1, "semester": 1, "count": 90}),
-        StudentsEnrolled(**{"depId": 2, "semester": 1, "count": 100}),
+        StudentsEnrolled(**{"trackId": 1, "semester": 1, "count": 90}),
+        StudentsEnrolled(**{"trackId": 2, "semester": 1, "count": 100}),
     ]
     group_size = 30
 
@@ -55,22 +55,47 @@ def test_split_students_into_groups():
     ]
 
 
+def test_legacy_department_keys_are_still_accepted():
+    """Ulazi napisani pre preimenovanja (`departments`, `depId`) moraju
+    da se ucitaju isto kao i oni sa novim nazivima."""
+    from pydantic import TypeAdapter
+    from src.algo.model import SchedulingInput
+
+    legacy = {
+        "settings": {"workingDays": ["Ponedeljak"], "startHour": 8, "endHour": 20},
+        "locations": [],
+        "classrooms": [],
+        "departments": [{"id": 1, "name": "Informatika"}],
+        "courses": [
+            {"id": 1, "name": "Analiza 1", "semester": 1, "depId": 1,
+             "quota": {"theory": 2, "practice": 2}},
+        ],
+        "studentsEnrolled": [{"depId": 1, "semester": 1, "count": 30}],
+    }
+
+    parsed = TypeAdapter(SchedulingInput).validate_python(legacy)
+
+    assert [t.name for t in parsed.tracks] == ["Informatika"]
+    assert parsed.courses[0].track_id == 1
+    assert parsed.students_enrolled[0].track_id == 1
+
+
 def test_print_group():
     from src.algo.data import print_group, Group
-    from src.algo.model import Department
+    from src.algo.model import StudyTrack
 
     # Arrange
-    departments = [
-        Department(id=1, name="Profesor Matematike i Računarstva"),
+    tracks = [
+        StudyTrack(id=1, name="Profesor Matematike i Računarstva"),
     ]
-    group = Group(id="1_1_1", dep_id=1, count=30, semester=1)
+    group = Group(id="1_1_1", track_id=1, count=30, semester=1)
 
     assert (
-        print_group(group, departments) == "Profesor Matematike i Računarstva, grupa B"
+        print_group(group, tracks) == "Profesor Matematike i Računarstva, grupa B"
     )
 
 
-def test_courses_for_department():
+def test_courses_for_track():
     from src.algo.model import Course, Quota
 
     quota = Quota(2, 3)
@@ -80,7 +105,7 @@ def test_courses_for_department():
             id=1,
             name="Course 1",
             semester=1,
-            dep_id=10,
+            track_id=10,
             quota=quota,
             needsComputers=False,
         ),
@@ -88,7 +113,7 @@ def test_courses_for_department():
             id=2,
             name="Course 2",
             semester=1,
-            dep_id=20,
+            track_id=20,
             quota=quota,
             needsComputers=False,
         ),
@@ -96,19 +121,19 @@ def test_courses_for_department():
             id=3,
             name="Course 3",
             semester=1,
-            dep_id=10,
+            track_id=10,
             quota=quota,
             needsComputers=False,
         ),
     ]
-    # The function should filter only courses with depId = 10
-    from src.algo.data import courses_for_department
+    # The function should filter only courses with trackId = 10
+    from src.algo.data import courses_for_track
 
-    result = list(courses_for_department(courses, 10))
+    result = list(courses_for_track(courses, 10))
 
     # Assert
     assert len(result) == 2
-    assert all(course.dep_id == 10 for course in result)
+    assert all(course.track_id == 10 for course in result)
     ids = [course.id for course in result]
     assert set(ids) == {1, 3}
 
@@ -117,30 +142,30 @@ def test_generate_session_id():
     from src.algo.data import generate_session_id
 
     group_id = 5
-    department_id = 2
+    track_id = 2
     course_id = 17
     course_type = "p"
 
-    session_id = generate_session_id(group_id, department_id, course_id, course_type, 0)
+    session_id = generate_session_id(group_id, track_id, course_id, course_type, 0)
     assert session_id == "5_2_17_p_0"
 
-    session_id = generate_session_id(group_id, department_id, course_id, course_type, 2)
+    session_id = generate_session_id(group_id, track_id, course_id, course_type, 2)
     assert session_id == "5_2_17_p_2"
 
 
-def test_department_by_id():
-    from src.algo.model import Department
-    from src.algo.data import department_by_id
+def test_track_by_id():
+    from src.algo.model import StudyTrack
+    from src.algo.data import track_by_id
 
     # Arrange
-    departments = [
-        Department(id=1, name="Teorijska Matematika"),
-        Department(id=2, name="Profesor Matematike"),
-        Department(id=3, name="Informatika"),
+    tracks = [
+        StudyTrack(id=1, name="Teorijska Matematika"),
+        StudyTrack(id=2, name="Profesor Matematike"),
+        StudyTrack(id=3, name="Informatika"),
     ]
 
     # Act
-    result = department_by_id(departments, 2)
+    result = track_by_id(tracks, 2)
 
     # Assert
     assert result is not None
@@ -148,7 +173,7 @@ def test_department_by_id():
     assert result.name == "Profesor Matematike"
 
     # Test for missing id
-    missing = department_by_id(departments, 99)
+    missing = track_by_id(tracks, 99)
     assert missing is None
 
 
@@ -168,7 +193,7 @@ def test_get_eligible_rooms_when_session_requires_computers():
     session = Session(
         id="",
         group_ids=[],
-        department_id="",
+        track_id="",
         course_id="",
         needs_computers=True,
         session_type="",
@@ -197,7 +222,7 @@ def test_get_eligible_rooms_when_session_does_not_require_computers():
     session = Session(
         id="",
         group_ids=[],
-        department_id="",
+        track_id="",
         course_id="",
         needs_computers=False,
         session_type="",
@@ -221,7 +246,7 @@ def test_get_eligible_rooms_respects_capacity_when_enabled():
     session = Session(
         id="",
         group_ids=["g1", "g2"],
-        department_id="",
+        track_id="",
         course_id="",
         needs_computers=False,
         session_type="",
@@ -242,12 +267,12 @@ def test_build_groups_prefers_explicit_groups():
         settings=mock_settings,
         locations=[],
         classrooms=[],
-        departments=[],
+        tracks=[],
         courses=[],
-        students_enrolled=[StudentsEnrolled(dep_id=1, semester=1, count=90)],
+        students_enrolled=[StudentsEnrolled(track_id=1, semester=1, count=90)],
         groups=[
-            GroupDef(id="1i1", dep_id=1, semester=1, count=35),
-            GroupDef(id="1i2", dep_id=1, semester=1, count=35),
+            GroupDef(id="1i1", track_id=1, semester=1, count=35),
+            GroupDef(id="1i2", track_id=1, semester=1, count=35),
         ],
     )
 
@@ -264,9 +289,9 @@ def test_build_groups_falls_back_to_students_enrolled():
         settings=mock_settings,
         locations=[],
         classrooms=[],
-        departments=[],
+        tracks=[],
         courses=[],
-        students_enrolled=[StudentsEnrolled(dep_id=1, semester=1, count=90)],
+        students_enrolled=[StudentsEnrolled(track_id=1, semester=1, count=90)],
     )
 
     groups = build_groups(scheduling_input, group_size=50)
@@ -278,7 +303,7 @@ def test_build_cohorts_joint_and_individual():
     from src.algo.model import Course, Quota, TeachingAssignment
 
     course = Course(
-        id=10, name="Test", semester=1, dep_id=1,
+        id=10, name="Test", semester=1, track_id=1,
         quota=Quota(theory=2, practice=2), needsComputers=False,
     )
     groups = [Group("ga", 1, 30, 1), Group("gb", 1, 30, 1), Group("gc", 1, 30, 1)]
@@ -305,7 +330,7 @@ def test_build_cohorts_unknown_group_raises():
     from src.algo.model import Course, Quota, TeachingAssignment
 
     course = Course(
-        id=10, name="Test", semester=1, dep_id=1,
+        id=10, name="Test", semester=1, track_id=1,
         quota=Quota(theory=1, practice=0), needsComputers=False,
     )
     groups = [Group("ga", 1, 30, 1)]
@@ -325,7 +350,7 @@ def test_generate_sessions():
         Quota,
         Course,
         Quota,
-        Department,
+        StudyTrack,
     )
 
     from src.algo.data import (
@@ -333,20 +358,20 @@ def test_generate_sessions():
     )
 
     # Arrange
-    departments = [
-        Department(id=10, name="Informatika"),
-        Department(id=20, name="Teorijska Matematika"),
+    tracks = [
+        StudyTrack(id=10, name="Informatika"),
+        StudyTrack(id=20, name="Teorijska Matematika"),
     ]
     students_enrolled = [
-        StudentsEnrolled(dep_id=10, count=90, semester=1),
-        StudentsEnrolled(dep_id=20, count=100, semester=1),
+        StudentsEnrolled(track_id=10, count=90, semester=1),
+        StudentsEnrolled(track_id=20, count=100, semester=1),
     ]
     courses = [
         Course(
             id=101,
             name="Uvod u Programiranje",
             semester=1,
-            dep_id=10,
+            track_id=10,
             quota=Quota(theory=1, practice=2),
             need_computers=True,
         ),
@@ -354,7 +379,7 @@ def test_generate_sessions():
             id=103,
             name="Analiza 1",
             semester=1,
-            dep_id=20,
+            track_id=20,
             quota=Quota(theory=2, practice=3),
             need_computers=False,
         ),
@@ -362,7 +387,7 @@ def test_generate_sessions():
     scheduling_input = SchedulingInput(
         students_enrolled=students_enrolled,
         courses=courses,
-        departments=departments,
+        tracks=tracks,
         locations=[],
         classrooms=[],
         settings=mock_settings,
@@ -405,15 +430,15 @@ def test_generate_sessions_with_joint_assignment():
         settings=mock_settings,
         locations=[],
         classrooms=[],
-        departments=[],
+        tracks=[],
         courses=[
-            Course(id=1, name="Kurs", semester=1, dep_id=1,
+            Course(id=1, name="Kurs", semester=1, track_id=1,
                    quota=Quota(theory=2, practice=1), needsComputers=False),
         ],
         students_enrolled=[],
         groups=[
-            GroupDef(id="ga", dep_id=1, semester=1, count=30),
-            GroupDef(id="gb", dep_id=1, semester=1, count=25),
+            GroupDef(id="ga", track_id=1, semester=1, count=30),
+            GroupDef(id="gb", track_id=1, semester=1, count=25),
         ],
     )
     staff_input = StaffInput(

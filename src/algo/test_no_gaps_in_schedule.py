@@ -40,16 +40,16 @@ def scheduling_input():
                     "id": 1,
                     "name": "Analiza 1",
                     "semester": 1,
-                    "depId": 1,
+                    "trackId": 1,
                     "quota": Quota(**{"theory": 2, "practice": 1}),
                     "needsComputers": 0,
                 }
             ),
         ],
         locations=[],
-        departments=[],
+        tracks=[],
         students_enrolled=[
-            StudentsEnrolled(**{"depId": 1, "semester": 1, "count": 30}),
+            StudentsEnrolled(**{"trackId": 1, "semester": 1, "count": 30}),
         ],
         rules={
             "noGapsInSchedule": RuleConfig(enabled=True, penalty=5),

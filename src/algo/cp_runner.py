@@ -97,7 +97,7 @@ if __name__ == "__main__":
         sys.exit(2)
 
     if args.verbose:
-        headers = ["Session", "Group", "Department", "Course", "SessionType",
+        headers = ["Session", "Group", "Track", "Course", "SessionType",
                    "NeedsComputers", "Day", "Hour", "Room"]
         rows = []
         day_list = scheduling_input.settings.working_days
@@ -110,7 +110,7 @@ if __name__ == "__main__":
             row = [
                 session.id,
                 "+".join(session.group_ids),
-                session.department_id,
+                session.track_id,
                 course.name if course else session.course_id,
                 session.session_type,
                 'YES' if session.needs_computers else 'NO',

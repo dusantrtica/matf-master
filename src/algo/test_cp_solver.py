@@ -34,14 +34,14 @@ def scheduling_input():
                     "id": 1,
                     "name": "Analiza 1",
                     "semester": 1,
-                    "depId": 1,
+                    "trackId": 1,
                     "quota": Quota(**{"theory": 4, "practice": 4}),
                     "needsComputers": 0,
                 }
             ),
         ],
         locations=[],
-        departments=[],
+        tracks=[],
         students_enrolled=[],
     )
 
@@ -53,12 +53,12 @@ def sessions(scheduling_input):
     result = []
     for i in range(course.quota.theory):
         result.append(
-            Session(f"t_{i}", ["grp_1"], course.dep_id, course.id,
+            Session(f"t_{i}", ["grp_1"], course.track_id, course.id,
                     course.needs_computers, "theory")
         )
     for i in range(course.quota.practice):
         result.append(
-            Session(f"p_{i}", ["grp_1"], course.dep_id, course.id,
+            Session(f"p_{i}", ["grp_1"], course.track_id, course.id,
                     course.needs_computers, "practice")
         )
     return result
@@ -69,7 +69,7 @@ def test_cp_solver_init_data(scheduling_input):
     assert solver.settings == scheduling_input.settings
     assert solver.classrooms == scheduling_input.classrooms
     assert solver.courses == scheduling_input.courses
-    assert solver.departments == scheduling_input.departments
+    assert solver.tracks == scheduling_input.tracks
     assert solver.students_enrolled == scheduling_input.students_enrolled
     assert solver.working_hours == [8, 9, 10, 11, 12, 13]
 

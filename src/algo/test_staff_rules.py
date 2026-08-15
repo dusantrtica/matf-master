@@ -46,7 +46,7 @@ def scheduling_input():
                     "id": 1,
                     "name": "Analiza 1",
                     "semester": 1,
-                    "depId": 1,
+                    "trackId": 1,
                     "quota": Quota(**{"theory": 2, "practice": 1}),
                     "needsComputers": 0,
                 }
@@ -56,17 +56,17 @@ def scheduling_input():
                     "id": 2,
                     "name": "Uvod u algoritme",
                     "semester": 1,
-                    "depId": 2,
+                    "trackId": 2,
                     "quota": Quota(**{"theory": 2, "practice": 0}),
                     "needsComputers": 0,
                 }
             ),
         ],
         locations=[],
-        departments=[],
+        tracks=[],
         students_enrolled=[
-            StudentsEnrolled(**{"depId": 1, "semester": 1, "count": 30}),
-            StudentsEnrolled(**{"depId": 2, "semester": 1, "count": 30}),
+            StudentsEnrolled(**{"trackId": 1, "semester": 1, "count": 30}),
+            StudentsEnrolled(**{"trackId": 2, "semester": 1, "count": 30}),
         ],
         rules={},
     )
@@ -228,18 +228,18 @@ def joint_scheduling_input():
                     "id": 1,
                     "name": "Analiza 1",
                     "semester": 1,
-                    "depId": 1,
+                    "trackId": 1,
                     "quota": Quota(**{"theory": 2, "practice": 2}),
                     "needsComputers": 0,
                 }
             ),
         ],
         locations=[],
-        departments=[],
+        tracks=[],
         students_enrolled=[],
         groups=[
-            GroupDef(id="ga", dep_id=1, semester=1, count=30),
-            GroupDef(id="gb", dep_id=1, semester=1, count=25),
+            GroupDef(id="ga", track_id=1, semester=1, count=30),
+            GroupDef(id="gb", track_id=1, semester=1, count=25),
         ],
         rules={},
     )

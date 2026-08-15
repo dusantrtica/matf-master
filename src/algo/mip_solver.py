@@ -41,7 +41,7 @@ class SimpleMIPSolver:
         self.settings: Settings = scheduling_input.settings
         self.classrooms = scheduling_input.classrooms
         self.courses: List[Course] = scheduling_input.courses
-        self.departments = scheduling_input.departments
+        self.tracks = scheduling_input.tracks
         self.students_enrolled = scheduling_input.students_enrolled
         self.working_hours = [
             hour for hour in range(self.settings.start_hour, self.settings.end_hour)

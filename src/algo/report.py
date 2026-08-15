@@ -66,7 +66,7 @@ def export_schedule_to_excel(solver: ScheduleSolver,
     for group_id in sorted(group_entries.keys()):
         entries = group_entries[group_id]
 
-        sheet_name = print_group(seq(groups).find(lambda grp: grp.id == group_id), scheduling_input.departments)
+        sheet_name = print_group(seq(groups).find(lambda grp: grp.id == group_id), scheduling_input.tracks)
         ws = wb.create_sheet(title=sheet_name)
 
         # Header row: hour slots
@@ -98,7 +98,7 @@ def export_schedule_to_excel(solver: ScheduleSolver,
             label = print_session(
                 session, groups,
                 scheduling_input.courses,
-                scheduling_input.departments,
+                scheduling_input.tracks,
                 room_name=room.name,
                 teacher_name=teacher_names.get(session.teacher_id, ""),
             )

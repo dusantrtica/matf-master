@@ -67,7 +67,7 @@ class SimpleCPSolver:
         self.settings: Settings = scheduling_input.settings
         self.classrooms = scheduling_input.classrooms
         self.courses: List[Course] = scheduling_input.courses
-        self.departments = scheduling_input.departments
+        self.tracks = scheduling_input.tracks
         self.students_enrolled = scheduling_input.students_enrolled
         self.working_hours = [
             hour for hour in range(self.settings.start_hour, self.settings.end_hour)
@@ -204,7 +204,7 @@ class SimpleCPSolver:
                 )
 
     def apply_rules(self):
-        """Instantiate and apply all enabled rule plugins from config."""
+        """Pokreni sve rule plugin-ove koji su uključeni u konfiguraciji."""
         self.penalty_vars: list[tuple[int, cp_model.IntVar]] = []
 
         rule_configs = dict(self.scheduling_input.rules)

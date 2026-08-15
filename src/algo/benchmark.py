@@ -245,7 +245,7 @@ def generate_real_subset(
         classrooms=[
             r for r in scheduling_input.classrooms if r.loc_id in loc_ids
         ],
-        departments=scheduling_input.departments,
+        tracks=scheduling_input.tracks,
         courses=[
             c for c in scheduling_input.courses if c.semester in semesters
         ],

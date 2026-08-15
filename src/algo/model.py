@@ -1,9 +1,13 @@
 import string
-from pydantic import ConfigDict, Field
+from pydantic import AliasChoices, ConfigDict, Field
 from pydantic.dataclasses import dataclass
 from typing import List, Optional
 
 _config = ConfigDict(populate_by_name=True)
+
+# Raniji nazivi (`depId`, `departments`) i dalje se prihvataju kako bi
+# postojeci ulazni fajlovi radili bez izmena.
+_TRACK_ID_ALIASES = AliasChoices("trackId", "depId")
 
 
 @dataclass(config=_config)
@@ -22,7 +26,8 @@ class Classroom:
 
 
 @dataclass(config=_config)
-class Department:
+class StudyTrack:
+    """Smer studija (npr. Informatika, Teorijska matematika)."""
     id: int
     name: str
 
@@ -41,14 +46,18 @@ class Course:
     id: int
     name: str
     semester: int
-    dep_id: int = Field(alias="depId")
+    track_id: int = Field(
+        validation_alias=_TRACK_ID_ALIASES, serialization_alias="trackId"
+    )
     quota: Quota = Field(default_factory=Quota)
     needs_computers: bool = Field(default=False, alias="needsComputers")
 
 
 @dataclass(config=_config)
 class StudentsEnrolled:
-    dep_id: int = Field(alias="depId")
+    track_id: int = Field(
+        validation_alias=_TRACK_ID_ALIASES, serialization_alias="trackId"
+    )
     semester: int = 0
     count: int = 0
 
@@ -61,7 +70,9 @@ class GroupDef:
     studentsEnrolled + GROUP_SIZE nego se koriste ovako zadate.
     """
     id: str
-    dep_id: int = Field(alias="depId")
+    track_id: int = Field(
+        validation_alias=_TRACK_ID_ALIASES, serialization_alias="trackId"
+    )
     semester: int = 0
     count: int = 0
 
@@ -86,8 +97,11 @@ class SchedulingInput:
     settings: Settings
     locations: List[Location]
     classrooms: List[Classroom]
-    departments: List[Department]
     courses: List[Course]
+    tracks: List[StudyTrack] = Field(
+        validation_alias=AliasChoices("tracks", "departments"),
+        serialization_alias="tracks",
+    )
     students_enrolled: List[StudentsEnrolled] = Field(alias="studentsEnrolled")
     rules: dict[str, RuleConfig] = Field(default_factory=dict)
     groups: List[GroupDef] = Field(default_factory=list)

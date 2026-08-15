@@ -7,7 +7,7 @@ from typing import Iterable, List
 from src.algo.model import (
     SchedulingInput,
     Course,
-    Department,
+    StudyTrack,
     StudentsEnrolled,
     Classroom,
     StaffInput,
@@ -17,28 +17,28 @@ from src.algo.model import (
 GROUP_SIZE = 50  # 50 ucenika po grupi
 
 
-def courses_for_department(courses: List[Course], department_id) -> List[Course]:
-    return seq(courses).filter(lambda course: course.dep_id == department_id).to_list()
+def courses_for_track(courses: List[Course], track_id) -> List[Course]:
+    return seq(courses).filter(lambda course: course.track_id == track_id).to_list()
 
 
-def courses_for_group(courses: List[Course], department_id, semester) -> List[Course]:
-    """Filter courses matching a group's department and semester.
+def courses_for_group(courses: List[Course], track_id, semester) -> List[Course]:
+    """Filter courses matching a group's track and semester.
 
-    A group represents a (department, semester) cohort, so it only attends
-    courses whose `dep_id` AND `semester` match. Without the semester filter,
+    A group represents a (track, semester) cohort, so it only attends
+    courses whose `track_id` AND `semester` match. Without the semester filter,
     a year-1 group would also be assigned year-2/3/4 courses.
     """
     return (
         seq(courses)
-        .filter(lambda c: c.dep_id == department_id and c.semester == semester)
+        .filter(lambda c: c.track_id == track_id and c.semester == semester)
         .to_list()
     )
 
 
 class Group:
-    def __init__(self, id: str, dep_id: Department, count: int, semester: int):
+    def __init__(self, id: str, track_id: int, count: int, semester: int):
         self.id = id
-        self.department_id = dep_id
+        self.track_id = track_id
         self.count = count
         self.semester = semester
 
@@ -49,16 +49,16 @@ class Group:
         return f"{self.id}_{self.count}"
 
     def group_label(self):
-        # sinteticke grupe imaju id oblika '{dep}_{sem}_{index}' -> slovo;
+        # sinteticke grupe imaju id oblika '{track}_{sem}_{index}' -> slovo;
         # eksplicitne grupe (npr. '1i1') koriste svoj id kao labelu
         parts = self.id.split("_")
         if len(parts) > 1 and parts[-1].isdigit():
             return "ABCDE"[int(parts[-1])]
         return self.id
 
-def print_group(group: Group, departments: List[Department]) -> str:
-    department_name = department_by_id(departments, group.department_id).name
-    return f"{department_name}, grupa {group.group_label()}"
+def print_group(group: Group, tracks: List[StudyTrack]) -> str:
+    track_name = track_by_id(tracks, group.track_id).name
+    return f"{track_name}, grupa {group.group_label()}"
 
 
 def split_students_into_groups(
@@ -68,10 +68,10 @@ def split_students_into_groups(
     for enrollment in students_enrollment:
         number_of_groups = math.ceil(enrollment.count / group_size)
         for group_index in range(number_of_groups):
-            group_id = f"{enrollment.dep_id}_{enrollment.semester}_{group_index}"
+            group_id = f"{enrollment.track_id}_{enrollment.semester}_{group_index}"
             group = Group(
                 group_id,
-                enrollment.dep_id,
+                enrollment.track_id,
                 enrollment.count // number_of_groups,
                 enrollment.semester,
             )
@@ -85,21 +85,21 @@ def build_groups(scheduling_input: SchedulingInput, group_size: int) -> List[Gro
     izvode iz studentsEnrolled deljenjem na grupe velicine group_size."""
     if scheduling_input.groups:
         return [
-            Group(g.id, g.dep_id, g.count, g.semester)
+            Group(g.id, g.track_id, g.count, g.semester)
             for g in scheduling_input.groups
         ]
     return split_students_into_groups(scheduling_input.students_enrolled, group_size)
 
 
 def generate_session_id(
-    group_id: int, department_id: int, course_id, course_type, index: int
+    group_id: int, track_id: int, course_id, course_type, index: int
 ) -> str:
-    return f"{group_id}_{department_id}_{course_id}_{course_type}_{index}"
+    return f"{group_id}_{track_id}_{course_id}_{course_type}_{index}"
 
 
 class Session:
     def __init__(
-        self, id, group_ids, department_id, course_id, needs_computers,
+        self, id, group_ids, track_id, course_id, needs_computers,
         session_type: str, teacher_id: int | None = None, size: int = 0,
     ):
         self.id = id
@@ -107,7 +107,7 @@ class Session:
         # predavanje (npr. oba toka slusaju isti cas)
         self.group_ids: list[str] = list(group_ids)
         self.course_id = course_id
-        self.department_id = department_id
+        self.track_id = track_id
         self.needs_computers = needs_computers
         self.session_type = session_type
         # None znaci da nema dodeljenog nastavnika pa se staff pravila
@@ -123,7 +123,7 @@ def format_teacher_name(name: str) -> str:
 
 
 def print_session(session: Session, groups: List[Group], courses: List[Course],
-                   departments: List[Department], room_name: str = "",
+                   tracks: List[StudyTrack], room_name: str = "",
                    teacher_name: str = "") -> str:
     course_name = seq(courses).find(lambda c: c.id == session.course_id).name
     session_type = "T" if session.session_type == "theory" else "P"
@@ -136,8 +136,8 @@ def print_session(session: Session, groups: List[Group], courses: List[Course],
     return label
 
 
-def department_by_id(departments: List[Department], id: int) -> Department:
-    return seq(departments).find(lambda dep: dep.id == id)
+def track_by_id(tracks: List[StudyTrack], id: int) -> StudyTrack:
+    return seq(tracks).find(lambda track: track.id == id)
 
 
 class Cohort:
@@ -217,7 +217,7 @@ def generate_sessions(
     for course in scheduling_input.courses:
         course_groups = [
             g for g in groups
-            if g.department_id == course.dep_id and g.semester == course.semester
+            if g.track_id == course.track_id and g.semester == course.semester
         ]
         if not course_groups:
             continue
@@ -231,10 +231,10 @@ def generate_sessions(
                     sessions.append(
                         Session(
                             generate_session_id(
-                                cohort.label, course.dep_id, course.id, type_code, i
+                                cohort.label, course.track_id, course.id, type_code, i
                             ),
                             cohort.group_ids,
-                            course.dep_id,
+                            course.track_id,
                             course.id,
                             course.needs_computers,
                             session_type,
