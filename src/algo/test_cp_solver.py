@@ -54,12 +54,12 @@ def sessions(scheduling_input):
     for i in range(course.quota.theory):
         result.append(
             Session(f"t_{i}", ["grp_1"], course.track_id, course.id,
-                    course.needs_computers, "theory")
+                    course.needs_computers_for("theory"), "theory")
         )
     for i in range(course.quota.practice):
         result.append(
             Session(f"p_{i}", ["grp_1"], course.track_id, course.id,
-                    course.needs_computers, "practice")
+                    course.needs_computers_for("practice"), "practice")
         )
     return result
 

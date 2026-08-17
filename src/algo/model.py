@@ -1,7 +1,7 @@
 import string
-from pydantic import AliasChoices, ConfigDict, Field
+from pydantic import AliasChoices, BeforeValidator, ConfigDict, Field
 from pydantic.dataclasses import dataclass
-from typing import List, Optional
+from typing import Annotated, Any, List, Optional
 
 _config = ConfigDict(populate_by_name=True)
 
@@ -42,6 +42,31 @@ class Quota:
 
 
 @dataclass(config=_config)
+class ComputerNeed:
+    """Zahtev za racunarima, zadat odvojeno za predavanja i za vezbe.
+
+    Racunari su najcesce potrebni samo za vezbe, pa predavanja istog
+    predmeta mogu ici u obicnu (i vecu) ucionicu.
+    """
+    theory: bool = False
+    practice: bool = False
+
+
+def _normalize_computer_need(value: Any) -> Any:
+    """Skalarni `needsComputers` znaci "isti zahtev za oba tipa nastave".
+
+    Zadrzano zbog postojecih ulaznih fajlova koji koriste 0/1 ili
+    true/false.
+    """
+    if isinstance(value, (bool, int)):
+        return {"theory": bool(value), "practice": bool(value)}
+    return value
+
+
+ComputerNeedField = Annotated[ComputerNeed, BeforeValidator(_normalize_computer_need)]
+
+
+@dataclass(config=_config)
 class Course:
     id: int
     name: str
@@ -50,7 +75,19 @@ class Course:
         validation_alias=_TRACK_ID_ALIASES, serialization_alias="trackId"
     )
     quota: Quota = Field(default_factory=Quota)
-    needs_computers: bool = Field(default=False, alias="needsComputers")
+    needs_computers: ComputerNeedField = Field(
+        default_factory=ComputerNeed, alias="needsComputers"
+    )
+
+    def needs_computers_for(self, session_type: str) -> bool:
+        """Da li sesija datog tipa ("theory" / "practice") zahteva racunare."""
+        if session_type == "theory":
+            return self.needs_computers.theory
+        if session_type == "practice":
+            return self.needs_computers.practice
+        raise ValueError(
+            f"Unknown session type '{session_type}'; expected 'theory' or 'practice'"
+        )
 
 
 @dataclass(config=_config)

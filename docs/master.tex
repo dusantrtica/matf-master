@@ -604,8 +604,13 @@ Struktura ulaznih podataka je sledeća:
   \item identifikatorom, nazivom, semestrom, smerom,
   \item kvotom (\texttt{Quota}) -- koliko časova predavanja i vežbi
     nedeljno,
-  \item da li zahteva računare.
+  \item zahtevom za računarima (\texttt{needsComputers}), zadatim
+    \emph{odvojeno za predavanja i za vežbe}.
   \end{itemize}
+
+  Predmet je pri tome samo nosilac zajedničkog identiteta i kvote:
+  predavanja i vežbe se dalje raspoređuju kao nezavisni časovi, o čemu
+  detaljno govori sekcija \ref{sec:sesije}.
 
 \item \textbf{StudentsEnrolled} -- broj upisanih studenata po smeru
   i semestru.
@@ -660,6 +665,101 @@ Svaka sesija $s$ je okarakterisana sledećim atributima:
 
 Za sesiju $s$, rešavač treba da odredi trojku $(d_s, h_s, r_s)$
 -- dan, sat i učionicu u kojima će se čas održati.
+
+\subsection{Nezavisnost predavanja i vežbi}
+\label{sec:nezavisnost_tipova}
+
+Naglašavamo da su \emph{predavanja i vežbe nezavisne jedinice
+raspoređivanja}. Predmet u ulaznom modelu nije jedinica koja se
+raspoređuje -- on samo povezuje časove koji pripadaju istoj nastavnoj
+celini i propisuje njihov nedeljni broj kroz kvotu. Sve odluke o
+raspoređivanju donose se na nivou pojedinačne sesije, pa se za
+predavanja i vežbe istog predmeta nezavisno određuju:
+
+\begin{itemize}
+\item \textbf{broj časova} -- \texttt{quota.theory} i
+  \texttt{quota.practice} su odvojena polja, tako da predmet može imati
+  npr. 2 predavanja i 3 vežbe nedeljno, ili vežbe uopšte ne imati,
+\item \textbf{nastavnik} -- dodela nastave
+  (\texttt{TeachingAssignment}, sekcija \ref{sec:staff_model}) vezuje se
+  za par (predmet, tip nastave), pa predavanja i vežbe tipično drže
+  različiti nastavnici,
+\item \textbf{sastav slušalaca} -- kohorte se formiraju odvojeno po tipu
+  (sekcija \ref{sec:cohorts}), što odgovara uobičajenoj praksi da više
+  grupa sluša predavanje zajedno, a vežbe odvojeno,
+\item \textbf{termin i učionica} -- promenljive
+  $(d_s, h_s, r_s)$ postoje po sesiji, pa ni jedno ograničenje ne
+  primorava predavanje i vežbe istog predmeta na isti termin ili istu
+  učionicu,
+\item \textbf{zahtev za računarima} -- $\text{comp}_s$ zavisi od tipa
+  časa, o čemu govori nastavak.
+\end{itemize}
+
+Zahtev za računarima zaslužuje posebnu pažnju jer je u praksi najčešće
+vezan isključivo za vežbe: predavanje iz programiranja drži se u
+amfiteatru, dok vežbe iz istog predmeta zahtevaju računarsku učionicu.
+Zbog toga se \texttt{needsComputers} ne zadaje kao jedna zastavica na
+nivou predmeta, nego strukturom \texttt{ComputerNeed} sa odvojenim
+poljima za dva tipa nastave:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Zahtev za računarima po tipu nastave}]
+@dataclass(config=_config)
+class ComputerNeed:
+    theory: bool = False
+    practice: bool = False
+
+@dataclass(config=_config)
+class Course:
+    ...
+    quota: Quota = Field(default_factory=Quota)
+    needs_computers: ComputerNeedField = Field(
+        default_factory=ComputerNeed, alias="needsComputers")
+
+    def needs_computers_for(self, session_type: str) -> bool:
+        if session_type == "theory":
+            return self.needs_computers.theory
+        if session_type == "practice":
+            return self.needs_computers.practice
+        raise ValueError(...)
+\end{lstlisting}
+\end{english}
+
+Prilikom generisanja sesija, svaka sesija dobija vrednost koja
+odgovara \emph{njenom} tipu, a ne vrednost celog predmeta:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Sesija nasleđuje zahtev za računarima svog tipa}]
+Session(
+    ...,
+    course.needs_computers_for(session_type),   # a ne course.needs_computers
+    session_type,
+)
+\end{lstlisting}
+\end{english}
+
+U JSON ulazu predmet čije vežbe traže računare a predavanja ne zapisuje
+se kao:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Predmet sa računarima samo za vežbe}]
+{"id": 4, "name": "Programiranje 1", "semester": 1, "trackId": 1,
+ "quota": {"theory": 2, "practice": 3},
+ "needsComputers": {"theory": false, "practice": true}}
+\end{lstlisting}
+\end{english}
+
+Skalarni oblik (\texttt{"needsComputers": true} ili \texttt{1}) i dalje
+je dopušten i tumači se kao ``isti zahtev za oba tipa nastave'', čime
+stariji ulazni fajlovi ostaju upotrebljivi bez izmena.
+
+Ovo razdvajanje nije samo pitanje tačnosti modela nego i praktične
+dopustivosti rasporeda. Računarske učionice su najoskudniji resurs: u
+realnim podacima Matematičkog fakulteta samo 8 od 29 učionica ima
+računare. Kada bi predavanja nasleđivala zahtev predmeta, sva
+predavanja iz 37 računarskih predmeta bespotrebno bi se takmičila za
+te 8 učionica, iako mogu u bilo koju veću salu. Efekat na veličinu
+modela i vreme rešavanja razmatramo u glavi \ref{chp:evaluacija}.
 
 \section{CP formulacija}
 \label{sec:cp_form}
@@ -734,6 +834,11 @@ na podskup učionica sa računarima:
   \texttt{AllowedAssignments}(\{r : \text{hasComputers}(r)\})
 \label{eq:cp_hc3}
 \end{equation}
+
+Bitno je da je $\text{comp}_s$ atribut \emph{sesije}, a ne predmeta
+(sekcija \ref{sec:nezavisnost_tipova}): ograničenje se dodaje samo onim
+sesijama čiji tip nastave traži računare, pa predavanja iz predmeta
+čije vežbe traže računare ostaju slobodna da idu u bilo koju učionicu.
 
 \subsection{Funkcija cilja}
 
@@ -904,7 +1009,8 @@ Rezultati svakog rešavača se nezavisno verifikuju funkcijom
 \item da nijedna dva časa ne dele istu trojku (dan, sat, učionica),
 \item da nijedna dva časa iste grupe nisu u istom terminu (dan, sat),
 \item da časovi koji zahtevaju računare budu u učionicama sa
-  računarima,
+  računarima (provera se vrši nad zahtevom sesije, koji zavisi od tipa
+  nastave),
 \item da broj dodeljenih termina odgovara broju sesija.
 \end{enumerate}
 
@@ -923,12 +1029,12 @@ U tabelama \ref{tbl:results_s}, \ref{tbl:results_m} i
 \textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
 \midrule
 Sesije                 & \multicolumn{2}{c}{192} \\
-Promenljive            & $1\,152$        & $115\,200$ \\
-Ograničenja            & $633$           & $1\,392$ \\
-Vreme konstrukcije     & 0,014 s         & 1,948 s \\
-Vreme rešavanja        & 0,022 s         & 1,186 s \\
-Ukupno vreme           & 0,036 s         & 3,134 s \\
-Memorija modela        & 0,21 MB         & 26,71 MB \\
+Promenljive            & $1\,152$        & $125\,760$ \\
+Ograničenja            & $611$           & $1\,392$ \\
+Vreme konstrukcije     & 0,014 s         & 2,001 s \\
+Vreme rešavanja        & 0,021 s         & 1,384 s \\
+Ukupno vreme           & 0,035 s         & 3,385 s \\
+Memorija modela        & 0,21 MB         & 29,23 MB \\
 Status                 & \textsc{feasible} & \textsc{feasible} \\
 Rešenje validno        & da              & da \\
 \bottomrule
@@ -944,12 +1050,12 @@ Rešenje validno        & da              & da \\
 \textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
 \midrule
 Sesije                 & \multicolumn{2}{c}{410} \\
-Promenljive            & $2\,460$        & $343\,200$ \\
-Ograničenja            & $1\,352$        & $2\,330$ \\
-Vreme konstrukcije     & 0,030 s         & 6,033 s \\
-Vreme rešavanja        & 0,079 s         & 5,299 s \\
-Ukupno vreme           & 0,109 s         & 11,332 s \\
-Memorija modela        & 0,40 MB         & 75,61 MB \\
+Promenljive            & $2\,460$        & $368\,640$ \\
+Ograničenja            & $1\,299$        & $2\,330$ \\
+Vreme konstrukcije     & 0,029 s         & 5,953 s \\
+Vreme rešavanja        & 0,081 s         & 6,094 s \\
+Ukupno vreme           & 0,110 s         & 12,047 s \\
+Memorija modela        & 0,40 MB         & 81,20 MB \\
 Status                 & \textsc{feasible} & \textsc{feasible} \\
 Rešenje validno        & da              & da \\
 \bottomrule
@@ -965,12 +1071,12 @@ Rešenje validno        & da              & da \\
 \textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
 \midrule
 Sesije                 & \multicolumn{2}{c}{762} \\
-Promenljive            & $4\,572$        & $1\,033\,560$ \\
-Ograničenja            & $2\,549$        & $4\,302$ \\
-Vreme konstrukcije     & 0,061 s         & 17,956 s \\
-Vreme rešavanja        & 1,554 s         & 17,830 s \\
-Ukupno vreme           & 1,615 s         & 35,786 s \\
-Memorija modela        & 0,73 MB         & 230,96 MB \\
+Promenljive            & $4\,572$        & $1\,179\,720$ \\
+Ograničenja            & $2\,433$        & $4\,302$ \\
+Vreme konstrukcije     & 0,058 s         & 22,748 s \\
+Vreme rešavanja        & 0,838 s         & 25,387 s \\
+Ukupno vreme           & 0,896 s         & 48,135 s \\
+Memorija modela        & 0,73 MB         & 263,84 MB \\
 Status                 & \textsc{feasible} & \textsc{feasible} \\
 Rešenje validno        & da              & da \\
 \bottomrule
@@ -1001,6 +1107,18 @@ svaka sesija generiše do $5 \cdot 12 \cdot 29 = 1740$ binarnih
 promenljivih u MIP-u, naspram 5 celobrojnih u CP-u. Ova razlika
 od dva do tri reda veličine se direktno odražava na memorijski
 otisak i vreme konstrukcije modela.
+
+Izmereni broj MIP promenljivih ($1\,179\,720$ za MATF-L) niži je od
+gornje granice $762 \cdot 1740 = 1\,325\,880$ zato što MIP formulacija
+uopšte ne kreira promenljive za nedozvoljene učionice (sekcija
+\ref{sec:mip_form}). Ovde se vidi i posledica toga što zahtev za
+računarima zavisi od tipa nastave (sekcija
+\ref{sec:nezavisnost_tipova}): kada bi predavanja nasleđivala zahtev
+predmeta, njihov izbor bio bi sužen na 8 računarskih učionica, pa bi
+MIP model bio \emph{manji}, ali bi opisivao strože i nerealno
+ograničen problem. Isti efekat, u obrnutom smeru, vidi se na CP strani
+-- broj ograničenja je manji jer se \texttt{AllowedAssignments} dodaje
+samo sesijama koje su zaista vezane za računarske učionice.
 
 \subsection{Brzina rešavanja}
 

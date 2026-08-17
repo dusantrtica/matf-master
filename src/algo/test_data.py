@@ -466,5 +466,70 @@ def test_generate_sessions_with_joint_assignment():
     assert all(s.teacher_id is None for s in practice)
 
 
+def _computer_need_input(needs_computers):
+    from src.algo.model import SchedulingInput, GroupDef, Course, Quota
+
+    return SchedulingInput(
+        settings=mock_settings,
+        locations=[],
+        classrooms=[],
+        tracks=[],
+        courses=[
+            Course(id=1, name="Programiranje 1", semester=1, track_id=1,
+                   quota=Quota(theory=2, practice=1),
+                   needsComputers=needs_computers),
+        ],
+        students_enrolled=[],
+        groups=[GroupDef(id="ga", track_id=1, semester=1, count=30)],
+    )
+
+
+def test_generate_sessions_computers_only_for_practice():
+    from src.algo.data import generate_sessions
+
+    scheduling_input = _computer_need_input({"theory": False, "practice": True})
+
+    result = list(generate_sessions(scheduling_input, 50))
+    theory = [s for s in result if s.session_type == "theory"]
+    practice = [s for s in result if s.session_type == "practice"]
+
+    assert len(theory) == 2 and len(practice) == 1
+    assert all(not s.needs_computers for s in theory)
+    assert all(s.needs_computers for s in practice)
+
+
+def test_generate_sessions_computers_only_for_theory():
+    from src.algo.data import generate_sessions
+
+    scheduling_input = _computer_need_input({"theory": True, "practice": False})
+
+    result = list(generate_sessions(scheduling_input, 50))
+
+    assert all(
+        s.needs_computers == (s.session_type == "theory") for s in result
+    )
+
+
+def test_scalar_needs_computers_applies_to_both_session_types():
+    """Stari (skalarni) oblik ulaza mora dati nepromenjeno ponasanje."""
+    from src.algo.data import generate_sessions
+
+    result = list(generate_sessions(_computer_need_input(True), 50))
+    assert all(s.needs_computers for s in result)
+
+    result = list(generate_sessions(_computer_need_input(0), 50))
+    assert all(not s.needs_computers for s in result)
+
+
+def test_needs_computers_for_rejects_unknown_session_type():
+    from src.algo.model import Course, Quota
+
+    course = Course(id=1, name="Kurs", semester=1, track_id=1,
+                    quota=Quota(theory=1, practice=1), needsComputers=True)
+
+    with pytest.raises(ValueError):
+        course.needs_computers_for("lab")
+
+
 if __name__ == "__main__":
     sys.exit(pytest.main(["-v", __file__]))

@@ -62,12 +62,12 @@ def test_mip_solver_basic_constraint(scheduling_input):
     for i in range(course.quota.theory):
         sessions.append(
             Session(f"t_{i}", ["grp_1"], course.track_id, course.id,
-                    course.needs_computers, "theory")
+                    course.needs_computers_for("theory"), "theory")
         )
     for i in range(course.quota.practice):
         sessions.append(
             Session(f"p_{i}", ["grp_1"], course.track_id, course.id,
-                    course.needs_computers, "practice")
+                    course.needs_computers_for("practice"), "practice")
         )
 
     solver = SimpleMIPSolver(scheduling_input)

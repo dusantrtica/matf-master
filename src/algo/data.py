@@ -236,7 +236,7 @@ def generate_sessions(
                             cohort.group_ids,
                             course.track_id,
                             course.id,
-                            course.needs_computers,
+                            course.needs_computers_for(session_type),
                             session_type,
                             teacher_id=cohort.teacher_id,
                             size=cohort.size,

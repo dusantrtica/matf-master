@@ -22,11 +22,14 @@ Ulaz je definisan u [model.py](model.py) klasama:
 - `Settings` - radni dani (`workingDays`), `start_hour`, `end_hour`, radno vreme fakulteta.
 - `Classroom` - ucionica sa flag-om `has_computers` i kapacitetom.
 - `Course` sa `Quota(theory, practice)` - koliko teorijskih i koliko prakticnih
-  casova nedeljno smer treba da odslusa za taj predmet.
+  casova nedeljno smer treba da odslusa za taj predmet, i sa
+  `ComputerNeed(theory, practice)` - da li racunari trebaju predavanjima,
+  vezbama ili i jednima i drugima.
 - `StudentsEnrolled` - koliko studenata je upisano u dati smer/semestar.
 
 Podaci dolaze iz [input_full_1_semester.json](input_full_1_semester.json)
-6 odseka (5 modula Matematike + Informatika) sa 35 ucionica na 3 lokacije.
+6 odseka (5 modula Matematike + Informatika) sa 29 ucionica na 3 lokacije,
+od kojih 8 ima racunare.
 Razmatramo prvi semestar za sve četiri godine studija, dakle semestri: 1, 3, 5, 7
 
 ### Generisanje sesija
@@ -37,6 +40,13 @@ grupu i svaki predmet generise se po `quota.theory` teorijskih i
 `quota.practice` prakticnih sesija (`generate_sessions` u [data.py](data.py)).
 Jedna sesija = jedan cas u rasporedu.
 
+Predavanja i vezbe su **nezavisne jedinice rasporedjivanja**: broj casova,
+nastavnik, kohorta slusalaca, termin, ucionica i zahtev za racunarima
+odredjuju se odvojeno po tipu. Zbog toga sesija ne nasledjuje zahtev celog
+predmeta nego samo zahtev svog tipa
+(`course.needs_computers_for(session_type)`), sto odgovara praksi da
+predavanje iz programiranja ide u amfiteatar a vezbe u racunarsku ucionicu.
+
 ### Tvrda ogranicenja (hard constraints)
 
 Oba solvera namecu identican skup tvrdih ogranicenja:
@@ -45,9 +55,11 @@ Oba solvera namecu identican skup tvrdih ogranicenja:
    `(dan, sat, ucionica)`.
 2. **Grupa ne može biti na dva mesta odjednom.** Nijedna grupa ne sme imati
    dve sesije u istom `(dan, sat)`.
-3. **Računarske ucionice za predmete koji ih zahtevaju.** Sesija sa
+3. **Računarske ucionice za casove koji ih zahtevaju.** Sesija sa
    `needs_computers = true` moze zavrsiti samo u ucionici sa
-   `has_computers = true`.
+   `has_computers = true`. Zahtev je vezan za tip casa, ne za predmet, pa
+   predavanja iz predmeta cije vezbe traze racunare i dalje mogu u bilo koju
+   ucionicu.
 
 ### Rezim: feasibility-only
 
@@ -77,7 +89,10 @@ Tvrda ogranicenja su zatim izrazena kao dva globalna `AllDifferent`:
   sesije u istom `(dan, sat)`.
 
 Sesije sa `needs_computers` dobijaju `AddAllowedAssignments` na `room_var`
-sa listom dozvoljenih učionica, koje imaju računare.
+sa listom dozvoljenih učionica, koje imaju računare. Kako zahtev zavisi od
+tipa casa, ovo ogranicenje se dodaje samo delu sesija (na MATF-L skali 116 od
+762), pa je ukupan broj ogranicenja manji nego kad bi ga nasledjivao ceo
+predmet.
 
 Velicina modela: **O(S)** promenljivih (5 po sesiji).
 
@@ -120,13 +135,17 @@ proverava da nikoje dve sesije ne dele `(dan, sat, ucionica)`, da nijedna
 grupa nema dve sesije u istom `(dan, sat)`, i da svaka sesija sa
 `needs_computers` jeste u ucionici sa racunarima.
 
+`peak_memory_kb` je maksimalan RSS **celog procesa** i monotono raste kroz
+skale, pa se ne moze citati kao potrosnja pojedinacne skale; za poredjenje
+modela koristiti `model_memory_kb`.
+
 ### Skale (podskupovi iz `input_full_1_semester.json`)
 
-| Skala  | Godine | Semestri | Lokacije                  | Ucionice | PC ucionice | Sesije | Limit |
-|--------|--------|----------|---------------------------|----------|-------------|--------|-------|
-| MATF-S | 1.     | 1        | Studentski trg            | 18       | 4           | 240    | 60s   |
-| MATF-M | 1-2.   | 1, 3     | Studentski trg + Jagiceva | 22       | 8           | 484    | 120s  |
-| MATF-L | 1-4.   | 1,3,5,7  | sve                       | 35       | 8           | 937    | 300s  |
+| Skala  | Godine | Semestri | Lokacije                  | Ucionice | PC ucionice | Sesije | Sesije sa PC | Limit |
+|--------|--------|----------|---------------------------|----------|-------------|--------|--------------|-------|
+| MATF-S | 1.     | 1        | Studentski trg            | 12       | 4           | 192    | 26           | 600s  |
+| MATF-M | 1-2.   | 1, 3     | Studentski trg + Jagiceva | 16       | 8           | 410    | 52           | 600s  |
+| MATF-L | 1-4.   | 1,3,5,7  | sve                       | 29       | 8           | 762    | 116          | 600s  |
 
 ---
 
@@ -139,85 +158,79 @@ Sva merenja u nastavku su izvrsena na sledecem hardveru i softveru:
 | CPU | Apple M4 (ARM64) |
 | Broj jezgara | 10 |
 | RAM | 24 GB |
-| OS | macOS 15.6.1 (build 24G90) |
+| OS | macOS 26.5.2 (build 25F84) |
 | Python | 3.11 (preko Bazel toolchain-a, vidi [MODULE.bazel](../../MODULE.bazel) - `python_version="3.11"`) |
 | Build sistem | Bazel sa `rules_python` 1.4.1 |
 | CP solver | OR-Tools CP-SAT |
 | MIP solver | OR-Tools `pywraplp` sa SCIP backend-om |
-| Komanda za pokretanje | `python -m src.algo.benchmark` |
+| Komanda za pokretanje | `bazel run //src/algo:benchmark -- --json report.json` |
 
 ---
 
 ## 5. Rezultati
 
-### 5.1 MATF-S (240 sesija, 18 ucionica, 5 dana x 12 sati, limit 60s)
+### 5.1 MATF-S (192 sesije, 12 ucionica, 5 dana x 12 sati, limit 600s)
 
 | Metrika | CP-SAT | MIP/SCIP |
 |---|---:|---:|
-| Broj sesija | 240 | 240 |
-| Broj promenljivih | 1,200 | 203,760 |
-| Broj ogranicenja | 557 | 1,970 |
-| Vreme konstrukcije | **0.0109 s** | 5.5856 s |
-| Vreme resavanja | **0.0672 s** | 3.2280 s |
-| Ukupno vreme | **0.08 s** | 8.81 s |
-| Memorija modela | 232.5 KB | 59,628.0 KB (~58 MB) |
-| Maksimalan RSS | 159,376 KB (~156 MB) | 1,745,328 KB (~1.66 GB) |
+| Broj sesija | 192 | 192 |
+| Broj promenljivih | 1,152 | 125,760 |
+| Broj ogranicenja | 611 | 1,392 |
+| Vreme konstrukcije | **0.0139 s** | 2.0007 s |
+| Vreme resavanja | **0.0212 s** | 1.3843 s |
+| Ukupno vreme | **0.04 s** | 3.39 s |
+| Memorija modela | 217.4 KB | 29,928.1 KB (~29 MB) |
 | Status | **FEASIBLE** | **FEASIBLE** |
 | Validnost resenja | PASS | PASS |
 
 **Komentar:** oba solvera nalaze validan raspored. CP-SAT zavrsava za
-**0.08 s** (110x brze od MIP-a). Razlika u broju promenljivih: **170x**.
+**0.04 s** (96x brze od MIP-a). Razlika u broju promenljivih: **109x**.
 
-### 5.2 MATF-M (484 sesije, 22 ucionice, 5 dana x 12 sati, limit 120s)
+### 5.2 MATF-M (410 sesija, 16 ucionica, 5 dana x 12 sati, limit 600s)
 
 | Metrika | CP-SAT | MIP/SCIP |
 |---|---:|---:|
-| Broj sesija | 484 | 484 |
-| Broj promenljivih | 2,420 | 522,120 |
-| Broj ogranicenja | 1,127 | 3,039 |
-| Vreme konstrukcije | **0.0187 s** | 14.0075 s |
-| Vreme resavanja | **0.5304 s** | 11.1279 s |
-| Ukupno vreme | **0.55 s** | 25.14 s |
-| Memorija modela | 399.8 KB | 149,847.3 KB (~146 MB) |
-| Maksimalan RSS | 1,746,208 KB (~1.67 GB) | 3,911,360 KB (~3.73 GB) |
+| Broj sesija | 410 | 410 |
+| Broj promenljivih | 2,460 | 368,640 |
+| Broj ogranicenja | 1,299 | 2,330 |
+| Vreme konstrukcije | **0.0293 s** | 5.9531 s |
+| Vreme resavanja | **0.0805 s** | 6.0936 s |
+| Ukupno vreme | **0.11 s** | 12.05 s |
+| Memorija modela | 412.0 KB | 83,150.8 KB (~81 MB) |
 | Status | **FEASIBLE** | **FEASIBLE** |
 | Validnost resenja | PASS | PASS |
 
-**Komentar:** oba solvera ponovo nalaze validan raspored. CP-SAT: **0.55 s**,
-MIP: **25.14 s** (46x brze). MIP-u treba 14 s samo za konstrukciju modela
-(kreiranje 522K binarnih promenljivih).
+**Komentar:** oba solvera ponovo nalaze validan raspored. CP-SAT: **0.11 s**,
+MIP: **12.05 s** (110x brze). MIP-u treba 6 s samo za konstrukciju modela
+(kreiranje 369K binarnih promenljivih).
 
-### 5.3 MATF-L (937 sesija, 35 ucionica, 5 dana x 12 sati, limit 300s)
+### 5.3 MATF-L (762 sesije, 29 ucionica, 5 dana x 12 sati, limit 600s)
 
 | Metrika | CP-SAT | MIP/SCIP |
 |---|---:|---:|
-| Broj sesija | 937 | 937 |
-| Broj promenljivih | 4,685 | 1,433,100 |
-| Broj ogranicenja | 2,242 | 5,442 |
-| Vreme konstrukcije | **0.0386 s** | 39.8268 s |
-| Vreme resavanja | **5.3573 s** | 302.0865 s |
-| Ukupno vreme | **5.40 s** | 341.91 s |
-| Memorija modela | 744.7 KB | 419,614.7 KB (~410 MB) |
-| Maksimalan RSS | 4,089,392 KB (~3.90 GB) | 7,180,896 KB (~6.85 GB) |
-| Status | **FEASIBLE** | **NOT_SOLVED** |
-| Validnost resenja | **PASS** | N/A |
+| Broj sesija | 762 | 762 |
+| Broj promenljivih | 4,572 | 1,179,720 |
+| Broj ogranicenja | 2,433 | 4,302 |
+| Vreme konstrukcije | **0.0579 s** | 22.7477 s |
+| Vreme resavanja | **0.8377 s** | 25.3872 s |
+| Ukupno vreme | **0.90 s** | 48.13 s |
+| Memorija modela | 747.2 KB | 270,175.6 KB (~264 MB) |
+| Status | **FEASIBLE** | **FEASIBLE** |
+| Validnost resenja | **PASS** | **PASS** |
 
-**Komentar:** CP-SAT pronadje validan raspored za **5.40 s**.
-MIP/SCIP ne uspe da vrati nijedno
-resenje u 5-minutnom limitu. Gubi ~40 s na konstrukciju 1.43M binarnih
-promenljivih, a preostalo vreme (~300 s) nije dovoljno da SCIP zavrsi
-LP relaxation i pronadje celobrojno resenje za model te velicine.
-Razlika u broju promenljivih: **306x**.
+**Komentar:** CP-SAT pronadje validan raspored za **0.90 s**, MIP/SCIP za
+**48.13 s** (54x sporije), od cega ~23 s odlazi samo na konstrukciju 1.18M
+binarnih promenljivih. Razlika u broju promenljivih: **258x**.
 
 ---
 
 ## 6. Zbirna tabela
 
-| Skala  | Sesije | CP vars | MIP vars | CP vreme (s) | MIP vreme (s) | CP RSS (MB) | MIP RSS (MB) | CP status | MIP status |
-|--------|-------:|--------:|---------:|-------------:|---------------:|------------:|-------------:|-----------|------------|
-| MATF-S | 240    | 1,200   | 203,760  | 0.08         | 8.81           | 156         | 1,664        | FEASIBLE  | FEASIBLE   |
-| MATF-M | 484    | 2,420   | 522,120  | 0.55         | 25.14          | 1,670       | 3,730        | FEASIBLE  | FEASIBLE   |
-| MATF-L | 937    | 4,685   | 1,433,100| 5.40         | 341.91         | 3,900       | 6,850        | FEASIBLE  | NOT_SOLVED |
+| Skala  | Sesije | CP vars | MIP vars  | CP vreme (s) | MIP vreme (s) | CP model (MB) | MIP model (MB) | CP status | MIP status |
+|--------|-------:|--------:|----------:|-------------:|--------------:|--------------:|---------------:|-----------|------------|
+| MATF-S | 192    | 1,152   | 125,760   | 0.04         | 3.39          | 0.21          | 29.2           | FEASIBLE  | FEASIBLE   |
+| MATF-M | 410    | 2,460   | 368,640   | 0.11         | 12.05         | 0.40          | 81.2           | FEASIBLE  | FEASIBLE   |
+| MATF-L | 762    | 4,572   | 1,179,720 | 0.90         | 48.13         | 0.73          | 263.8          | FEASIBLE  | FEASIBLE   |
 
 ---
 
@@ -229,37 +242,42 @@ CP-SAT model raste **linearno** sa brojem sesija: `5 * S` celobrojnih
 promenljivih. MIP/SCIP model raste **multiplikativno**: `S * D * H * R`
 binarnih promenljivih.
 
-| Skala  | CP vars | MIP vars | Faktor |
-|--------|--------:|---------:|-------:|
-| MATF-S | 1,200   | 203,760  | 170x   |
-| MATF-M | 2,420   | 522,120  | 216x   |
-| MATF-L | 4,685   | 1,433,100| 306x   |
+| Skala  | CP vars | MIP vars  | Faktor |
+|--------|--------:|----------:|-------:|
+| MATF-S | 1,152   | 125,760   | 109x   |
+| MATF-M | 2,460   | 368,640   | 150x   |
+| MATF-L | 4,572   | 1,179,720 | 258x   |
 
 Faktor raste sa svakom dodatnom dimenzijom jer je MIP-ov rast multiplikativan
 (`S * D * H * R`) dok CP ostaje linearan (`5 * S`).
+
+Izmereni broj MIP promenljivih je nizi od gornje granice `S * D * H * R`
+(za MATF-L: 762 * 5 * 12 * 29 = 1,325,880) zato sto se promenljive za
+nedozvoljene ucionice uopste ne kreiraju. Posto zahtev za racunarima zavisi
+od tipa casa, suzenje se odnosi samo na 116 od 762 sesija.
 
 ### 7.2 Vreme resavanja (feasibility)
 
 | Skala  | CP vreme | MIP vreme | Odnos | CP status | MIP status |
 |--------|----------|-----------|-------|-----------|------------|
-| MATF-S | 0.08 s   | 8.81 s    | 110x  | FEASIBLE  | FEASIBLE   |
-| MATF-M | 0.55 s   | 25.14 s   | 46x   | FEASIBLE  | FEASIBLE   |
-| MATF-L | 5.40 s   | 341.91 s  | 63x   | FEASIBLE  | NOT_SOLVED |
+| MATF-S | 0.04 s   | 3.39 s    | 96x   | FEASIBLE  | FEASIBLE   |
+| MATF-M | 0.11 s   | 12.05 s   | 110x  | FEASIBLE  | FEASIBLE   |
+| MATF-L | 0.90 s   | 48.13 s   | 54x   | FEASIBLE  | FEASIBLE   |
 
-Kljucni nalaz: **CP-SAT je 46-110x brzi** na skalama gde oba solvera uspeju.
-Na MATF-L skali CP zavrsava za 5.4 s dok MIP ne vraca nijedno resenje
-ni nakon 5 minuta.
+Kljucni nalaz: **CP-SAT je 54-110x brzi** na svim skalama. Na MATF-L skali CP
+zavrsava za manje od sekunde, dok MIP-u treba blizu minuta, od cega skoro pola
+odlazi na samu konstrukciju modela.
 
 ### 7.3 Memorija
 
 | Skala  | CP model (KB) | MIP model (KB) | Faktor |
 |--------|---------------|----------------|--------|
-| MATF-S | 233           | 59,628         | 256x   |
-| MATF-M | 400           | 149,847        | 375x   |
-| MATF-L | 745           | 419,615        | 563x   |
+| MATF-S | 217           | 29,928         | 138x   |
+| MATF-M | 412           | 83,151         | 202x   |
+| MATF-L | 747           | 270,176        | 362x   |
 
-CP modeli zauzimaju manje od 1 MB u svim skalama.
-Maksimalan RSS na MATF-L: CP ~3.9 GB vs MIP ~6.9 GB.
+CP modeli zauzimaju manje od 1 MB u svim skalama, dok MIP model na MATF-L
+skali prelazi 260 MB.
 
 ### 7.4 Validnost
 
@@ -289,11 +307,10 @@ bazel test //src/algo:test_data
 Na osnovu merenja iznad, **CP-SAT je znatno performantiji i pogodniji** za nas problem
 nedeljnog rasporeda nastave.
 
-1. **Velicina modela** -- linearna umesto multiplikativne (**170-306x**
+1. **Velicina modela** -- linearna umesto multiplikativne (**109-258x**
    manje promenljivih).
-2. **Vreme resavanja** -- **46-110x brze** na skalama gde oba solvera
-   uspeju; na MATF-L (937 sesija) CP zavrsi za 5.4 s, MIP ne vrati
-   nijedno resenje ni za 5 minuta.
-3. **Memorija** -- **256-563x** manje za model; ~1.8x manje RSS.
-4. **Skalabilnost** -- CP-SAT uspesno resava problem sa 937 sesija i 35
-   ucionica za 5.4 s, sto omogucuje interaktivnu upotrebu.
+2. **Vreme resavanja** -- **54-110x brze** na svim skalama; na MATF-L
+   (762 sesije) CP zavrsi za 0.90 s, MIP za 48.13 s.
+3. **Memorija** -- **138-362x** manje za model.
+4. **Skalabilnost** -- CP-SAT uspesno resava problem sa 762 sesije i 29
+   ucionica za manje od sekunde, sto omogucuje interaktivnu upotrebu.

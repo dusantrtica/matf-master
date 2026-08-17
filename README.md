@@ -49,6 +49,10 @@ fajlovima (npr. `src/algo/input_full_1_semester.json` i
 2. Grupa (tok) ne može imati dva časa u istom trenutku.
 3. Sesija koja zahteva računare ide samo u učionicu sa računarima;
    kapacitet učionice se poštuje kada su grupe eksplicitno zadate.
+   Zahtev se zadaje odvojeno za predavanja i vežbe
+   (`"needsComputers": {"theory": false, "practice": true}`), pa
+   predavanja iz predmeta čije vežbe traže računare mogu u bilo koju
+   učionicu.
 4. Nastavnik ne može držati dve sesije u istom trenutku.
 
 ### Pravila za grupe, sesije i studente (`src/rules/general/`)
