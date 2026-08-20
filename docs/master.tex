@@ -438,29 +438,14 @@ od strane Google-a. Ključne prednosti Bazel-a su:
 \subsection{Konfiguracija projekta}
 
 Projekat koristi Bazel-ov Bzlmod sistem za upravljanje eksternim
-zavisnostima. U fajlu \texttt{MODULE.bazel} definisane su zavisnosti:
-
-\begin{english}
-\begin{lstlisting}[language=Python, caption={MODULE.bazel -- definicija zavisnosti}]
-bazel_dep(name="rules_python", version="1.4.1")
-
-pip = use_extension(
-    "@rules_python//python/extensions:pip.bzl", "pip")
-pip.parse(
-    hub_name="pip",
-    python_version="3.11",
-    requirements_lock="//:requirements.txt",
-)
-
-python = use_extension(
-    "@rules_python//python:extensions.bzl", "python")
-python.toolchain(
-    ignore_root_user_error=True,
-    is_default=True,
-    python_version="3.11",
-)
-\end{lstlisting}
-\end{english}
+zavisnostima. U fajlu \texttt{MODULE.bazel} navodi se modul
+\texttt{rules\_python}, koji obezbeđuje podršku za Python. Zavisnosti se
+ne instaliraju iz okruženja u kome se gradnja pokreće: ekstenzija
+\texttt{pip.parse} čita zaključane verzije paketa iz fajla
+\texttt{requirements.txt} i pravi ih dostupnim pod imenom
+\texttt{@pip}, dok \texttt{python.toolchain} fiksira verziju
+interpretera na Python 3.11. Time se postiže hermetičnost: gradnja
+koristi istu verziju Pythona i iste verzije paketa na svakoj mašini.
 
 U fajlu \texttt{BUILD.bazel} definisani su ciljevi za pokretanje
 rešavača i testova:
@@ -505,14 +490,42 @@ se koristi za definisanje modela ulaznih podataka (videti odeljak
 \ref{sec:input_model}). Svaka entitetska klasa (\texttt{Classroom},
 \texttt{Course}, \texttt{Settings}, itd.) je definisana kao
 \texttt{pydantic.dataclass} sa jasno definisanim tipovima i
-alijas imenima za mapiranje JSON polja.
+alijas imenima za mapiranje JSON polja:
 
-Prednosti korišćenja Pydantic-a:
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Pydantic modeli podešavanja rasporeda i učionice}, label={lst:pydantic_model}]
+@dataclass(config=_config)
+class Settings:
+    working_days: List[str] = Field(alias="workingDays")
+    start_hour: int = Field(alias="startHour")
+    end_hour: int = Field(alias="endHour")
+    duration: int = 1
+
+@dataclass(config=_config)
+class Classroom:
+    id: int
+    name: str
+    loc_id: int = Field(alias="locId")
+    has_computers: bool = Field(alias="hasComputers")
+    capacity: int = 0
+\end{lstlisting}
+\end{english}
+
+Prednosti korišćenja Pydantic-a vidljive su i na ovom kratkom primeru:
 \begin{itemize}
-\item automatska validacija tipova pri učitavanju JSON podataka,
-\item eksplicitna dokumentacija strukture podataka,
-\item podrška za alias nazive (npr. \texttt{startHour} u JSON-u
-  mapira se u \texttt{start\_hour} u Python kodu).
+\item automatska validacija tipova pri učitavanju JSON podataka --
+  anotacije \texttt{int}, \texttt{bool} i \texttt{List[str]} istovremeno
+  su i specifikacija koju Pydantic proverava, pa neispravan ulaz
+  otkazuje pri parsiranju, a ne u rešavaču,
+\item eksplicitna dokumentacija strukture podataka -- definicija klase
+  je jedini opis očekivanog oblika ulaza,
+\item podrška za alias nazive -- deklaracija \texttt{Field(alias=...)}
+  preslikava \texttt{camelCase} imena iz JSON-a (\texttt{startHour},
+  \texttt{hasComputers}) u \texttt{snake\_case} imena u Python kodu
+  (\texttt{start\_hour}, \texttt{has\_computers}), tako da oba jezika
+  ostaju u svojoj konvenciji,
+\item podrazumevane vrednosti -- polja kao \texttt{duration} i
+  \texttt{capacity} mogu se izostaviti u ulaznom fajlu.
 \end{itemize}
 
 \subsection{openpyxl}
@@ -561,7 +574,8 @@ problema u CP i MIP paradigmama.
 \label{sec:input_model}
 
 Ulazni podaci su definisani u JSON formatu i modelovani pomoću
-Pydantic klasa u modulu \texttt{model.py}.
+Pydantic klasa u modulu \texttt{model.py}, na način prikazan u
+listingu \ref{lst:pydantic_model}.
 
 \medskip
 \noindent\textbf{Terminološka napomena.}
@@ -615,6 +629,36 @@ Struktura ulaznih podataka je sledeća:
 \item \textbf{StudentsEnrolled} -- broj upisanih studenata po smeru
   i semestru.
 \end{enumerate}
+
+Sve navedene celine objedinjuje korenska klasa
+\texttt{SchedulingInput}, koja odgovara jednom ulaznom JSON fajlu:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Korenska klasa ulaznog modela}]
+@dataclass(config=_config)
+class SchedulingInput:
+    settings: Settings
+    locations: List[Location]
+    classrooms: List[Classroom]
+    courses: List[Course]
+    tracks: List[StudyTrack] = Field(
+        validation_alias=AliasChoices("tracks", "departments"))
+    students_enrolled: List[StudentsEnrolled] = Field(
+        alias="studentsEnrolled")
+    rules: dict[str, RuleConfig] = Field(default_factory=dict)
+    groups: List[GroupDef] = Field(default_factory=list)
+\end{lstlisting}
+\end{english}
+
+Polja \texttt{rules} i \texttt{groups} imaju podrazumevano prazne
+vrednosti i uvode se u kasnijim glavama: \texttt{rules} nosi
+konfiguraciju mekih i tvrdih pravila (glava
+\ref{chp:nadogradnja}), a \texttt{groups} omogućava da se grupe
+studenata zadaju eksplicitno umesto da se izvode iz broja upisanih.
+Alias \texttt{departments} zadržan je kako bi stariji ulazni fajlovi,
+nastali pre preimenovanja katedri u smerove, ostali upotrebljivi.
+Model osoblja je izdvojen u odvojenu klasu \texttt{StaffInput}
+(odeljak \ref{sec:staff_model}).
 
 \subsection{Realni podaci}
 
@@ -794,7 +838,26 @@ Dodatno, definišemo dve izvedene promenljive:
 Promenljiva $\text{flatTime}_s$ linearizuje par (dan, sat) u
 jedinstven indeks unutar nedelje. Promenljiva $\text{roomTime}_s$
 linearizuje trojku (učionica, dan, sat) u jedinstven indeks preko
-svih učionica i termina.
+svih učionica i termina. Izvedene promenljive nisu automatski vezane
+za osnovne: u CP-SAT modelu one se uvode kao nove celobrojne
+promenljive, a jednakosti \eqref{eq:cp_flat} i \eqref{eq:cp_roomtime}
+dodaju se eksplicitno kao ograničenja:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Linearizacija termina i para (učionica, termin)}]
+self.flat_time_var[s] = self.model.NewIntVar(
+    0, total_slots - 1, f"flat_time_{s}")
+self.model.Add(
+    self.flat_time_var[s]
+    == self.day_var[s] * H + self.slot_var[s])
+
+self.room_time_var[s] = self.model.NewIntVar(
+    0, R * total_slots - 1, f"room_time_{s}")
+self.model.Add(
+    self.room_time_var[s]
+    == self.room_var[s] * total_slots + self.flat_time_var[s])
+\end{lstlisting}
+\end{english}
 
 \textbf{Ukupan broj promenljivih:} $5 \cdot |\mathcal{S}|$, što je
 linearna funkcija broja sesija. Za realne podatke MATF-a to
@@ -825,6 +888,32 @@ u isto vreme:
 \label{eq:cp_hc2}
 \end{equation}
 
+U kodu se oba ograničenja svode na isti poziv, samo nad različitim
+skupovima promenljivih: HC1 nad svim vrednostima $\text{roomTime}$,
+a HC2 nad vrednostima $\text{flatTime}$ jedne grupe (modul
+\code{cp_solver.py}):
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Ograničenja HC1 i HC2 u CP-SAT modelu}, label={lst:cp_alldiff}]
+# HC1: nikoje dve sesije ne dele istu (ucionicu, dan, sat)
+self.model.AddAllDifferent(list(self.room_time_var.values()))
+
+# HC2: nikoje dve sesije iste grupe nisu u istom terminu
+groups = defaultdict(list)
+for s, session in enumerate(self.sessions):
+    for group_id in session.group_ids:
+        groups[group_id].append(s)
+
+for group_id, session_indices in groups.items():
+    self.model.AddAllDifferent(
+        [self.flat_time_var[s] for s in session_indices])
+\end{lstlisting}
+\end{english}
+
+Sesija se u ograničenje HC2 uključuje za \emph{svaku} grupu iz svoje
+liste \texttt{group\_ids}, što je bitno za zajedničke sesije koje
+istovremeno pohađa više grupa (odeljak \ref{sec:cohorts}).
+
 \textbf{HC3: Ograničenje računarskih učionica.}
 Ako sesija $s$ zahteva računare, njen izbor učionice je ograničen
 na podskup učionica sa računarima:
@@ -839,6 +928,27 @@ Bitno je da je $\text{comp}_s$ atribut \emph{sesije}, a ne predmeta
 (sekcija \ref{sec:nezavisnost_tipova}): ograničenje se dodaje samo onim
 sesijama čiji tip nastave traži računare, pa predavanja iz predmeta
 čije vežbe traže računare ostaju slobodna da idu u bilo koju učionicu.
+To se u kodu vidi po tome što se lista dozvoljenih učionica gradi po
+sesiji, a ograničenje se dodaje samo ako je ta lista uža od skupa svih
+učionica:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Dozvoljene učionice po sesiji}]
+for s, session in enumerate(self.sessions):
+    allowed = [
+        i for i, room in enumerate(self.classrooms)
+        if not session.needs_computers or room.has_computers
+    ]
+    if len(allowed) < len(self.classrooms):
+        self.model.AddAllowedAssignments(
+            [self.room_var[s]], [[idx] for idx in allowed])
+\end{lstlisting}
+\end{english}
+
+Isti mehanizam kasnije prima još jedan uslov: kada su grupe studenata
+eksplicitno zadate u ulazu, pa su veličine sesija pouzdane, u listu
+\texttt{allowed} ulaze samo učionice dovoljnog kapaciteta (odeljak
+\ref{sec:cohorts}).
 
 \subsection{Funkcija cilja}
 
@@ -865,7 +975,7 @@ x_{s,d,h,r} \in \{0, 1\}, \quad \forall s, \forall d \in
 \label{eq:mip_vars}
 \end{equation}
 
-gde $\text{Elig}(s)$ označava skup učionica u kojima sesija $s$
+\noindent gde $\text{Elig}(s)$ označava skup učionica u kojima sesija $s$
 može da se održi. Za sesije koje zahtevaju računare, $\text{Elig}(s)$
 sadrži samo učionice sa računarima -- promenljive za nedozvoljene
 učionice se uopšte ne kreiraju, čime se implicitno poštuje
@@ -1640,8 +1750,9 @@ jednako \texttt{None}) ne učestvuju u pravilima osoblja.
 
 Prvo i osnovno ograničenje osoblja je tvrdo i dodaje se u jezgru
 rešavača: nijedan nastavnik ne može držati dve sesije u istom terminu.
-Analogno ograničenju za grupe, koristimo \texttt{AllDifferent} nad
-apsolutnim vremenima svih sesija jednog nastavnika:
+Analogno ograničenju za grupe (HC2, listing \ref{lst:cp_alldiff}),
+koristimo \texttt{AllDifferent} nad apsolutnim vremenima svih sesija
+jednog nastavnika:
 
 \begin{equation}
 \texttt{AllDifferent}(\{\text{flatTime}_s : s \in \mathcal{S}_t\}),
