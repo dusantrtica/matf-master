@@ -302,6 +302,92 @@ bazel test //src/algo:test_data
 
 ---
 
+## 8.1 Zavrsna evaluacija prosirenog modela
+
+Merenja iznad odnose se na **osnovni** model (feasibility-only, bez pravila
+i bez osoblja). Posle nadogradnje (meka pravila, funkcija cilja,
+rasporedjivanje nastavnog osoblja) rezim `--mode final` meri prosireni CP
+model nad realnim podacima letnjeg semestra
+([input_full_2_semester.json](input_full_2_semester.json) +
+[staff_2_semester.json](staff_2_semester.json)):
+
+```bash
+bazel run //src/algo:benchmark -- --mode final --max-time 600 \
+    --final-json report_final.json
+```
+
+Skale se dobijaju secenjem po godinama studija (sve ucionice i lokacije se
+zadrzavaju u svim skalama), a svaka skala se resava dva puta -- bez i sa
+osobljem:
+
+| Skala   | Godine | Semestri  | Sesije (bez / sa osobljem) |
+|---------|--------|-----------|----------------------------|
+| FINAL-S | 1.     | 2         | 204 / 199                  |
+| FINAL-M | 1-2.   | 2, 4      | 398 / 378                  |
+| FINAL-L | 1-4.   | 2,4,6,8   | 722 / 685                  |
+
+Broj sesija je manji sa osobljem jer dodele sa vise grupa (`groupIds`)
+prave zajednicke sesije (kohorte).
+
+Posto prosireni model ima funkciju cilja, prati se i njena vrednost kroz
+vreme: `ObjectiveTracker` (callback nad CP-SAT-om) belezi svako
+poboljsanje, pa se iz putanje racunaju vrednosti u presecima
+(`--checkpoints`). Rezultat po pokretanju:
+
+| Skala   | Konfiguracija | Prvo resenje | Cilj prvog resenja | Do optimuma | Status  |
+|---------|---------------|--------------|--------------------|-------------|---------|
+| FINAL-S | bez osoblja   | 1.42 s       | 0                  | 1.42 s      | OPTIMAL |
+| FINAL-S | sa osobljem   | 2.58 s       | 48                 | 3.03 s      | OPTIMAL |
+| FINAL-M | bez osoblja   | 4.13 s       | 0                  | 4.13 s      | OPTIMAL |
+| FINAL-M | sa osobljem   | 7.24 s       | 182                | 10.51 s     | OPTIMAL |
+| FINAL-L | bez osoblja   | 20.74 s      | 0                  | 20.74 s     | OPTIMAL |
+| FINAL-L | sa osobljem   | 18.81 s      | 282                | 30.86 s     | OPTIMAL |
+
+Bez osoblja prvo resenje je vec optimalno (nema procepa), dok sa osobljem
+solver kroz 4 do 23 nadjena resenja spusta cilj do nule. Sva pokretanja
+zavrsavaju daleko ispod limita od 600 s. Validacija je za ovaj rezim
+prosirena i proverom da nastavnik nema dva casa u istom terminu.
+
+### Profili instance: `--profile`
+
+Realna instanca ima puno slobodnog prostora (29 ucionica x 60 termina =
+1740 mesta za najvise 685 casova), pa solver optimum dostigne za desetak
+sekundi i kriva cilja odmah padne na nulu. Profil `tight` smanjuje
+resurse da bi meka pravila stvarno dosla u sukob:
+
+| Profil      | Radni dan | Termina | maxDays | Namena                          |
+|-------------|-----------|---------|---------|---------------------------------|
+| `realistic` | 8-20 h    | 1740    | 4       | da li je model upotrebljiv      |
+| `tight`     | 8-14 h    | 870     | 2       | ponasanje na granici resivosti  |
+
+```bash
+bazel run //src/algo:benchmark -- --mode final --profile tight \
+    --max-time 600 --final-json report_final_tight.json
+```
+
+| Skala   | Konfiguracija | Prvo resenje | Cilj prvog | Do najboljeg | Najbolji cilj |
+|---------|---------------|--------------|------------|--------------|---------------|
+| FINAL-S | bez osoblja   | 0.58 s       | 0          | 0.58 s       | 0             |
+| FINAL-S | sa osobljem   | 1.25 s       | 14         | 1.42 s       | 3             |
+| FINAL-M | bez osoblja   | 2.11 s       | 8          | 2.17 s       | 0             |
+| FINAL-M | sa osobljem   | 6.38 s       | 45         | 7.78 s       | 6             |
+| FINAL-L | bez osoblja   | 273.07 s     | 102        | 295.11 s     | 0             |
+| FINAL-L | sa osobljem   | 37.44 s      | 200        | 173.93 s     | 6             |
+
+Sve i dalje zavrsava sa `OPTIMAL`, ali najbolji cilj vise nije nula --
+u zbijenoj nedelji svi nastavnici ne mogu stati u dva radna dana bez
+ijednog procepa kod grupa. Granica je uska: pri 720 termina (nastava do
+13 h) nema nijednog dopustivog resenja ni za 600 s.
+
+### Normalizovan cilj
+
+Apsolutni cilj nije uporediv izmedju skala jer veca instanca ima vise
+grupa i nastavnika, pa se uz njega racunaju i `*_per_session` i
+`*_per_teacher` (`num_teachers` broji nastavnike sa bar jednim casom).
+Ispisuju se u tabeli "MEDJUSKALNO POREDJENJE" i cuvaju u JSON izvestaju.
+
+---
+
 ## 9. Zakljucak
 
 Na osnovu merenja iznad, **CP-SAT je znatno performantiji i pogodniji** za nas problem

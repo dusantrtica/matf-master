@@ -1,0 +1,406 @@
+[
+  {
+    "config_name": "bez osoblja",
+    "scale_label": "FINAL-S: 1. godina",
+    "num_sessions": 204,
+    "num_variables": 15144,
+    "num_constraints": 27829,
+    "construction_time_s": 0.0881,
+    "solve_time_s": 1.4396,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 1.4204,
+    "first_objective": 0.0,
+    "time_to_best_s": 1.4204,
+    "best_objective": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "solution_valid": true,
+    "trajectory": [
+      [
+        1.4204,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": 0.0,
+      "10": 0.0,
+      "20": 0.0,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "config_name": "sa osobljem",
+    "scale_label": "FINAL-S: 1. godina",
+    "num_sessions": 199,
+    "num_variables": 36278,
+    "num_constraints": 63533,
+    "construction_time_s": 0.1999,
+    "solve_time_s": 3.0549,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 2.5817,
+    "first_objective": 48.0,
+    "time_to_best_s": 3.0259,
+    "best_objective": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "solution_valid": true,
+    "trajectory": [
+      [
+        2.5817,
+        48.0,
+        0.0
+      ],
+      [
+        2.603,
+        32.0,
+        0.0
+      ],
+      [
+        2.7743,
+        10.0,
+        0.0
+      ],
+      [
+        3.0259,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": 0.0,
+      "10": 0.0,
+      "20": 0.0,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "config_name": "bez osoblja",
+    "scale_label": "FINAL-M: 1-2. godina",
+    "num_sessions": 398,
+    "num_variables": 29628,
+    "num_constraints": 54366,
+    "construction_time_s": 0.1721,
+    "solve_time_s": 4.1484,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 4.1294,
+    "first_objective": 0.0,
+    "time_to_best_s": 4.1294,
+    "best_objective": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "solution_valid": true,
+    "trajectory": [
+      [
+        4.1294,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": 0.0,
+      "10": 0.0,
+      "20": 0.0,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "config_name": "sa osobljem",
+    "scale_label": "FINAL-M: 1-2. godina",
+    "num_sessions": 378,
+    "num_variables": 70209,
+    "num_constraints": 122961,
+    "construction_time_s": 0.3855,
+    "solve_time_s": 10.5797,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 7.2367,
+    "first_objective": 182.0,
+    "time_to_best_s": 10.5127,
+    "best_objective": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "solution_valid": true,
+    "trajectory": [
+      [
+        7.2367,
+        182.0,
+        0.0
+      ],
+      [
+        7.7783,
+        130.0,
+        0.0
+      ],
+      [
+        7.9518,
+        100.0,
+        0.0
+      ],
+      [
+        8.0113,
+        98.0,
+        0.0
+      ],
+      [
+        8.527,
+        90.0,
+        0.0
+      ],
+      [
+        8.629,
+        88.0,
+        0.0
+      ],
+      [
+        8.6448,
+        86.0,
+        0.0
+      ],
+      [
+        8.8812,
+        84.0,
+        0.0
+      ],
+      [
+        8.9985,
+        82.0,
+        0.0
+      ],
+      [
+        9.0808,
+        30.0,
+        0.0
+      ],
+      [
+        9.2639,
+        28.0,
+        0.0
+      ],
+      [
+        9.2709,
+        21.0,
+        0.0
+      ],
+      [
+        9.454,
+        18.0,
+        0.0
+      ],
+      [
+        9.4671,
+        16.0,
+        0.0
+      ],
+      [
+        10.2194,
+        6.0,
+        0.0
+      ],
+      [
+        10.5127,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": null,
+      "10": 16.0,
+      "20": 0.0,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "config_name": "bez osoblja",
+    "scale_label": "FINAL-L: sve godine",
+    "num_sessions": 722,
+    "num_variables": 53952,
+    "num_constraints": 98857,
+    "construction_time_s": 0.3088,
+    "solve_time_s": 20.786,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 20.7449,
+    "first_objective": 0.0,
+    "time_to_best_s": 20.7449,
+    "best_objective": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "solution_valid": true,
+    "trajectory": [
+      [
+        20.7449,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": null,
+      "10": null,
+      "20": null,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "config_name": "sa osobljem",
+    "scale_label": "FINAL-L: sve godine",
+    "num_sessions": 685,
+    "num_variables": 116624,
+    "num_constraints": 206049,
+    "construction_time_s": 0.6596,
+    "solve_time_s": 30.9569,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 18.8061,
+    "first_objective": 282.0,
+    "time_to_best_s": 30.8569,
+    "best_objective": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "solution_valid": true,
+    "trajectory": [
+      [
+        18.8061,
+        282.0,
+        0.0
+      ],
+      [
+        19.2619,
+        236.0,
+        0.0
+      ],
+      [
+        20.2828,
+        234.0,
+        0.0
+      ],
+      [
+        20.4582,
+        182.0,
+        0.0
+      ],
+      [
+        21.0783,
+        180.0,
+        0.0
+      ],
+      [
+        21.1173,
+        106.0,
+        0.0
+      ],
+      [
+        21.8234,
+        102.0,
+        0.0
+      ],
+      [
+        21.8507,
+        99.0,
+        0.0
+      ],
+      [
+        23.0725,
+        88.0,
+        0.0
+      ],
+      [
+        23.508,
+        71.0,
+        0.0
+      ],
+      [
+        23.9962,
+        57.0,
+        0.0
+      ],
+      [
+        24.2344,
+        45.0,
+        0.0
+      ],
+      [
+        24.8166,
+        43.0,
+        0.0
+      ],
+      [
+        25.5621,
+        39.0,
+        0.0
+      ],
+      [
+        25.9175,
+        23.0,
+        0.0
+      ],
+      [
+        25.935,
+        21.0,
+        0.0
+      ],
+      [
+        26.3705,
+        11.0,
+        0.0
+      ],
+      [
+        27.3606,
+        9.0,
+        0.0
+      ],
+      [
+        28.0169,
+        6.0,
+        0.0
+      ],
+      [
+        28.1881,
+        5.0,
+        0.0
+      ],
+      [
+        29.4621,
+        3.0,
+        0.0
+      ],
+      [
+        30.7123,
+        2.0,
+        0.0
+      ],
+      [
+        30.8569,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": null,
+      "10": null,
+      "20": 236.0,
+      "30": 3.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  }
+]

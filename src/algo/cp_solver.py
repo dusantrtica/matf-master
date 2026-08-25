@@ -229,9 +229,11 @@ class SimpleCPSolver:
                 sum(weight * var for weight, var in self.penalty_vars)
             )
 
-    def solve(self):
-        status = self.solver.Solve(self.model)
-        return status
+    def solve(self, callback: cp_model.CpSolverSolutionCallback | None = None):
+        """Callback (ako je zadat) prati poboljsanja funkcije cilja tokom pretrage."""
+        if callback is None:
+            return self.solver.Solve(self.model)
+        return self.solver.Solve(self.model, callback)
 
     def get_solution_variables(self):
         """
