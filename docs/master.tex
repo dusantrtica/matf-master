@@ -2028,10 +2028,6 @@ Rešenja se, kao i u prvoj evaluaciji, nezavisno proveravaju funkcijom
 \code{validate_solution}, koja je za potrebe proširenog modela dopunjena
 i proverom da nastavnik nema dva časa u istom terminu.
 
-Pošto CP-SAT paralelno izvršava portfolio strategija, pretraga nije
-deterministička i putanja poboljšanja se između pokretanja razlikuje u
-detaljima; prikazani su rezultati jednog reprezentativnog pokretanja.
-
 \section{Veličina modela}
 \label{sec:finalna_velicina}
 
@@ -2214,18 +2210,11 @@ uvodimo \emph{zaoštreno okruženje} -- istu instancu sa dve izmene:
 
 \begin{itemize}
 \item nastava traje od 8 do 14 časova umesto do 20, čime broj termina
-  pada sa 1740 na 870, pa je najveća instanca popunjena 79\%;
+  pada sa 1740 na 870
 \item podrazumevani najveći broj radnih dana nastavnika smanjen je sa 4
-  na 2 (lični limiti pojedinih nastavnika, koji su ionako stroži,
+  na 2 (lični limiti pojedinih nastavnika, koji su stroži,
   ostaju nepromenjeni).
 \end{itemize}
-
-Ova granica nije birana proizvoljno. Zona u kojoj je problem istovremeno
-rešiv i netrivijalan pokazala se vrlo uskom: pri 870 termina rešavač
-nalazi i dokazuje optimum, dok već pri 720 termina (nastava do 13 časova,
-ili izostavljanje zgrade u Nemanjinoj ulici) ne pronalazi nijedno
-dopustivo rešenje ni za punih 600 sekundi. Zaoštreno okruženje je,
-dakle, postavljeno tik uz granicu rešivosti.
 
 Tabela \ref{tbl:tight_tok} prikazuje tok rešavanja u tako zaoštrenom
 okruženju.
