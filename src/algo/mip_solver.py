@@ -47,20 +47,12 @@ class SimpleMIPSolver:
             hour for hour in range(self.settings.start_hour, self.settings.end_hour)
         ]
         self.sessions = generate_sessions(scheduling_input, GROUP_SIZE)
-        # kapacitet se postuje samo kada su grupe eksplicitno zadate
-        self.enforce_capacity = bool(scheduling_input.groups)
 
     def _eligible_room_indices(self, session: Session) -> List[int]:
         """Vraca indekse ucionica u kojima sesija moze da se odrzi."""
         indices = []
         for i, room in enumerate(self.classrooms):
             if session.needs_computers and not room.has_computers:
-                continue
-            if (
-                self.enforce_capacity
-                and session.size > 0
-                and room.capacity < session.size
-            ):
                 continue
             indices.append(i)
         return indices

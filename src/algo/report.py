@@ -35,7 +35,8 @@ def export_schedule_to_excel(solver: ScheduleSolver,
     day_names = scheduling_input.settings.working_days
     hours = solver.working_hours
     classrooms = scheduling_input.classrooms
-    groups = build_groups(scheduling_input, GROUP_SIZE)
+    staff_input = getattr(solver, "staff_input", None)
+    groups = build_groups(scheduling_input, GROUP_SIZE, staff_input)
 
     # teacher_id -> ime nastavnika (prazno ako solver nema staff input)
     teacher_names = {

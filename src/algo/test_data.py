@@ -298,6 +298,81 @@ def test_build_groups_falls_back_to_students_enrolled():
     assert [g.id for g in groups] == ["1_1_0", "1_1_1"]
 
 
+def test_build_groups_from_staff_group_ids():
+    from src.algo.data import build_groups
+    from src.algo.model import (
+        SchedulingInput, StudentsEnrolled, Course, Quota,
+        StaffInput, TeachingAssignment,
+    )
+
+    scheduling_input = SchedulingInput(
+        settings=mock_settings,
+        locations=[],
+        classrooms=[],
+        tracks=[],
+        courses=[
+            Course(id=1, name="Kurs", semester=1, track_id=1,
+                   quota=Quota(theory=1, practice=0), needsComputers=False),
+        ],
+        students_enrolled=[StudentsEnrolled(track_id=1, semester=1, count=100)],
+    )
+    staff_input = StaffInput(
+        assignments=[
+            TeachingAssignment(
+                teacher_id=1, course_id=1, session_type="theory",
+                group_ids=["1i1", "1i2"],
+            ),
+        ],
+    )
+
+    groups = build_groups(scheduling_input, group_size=50, staff_input=staff_input)
+    assert [g.id for g in groups] == ["1i1", "1i2"]
+    assert [g.count for g in groups] == [50, 50]
+
+
+def test_build_groups_staff_generic_track_stays_synthetic():
+    from src.algo.data import build_groups
+    from src.algo.model import (
+        SchedulingInput, StudentsEnrolled, Course, Quota,
+        StaffInput, TeachingAssignment,
+    )
+
+    scheduling_input = SchedulingInput(
+        settings=mock_settings,
+        locations=[],
+        classrooms=[],
+        tracks=[],
+        courses=[
+            Course(id=1, name="I", semester=1, track_id=6,
+                   quota=Quota(theory=1, practice=0), needsComputers=False),
+            Course(id=2, name="S", semester=1, track_id=5,
+                   quota=Quota(theory=1, practice=0), needsComputers=False),
+        ],
+        students_enrolled=[
+            StudentsEnrolled(track_id=6, semester=1, count=100),
+            StudentsEnrolled(track_id=5, semester=1, count=26),
+        ],
+    )
+    staff_input = StaffInput(
+        assignments=[
+            TeachingAssignment(
+                teacher_id=1, course_id=1, session_type="theory",
+                group_ids=["1i1", "1i2"],
+            ),
+            TeachingAssignment(
+                teacher_id=2, course_id=2, session_type="theory",
+            ),
+        ],
+    )
+
+    groups = build_groups(scheduling_input, group_size=50, staff_input=staff_input)
+    by_id = {g.id: g for g in groups}
+    assert by_id["1i1"].count == 50
+    assert by_id["1i2"].count == 50
+    assert "5_1_0" in by_id
+    assert by_id["5_1_0"].count == 26
+
+
 def test_build_cohorts_joint_and_individual():
     from src.algo.data import Group, build_cohorts
     from src.algo.model import Course, Quota, TeachingAssignment
@@ -422,7 +497,8 @@ def test_generate_sessions():
 
 def test_generate_sessions_with_joint_assignment():
     from src.algo.model import (
-        SchedulingInput, GroupDef, Course, Quota, StaffInput, TeachingAssignment,
+        SchedulingInput, StudentsEnrolled, Course, Quota, StaffInput,
+        TeachingAssignment,
     )
     from src.algo.data import generate_sessions
 
@@ -435,11 +511,7 @@ def test_generate_sessions_with_joint_assignment():
             Course(id=1, name="Kurs", semester=1, track_id=1,
                    quota=Quota(theory=2, practice=1), needsComputers=False),
         ],
-        students_enrolled=[],
-        groups=[
-            GroupDef(id="ga", track_id=1, semester=1, count=30),
-            GroupDef(id="gb", track_id=1, semester=1, count=25),
-        ],
+        students_enrolled=[StudentsEnrolled(track_id=1, semester=1, count=55)],
     )
     staff_input = StaffInput(
         teachers=[],

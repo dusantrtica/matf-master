@@ -1,5 +1,6 @@
 import math
 import json
+from collections import defaultdict
 from functional import seq
 from pathlib import Path
 from pydantic import TypeAdapter
@@ -80,9 +81,85 @@ def split_students_into_groups(
     return groups
 
 
-def build_groups(scheduling_input: SchedulingInput, group_size: int) -> List[Group]:
-    """Grupe iz eksplicitne `groups` sekcije ako postoji, inace se
-    izvode iz studentsEnrolled deljenjem na grupe velicine group_size."""
+def _named_groups_from_staff(
+    scheduling_input: SchedulingInput, staff_input: StaffInput
+) -> dict[str, tuple[int, int]]:
+    """group_id -> (track_id, semester) iz dodela sa groupIds.
+
+    Smer i semestar se uzimaju sa predmeta (courseId). Isti ID na dva
+    razlicita para (track, semester) je greska u ulazu.
+    """
+    courses_by_id = {c.id: c for c in scheduling_input.courses}
+    meta: dict[str, tuple[int, int]] = {}
+    for a in staff_input.assignments:
+        if not a.group_ids:
+            continue
+        course = courses_by_id.get(a.course_id)
+        if course is None:
+            continue
+        key = (course.track_id, course.semester)
+        for gid in a.group_ids:
+            existing = meta.get(gid)
+            if existing is not None and existing != key:
+                raise ValueError(
+                    f"Group '{gid}' is used for both {existing} and {key}"
+                )
+            meta[gid] = key
+    return meta
+
+
+def _split_enrollment_across_named(
+    enrollment: StudentsEnrolled, group_ids: List[str]
+) -> List[Group]:
+    n = len(group_ids)
+    base, rem = divmod(enrollment.count, n)
+    groups: List[Group] = []
+    for i, gid in enumerate(sorted(group_ids)):
+        count = base + (1 if i < rem else 0)
+        groups.append(
+            Group(gid, enrollment.track_id, count, enrollment.semester)
+        )
+    return groups
+
+
+def build_groups(
+    scheduling_input: SchedulingInput,
+    group_size: int,
+    staff_input: StaffInput | None = None,
+) -> List[Group]:
+    """Grupe za raspored.
+
+    1. Ako staff ima bar jedan groupIds, imena se izvode iz dodela
+       (smer/semestar sa predmeta), a velicina iz studentsEnrolled
+       podeljenog na te grupe. Eksplicitna `groups` sekcija se tada
+       ignorise da ne postoje dva izvora.
+    2. Inace, ako JSON ima `groups`, koriste se 1:1 (testovi / stari ulaz).
+    3. Inace, studentsEnrolled se deli na grupe velicine group_size.
+
+    (track, semester) bez imenovanih groupIds i dalje ide na korak 3.
+    """
+    named = (
+        _named_groups_from_staff(scheduling_input, staff_input)
+        if staff_input is not None
+        else {}
+    )
+    if named:
+        by_ts: dict[tuple[int, int], List[str]] = defaultdict(list)
+        for gid, key in named.items():
+            by_ts[key].append(gid)
+
+        groups: List[Group] = []
+        for enrollment in scheduling_input.students_enrolled:
+            key = (enrollment.track_id, enrollment.semester)
+            ids = by_ts.get(key)
+            if ids:
+                groups.extend(_split_enrollment_across_named(enrollment, ids))
+            else:
+                groups.extend(
+                    split_students_into_groups([enrollment], group_size)
+                )
+        return groups
+
     if scheduling_input.groups:
         return [
             Group(g.id, g.track_id, g.count, g.semester)
@@ -210,7 +287,7 @@ def generate_sessions(
     group_size: int,
     staff_input: StaffInput | None = None,
 ) -> Iterable[Session]:
-    groups: List[Group] = build_groups(scheduling_input, group_size)
+    groups: List[Group] = build_groups(scheduling_input, group_size, staff_input)
     assignments = staff_input.assignments if staff_input else []
 
     sessions: List[Session] = []

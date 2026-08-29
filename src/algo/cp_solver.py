@@ -16,6 +16,7 @@ from src.rules.base import SchedulingRule
 from src.rules.general.rule_join_same_classes import JoinSameClassesRule
 from src.rules.general.rule_single_location_in_day_for_group import SingleLocationInDayForGroupRule
 from src.rules.general.rule_no_gaps_in_schedule import NoGapsInScheduleRule
+from src.rules.general.rule_prefer_larger_rooms import PreferLargerRoomsForLargerSessionsRule
 from src.rules.staff.rule_staff_max_working_days import StaffMaxWorkingDaysRule
 from src.rules.staff.rule_staff_no_gap_greater_than import StaffMaxGapHoursRule
 from src.rules.staff.rule_staff_single_location_in_day import StaffSingleLocationInDayRule
@@ -24,6 +25,7 @@ RULE_REGISTRY: dict[str, type[SchedulingRule]] = {
     "joinSameClasses": JoinSameClassesRule,
     "singleLocationInDayForGroup": SingleLocationInDayForGroupRule,
     "noGapsInSchedule": NoGapsInScheduleRule,
+    "preferLargerRoomsForLargerSessions": PreferLargerRoomsForLargerSessionsRule,
     "staffMaxWorkingDays": StaffMaxWorkingDaysRule,
     "staffMaxGapHoursPerWeek": StaffMaxGapHoursRule,
     "staffSingleLocationInDay": StaffSingleLocationInDayRule,
@@ -46,7 +48,8 @@ class SimpleCPSolver:
         self.solver.parameters.log_search_progress = log_progress
 
         # Ubrzava rešavanje tako sto koristimo vise jezgara i tako sto
-        # skracujemo simetrije u modelu.
+        # skracujemo simetrije u modelu, npr sve ucionice su jednake po izboru
+        # isto je dal sesija ide u ucionicu 0, ili 1, ili 2.
         self.solver.parameters.num_search_workers = 8  # use all M4 cores
         self.solver.parameters.symmetry_level = 2
 
@@ -75,10 +78,6 @@ class SimpleCPSolver:
         # dodele iz staff fajla odredjuju i zajednicke sesije (kohorte)
         # i nastavnika svake sesije
         self.sessions = generate_sessions(scheduling_input, GROUP_SIZE, staff_input)
-
-        # kapacitet ucionica se postuje samo kada su grupe eksplicitno
-        # zadate u ulazu (tada su velicine sesija pouzdane)
-        self.enforce_capacity = bool(scheduling_input.groups)
 
         # teacher_id -> globalni indeksi sesija tog nastavnika
         self.teacher_sessions: dict[int, list[int]] = defaultdict(list)
@@ -153,8 +152,7 @@ class SimpleCPSolver:
         Hard constraint 2: Nikoje 2 sesije za istu grupu tj. tok ne mogu biti u istom trenutku
         Npr. Tok A informatika ne može imati 2 različita predavanja u utorak u 10č
         (zajednicka sesija ulazi u ogranicenje svake grupe koja je pohadja)
-        Hard constraint 3: Ucionica mora imati racunare ako sesija to zahteva
-        i dovoljan kapacitet (kapacitet samo kada su grupe eksplicitno zadate).
+        Hard constraint 3: Ucionica mora imati racunare ako sesija to zahteva.
         Hard constraint 4: Nastavnik ne moze drzati 2 sesije u istom trenutku
         """
         if not self.sessions:
@@ -173,16 +171,11 @@ class SimpleCPSolver:
         for group_id, session_indices in groups.items():
             self.model.AddAllDifferent([self.flat_time_var[s] for s in session_indices])
 
-        # 3) dozvoljene ucionice po sesiji: racunari + kapacitet
+        # 3) dozvoljene ucionice po sesiji: samo racunari
         for s, session in enumerate(self.sessions):
             allowed = [
                 i for i, room in enumerate(self.classrooms)
-                if (not session.needs_computers or room.has_computers)
-                and (
-                    not self.enforce_capacity
-                    or session.size <= 0
-                    or room.capacity >= session.size
-                )
+                if not session.needs_computers or room.has_computers
             ]
             if not allowed:
                 raise ValueError(
