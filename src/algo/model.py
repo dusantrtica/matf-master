@@ -101,10 +101,10 @@ class StudentsEnrolled:
 
 @dataclass(config=_config)
 class GroupDef:
-    """Eksplicitno definisana grupa (kohorta) studenata.
+    """Opciono eksplicitna grupa (testovi / stari ulaz).
 
-    Ako je sekcija `groups` prisutna u ulazu, grupe se ne izvode iz
-    studentsEnrolled + GROUP_SIZE nego se koriste ovako zadate.
+    Produkcijski raspored sa osobljem izvodi grupe iz staff `groupIds`
+    i `studentsEnrolled`; JSON `groups` se tada ignorise.
     """
     id: str
     track_id: int = Field(

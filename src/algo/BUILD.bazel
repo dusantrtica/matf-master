@@ -113,6 +113,7 @@ py_binary(
     data = [
         "input_full_1_semester.json",
         "input_full_2_semester.json",
+        "staff_2_semester.json",
     ],
     args = [
         "--max-time",

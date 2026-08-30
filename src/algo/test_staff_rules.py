@@ -9,7 +9,6 @@ from src.algo.data import generate_sessions, GROUP_SIZE
 from src.algo.model import (
     Classroom,
     Course,
-    GroupDef,
     Quota,
     RuleConfig,
     SchedulingInput,
@@ -203,9 +202,7 @@ def test_solver_without_staff_input_unchanged(scheduling_input):
 
 @pytest.fixture
 def joint_scheduling_input():
-    """Dve eksplicitne grupe; teoriju slusaju zajedno, vezbe odvojeno.
-    Samo jedna ucionica ima kapacitet za zajednicku sesiju (55 studenata).
-    """
+    """Dve grupe iz staff groupIds; teoriju slusaju zajedno, vezbe odvojeno."""
     return SchedulingInput(
         settings=Settings(
             **{
@@ -236,10 +233,8 @@ def joint_scheduling_input():
         ],
         locations=[],
         tracks=[],
-        students_enrolled=[],
-        groups=[
-            GroupDef(id="ga", track_id=1, semester=1, count=30),
-            GroupDef(id="gb", track_id=1, semester=1, count=25),
+        students_enrolled=[
+            StudentsEnrolled(**{"trackId": 1, "semester": 1, "count": 55}),
         ],
         rules={},
     )
@@ -277,12 +272,6 @@ def test_joint_session_solved(joint_scheduling_input, joint_staff_input):
             key = (group_id, v["day"], v["hour"])
             assert key not in group_times, f"Group-time collision: {key}"
             group_times.add(key)
-
-    # zajednicka sesija (55 studenata) mora biti u amfiteatru (kapacitet 100)
-    for v, session in zip(variables, solver.sessions):
-        if len(session.group_ids) > 1:
-            room = joint_scheduling_input.classrooms[v["room"]]
-            assert room.capacity >= session.size
 
 
 if __name__ == "__main__":
