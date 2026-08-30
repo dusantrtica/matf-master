@@ -16,7 +16,7 @@ from src.rules.base import SchedulingRule
 from src.rules.general.rule_join_same_classes import JoinSameClassesRule
 from src.rules.general.rule_single_location_in_day_for_group import SingleLocationInDayForGroupRule
 from src.rules.general.rule_no_gaps_in_schedule import NoGapsInScheduleRule
-from src.rules.general.rule_prefer_larger_rooms import PreferLargerRoomsForLargerSessionsRule
+from src.rules.general.rule_room_capacity import RoomCapacityRule
 from src.rules.staff.rule_staff_max_working_days import StaffMaxWorkingDaysRule
 from src.rules.staff.rule_staff_no_gap_greater_than import StaffMaxGapHoursRule
 from src.rules.staff.rule_staff_single_location_in_day import StaffSingleLocationInDayRule
@@ -25,7 +25,7 @@ RULE_REGISTRY: dict[str, type[SchedulingRule]] = {
     "joinSameClasses": JoinSameClassesRule,
     "singleLocationInDayForGroup": SingleLocationInDayForGroupRule,
     "noGapsInSchedule": NoGapsInScheduleRule,
-    "preferLargerRoomsForLargerSessions": PreferLargerRoomsForLargerSessionsRule,
+    "roomCapacity": RoomCapacityRule,
     "staffMaxWorkingDays": StaffMaxWorkingDaysRule,
     "staffMaxGapHoursPerWeek": StaffMaxGapHoursRule,
     "staffSingleLocationInDay": StaffSingleLocationInDayRule,

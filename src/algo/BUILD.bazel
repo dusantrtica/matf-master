@@ -36,6 +36,18 @@ py_test(
 )
 
 py_test(
+    name = "test_room_capacity",
+    srcs = ["model.py", "data.py", "cp_solver.py", "test_room_capacity.py"],
+    deps = [
+        "//src/rules",
+        "@pip//pytest",
+        "@pip//pydantic",
+        "@pip//pyfunctional",
+        "@pip//ortools",
+    ],
+)
+
+py_test(
     name = "test_staff_rules",
     srcs = ["model.py", "data.py", "cp_solver.py", "test_staff_rules.py"],
     deps = [

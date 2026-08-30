@@ -38,7 +38,7 @@
 \autor{Dušan Trtica}
 \naslov{Primena tehnika zadovoljenja ograničenja i celobrojnog programiranja na problem generisanja rasporeda časova}
 \godina{2026}
-\mentor{dr Filip \textsc{Marić}, vanredni profesor\\ Univerzitet u Beogradu, Matematički fakultet}
+\mentor{dr Filip \textsc{Marić}, redovni profesor\\ Univerzitet u Beogradu, Matematički fakultet}
 \komisijaA{dr Aleksandar \textsc{Kartelj}, vanredni profesor\\ Univerzitet u Beogradu, Matematički fakultet}
 \komisijaB{dr Miljan \textsc{Knežević}, docent\\ Univerzitet u Beogradu, Matematički fakultet}
 
@@ -474,7 +474,7 @@ class Classroom:
 \end{lstlisting}
 \end{english}
 
-Prednosti korišćenja Pydantic-a vidljive su i na ovom kratkom primeru:
+Prednosti korišćenja Pydantic-a:
 \begin{itemize}
 \item automatska validacija tipova pri učitavanju JSON podataka --
   anotacije \texttt{int}, \texttt{bool} i \texttt{List[str]} istovremeno
@@ -610,6 +610,10 @@ vrednosti i uvode se u kasnijim glavama: \texttt{rules} nosi
 konfiguraciju mekih i tvrdih pravila (glava
 \ref{chp:nadogradnja}), a \texttt{groups} omogućava da se grupe
 studenata zadaju eksplicitno umesto da se izvode iz broja upisanih.
+Ta mogućnost je zadržana za testove i starije ulazne fajlove -- u
+realnom ulazu grupe su definisane u fajlu sa nastavnim osobljem
+(odeljak \ref{sec:grupe_iz_osoblja}), pa \texttt{groups} sekcije tamo
+nema.
 Alias \texttt{departments} zadržan je kako bi stariji ulazni fajlovi,
 nastali pre preimenovanja katedri u smerove, ostali upotrebljivi.
 Model osoblja je izdvojen u odvojenu klasu \texttt{StaffInput}
@@ -623,8 +627,9 @@ jedan semestar nastave na Matematičkom fakultetu:
 \begin{itemize}
 \item 6 smerova,
 \item 129 predmeta raspoređenih po semestrima (1, 3, 5, 7),
-\item 35 učionica na 3 lokacije,
-\item 24 grupe studenata,
+\item 29 učionica na 3 lokacije,
+\item 30 grupa studenata izvedenih iz broja upisanih (ovaj ulaz nema
+  fajl sa osobljem),
 \item radna nedelja od 5 dana, po 12 sati dnevno (8:00--20:00).
 \end{itemize}
 
@@ -638,11 +643,21 @@ sledećih koraka:
 
 \begin{enumerate}
 \item \textbf{Formiranje grupa studenata.}
-  Za svaki par (smer, semestar), na osnovu broja upisanih studenata
-  i veličine grupe (30 studenata), formira se
-  $\lceil \text{broj\_studenata} / 30 \rceil$ grupa. Na primer,
-  za Informatiku u 1. semestru sa 100 studenata formiraju se 4
-  grupe.
+  Grupa je kohorta koja zajedno sluša nastavu i formira se na jedan od
+  tri načina, po prioritetu (funkcija \texttt{build\_groups} u modulu
+  \code{data.py}):
+  \begin{itemize}
+  \item ako je zadat fajl sa osobljem u kome dodele nastave imenuju
+    grupe (polje \texttt{groupIds}), imena grupa se uzimaju odatle, a
+    njihove veličine iz broja upisanih -- tako radi realni ulaz i o tome
+    detaljno govori odeljak \ref{sec:grupe_iz_osoblja};
+  \item inače, ako ulazni JSON ima eksplicitnu \texttt{groups} sekciju,
+    grupe se koriste onako kako su zadate;
+  \item inače se za svaki par (smer, semestar) upis od $n$ studenata
+    deli na $\lceil n / 50 \rceil$ grupa, gde je 50 podrazumevana
+    veličina grupe (konstanta \texttt{GROUP\_SIZE}). Na primer, za
+    Informatiku u 1. semestru sa 100 studenata formiraju se dve grupe.
+  \end{itemize}
 
 \item \textbf{Dodeljivanje predmeta grupama.}
   Svaka grupa pohađa predmete koji odgovaraju njenom smeru i
@@ -893,10 +908,11 @@ for s, session in enumerate(self.sessions):
 \end{lstlisting}
 \end{english}
 
-Isti mehanizam kasnije prima još jedan uslov: kada su grupe studenata
-eksplicitno zadate u ulazu, pa su veličine sesija pouzdane, u listu
-\texttt{allowed} ulaze samo učionice dovoljnog kapaciteta (odeljak
-\ref{sec:cohorts}).
+Zahtev za računarima je pri tome \emph{jedini} tvrdi uslov na izbor
+učionice. Kapacitet učionice ne ulazi u listu \texttt{allowed}: on je
+meko ograničenje, pa sesija sme da dobije i učionicu u koju svi njeni
+slušaoci ne staju, uz cenu u funkciji cilja (odeljak
+\ref{sec:kapacitet}).
 
 \subsection{Funkcija cilja}
 
@@ -1166,18 +1182,6 @@ promenljivih u MIP-u, naspram 5 celobrojnih u CP-u. Ova razlika
 od dva do tri reda veličine se direktno odražava na memorijski
 otisak i vreme konstrukcije modela.
 
-Izmereni broj MIP promenljivih ($1\,179\,720$ za MATF-L) niži je od
-gornje granice $762 \cdot 1740 = 1\,325\,880$ zato što MIP formulacija
-uopšte ne kreira promenljive za nedozvoljene učionice (sekcija
-\ref{sec:mip_form}). Ovde se vidi i posledica toga što zahtev za
-računarima zavisi od tipa nastave (sekcija
-\ref{sec:nezavisnost_tipova}): kada bi predavanja nasleđivala zahtev
-predmeta, njihov izbor bio bi sužen na 8 računarskih učionica, pa bi
-MIP model bio \emph{manji}, ali bi opisivao strože i nerealno
-ograničen problem. Isti efekat, u obrnutom smeru, vidi se na CP strani
--- broj ograničenja je manji jer se \texttt{AllowedAssignments} dodaje
-samo sesijama koje su zaista vezane za računarske učionice.
-
 \subsection{Brzina rešavanja}
 
 CP-SAT rešavač koristi globalna ograničenja
@@ -1242,14 +1246,16 @@ realnim potrebama Matematičkog fakulteta. Za razliku od prvog dela rada,
 gde smo tražili bilo koje dopustivo rešenje, ovde uvodimo i funkciju
 cilja koja optimizuje kvalitet rasporeda kroz meka ograničenja.
 
-Implementirana su tri nova ograničenja:
+Implementirana su četiri nova ograničenja:
 \begin{itemize}
 \item \textbf{spajanje časova u blokove} -- časovi istog predmeta, grupe
   i tipa grupišu se u uzastopne blokove (na primer dvočasi i tročasi);
 \item \textbf{jedna lokacija po danu za grupu} -- grupa studenata ne menja
   zgradu u toku jednog radnog dana;
 \item \textbf{bez procepa u rasporedu} -- izbegavanje slobodnih sati
-  između dva zauzeta sata u istom danu.
+  između dva zauzeta sata u istom danu;
+\item \textbf{kapacitet učionice} -- prekoračenje kapaciteta se kažnjava
+  brojem studenata bez mesta, ali nije zabranjeno.
 \end{itemize}
 
 \section{Arhitektura pravila}
@@ -1647,6 +1653,97 @@ Ispravnost pravila proverava se testom
 \code{test_no_gaps_in_schedule.py}, koji potvrđuje da rešenje na
 malom ulazu nema nijedan unutrašnji procep.
 
+\section{Pravilo: kapacitet učionice kao meko ograničenje}
+\label{sec:kapacitet}
+
+Svaka učionica ima kapacitet, a svaka sesija poznat broj slušalaca
+$\text{size}_s$ (zbir grupa koje je pohađaju, odeljak
+\ref{sec:cohorts}). Prirodno je zahtevati da svi slušaoci stanu u
+učionicu, $\text{size}_s \leq \text{capacity}_{r_s}$, i model je u
+ranijoj verziji to nametao kao tvrd uslov -- učionice nedovoljnog
+kapaciteta prosto nisu ulazile u listu dozvoljenih učionica sesije
+(odeljak \ref{sec:cp_form}).
+
+Takav tvrd uslov se, međutim, pokazao i previše krut i previše
+osetljiv na kvalitet ulaznih podataka:
+
+\begin{itemize}
+\item brojevi upisanih studenata su procene, a stvarna prisutnost je
+  po pravilu manja od upisa; nerealno je da jedan student preko
+  kapaciteta učini ceo raspored nedopustivim,
+\item u kombinaciji sa zahtevom za računarima kapacitet drastično sužava
+  izbor učionica (računarskih učionica je malo i one su male), pa
+  rešavač lako prijavi \texttt{INFEASIBLE} i ne vrati \emph{nikakav}
+  raspored -- a raspored sa nekoliko prepunjenih učionica u praksi je
+  daleko korisniji od nijednog,
+\item svako sužavanje dopustivog skupa gubi informaciju: umesto poruke
+  ,,nema rešenja`` korisnije je videti \emph{gde} i \emph{koliko}
+  raspored odstupa od željenog.
+\end{itemize}
+
+Zbog toga kapacitet prelazi iz tvrdih ograničenja u pravilo
+\code{rule_room_capacity.py} (\texttt{roomCapacity}). U mekoj varijanti
+pravilo ne sužava dopustiv skup -- sesija sme u bilo koju učionicu koja
+zadovoljava tvrda ograničenja -- ali plaća cenu jednaku broju studenata
+koji u toj učionici ostaju bez mesta:
+
+\begin{equation}
+\text{cost}_s = \max
+  \left( 0,\; \text{size}_s - \text{capacity}_{r_s} \right)
+\label{eq:room_cost}
+\end{equation}
+
+Bitno je da se kažnjava \emph{samo} prekoračenje. Sve učionice u koje
+cela kohorta staje su međusobno jednako dobre, pa pravilo ne pravi
+nepotrebnu razliku između njih i ne troši prostor rešenja na to da
+najveću salu dobije najveća grupa kad to nikome ne pomaže. Kazna je nula
+uvek kada raspored nikoga ne ostavlja bez mesta, što je i uobičajen
+ishod: prekoračenje se javlja samo tamo gde učionica odgovarajuće
+veličine (ili odgovarajuće opremljena računarima) više nije slobodna.
+
+Za razliku od procepa, prekršaj ovde nije ,,jedan događaj`` nego
+\emph{količina} -- pravilo je prvo koje kao prekršaj vraća celobrojne, a
+ne binarne promenljive. Funkcija cilja \eqref{eq:objective} je težinska
+suma vraćenih promenljivih, pa se takva cena uklapa bez izmena u jezgru
+rešavača. Cena po prekršaju je pri tome namerno niska, a
+niska težina drži ovaj sabirak podređenim ostalim ciljevima čak i kada
+se prekoračenje meri desetinama studenata.
+
+U implementaciji se za svaku sesiju gradi tabela prekoračenja po
+učionicama (konstante, jer su i veličina sesije i kapaciteti poznati
+unapred), a promenljiva prekoračenja se vezuje za izabranu učionicu
+preko \texttt{AddElement} (odeljak \ref{sec:cpsat_tehnike}). Sesije koje
+staju u svaku učionicu ne dobijaju nikakvu promenljivu:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Prekoračenje kapaciteta po sesiji}]
+overflows = [max(0, session.size - cap) for cap in capacities]
+if not any(overflows):
+    continue                      # sesija staje u svaku ucionicu
+
+if self.is_hard:                  # tvrdo: samo ucionice u koje staje
+    fitting = [i for i, over in enumerate(overflows) if over == 0]
+    solver.model.AddAllowedAssignments(
+        [solver.room_var[s]], [[i] for i in fitting])
+    continue
+
+overflow = solver.model.NewIntVar(0, max(overflows), f"room_overflow_{s}")
+solver.model.AddElement(solver.room_var[s], overflows, overflow)
+overflow_vars.append(overflow)
+\end{lstlisting}
+\end{english}
+
+Tvrda varijanta (\texttt{penalty} 0) svodi se na klasično ograničenje
+kapaciteta: izbor učionica se sužava na one u koje kohorta staje, isto
+kao što se za računare radi u jezgru rešavača. Ako za neku sesiju takve
+učionice nema, greška se prijavljuje odmah pri konstrukciji modela,
+umesto da se pojavi kao neinformativan status \texttt{INFEASIBLE}.
+
+Ispravnost obe varijante proverava test \code{test_room_capacity.py}:
+meko pravilo bira učionicu u koju grupa staje, a kada takve učionice
+nema ipak vraća raspored sa najmanjim prekoračenjem; tvrdo pravilo takve
+učionice zabranjuje.
+
 
 % ------------------------------------------------------------------------------
 \chapter{Raspoređivanje nastavnog osoblja}
@@ -1662,9 +1759,12 @@ Ovaj deo predstavlja poslednji korak u približavanju modela realnom
 scenariju na Matematičkom fakultetu.
 
 Nastavno osoblje se zadaje u \emph{odvojenom} ulaznom fajlu, tako da
-osnovni ulaz (predmeti, grupe, učionice) ostaje nepromenjen. Time se
-podaci o osoblju mogu menjati nezavisno, a raspoređivanje bez osoblja i
-dalje radi kao ranije.
+osnovni ulaz (predmeti, učionice, broj upisanih) ostaje nepromenjen.
+Time se podaci o osoblju mogu menjati nezavisno, a raspoređivanje bez
+osoblja i dalje radi kao ranije. Pokazaće se da je taj fajl i prirodno
+mesto za definisanje grupa studenata (odeljak
+\ref{sec:grupe_iz_osoblja}): grupa postoji tek onda kada neko drži
+nastavu za nju.
 
 \section{Model osoblja i dodela nastave}
 \label{sec:staff_model}
@@ -1727,6 +1827,68 @@ for teacher_id, session_indices in self.teacher_sessions.items():
 \end{lstlisting}
 \end{english}
 
+\section{Grupe studenata izvedene iz dodela nastave}
+\label{sec:grupe_iz_osoblja}
+
+Dodela nastave imenuje grupe kojima nastavnik drži čas, na primer
+\texttt{"groupIds": ["1i1a", "1i1b", "1i1v"]}. Time je u fajlu sa
+osobljem već zapisano \emph{koje} grupe postoje, pa bi njihovo ponovno
+navođenje u osnovnom ulazu bilo redudantno.
+
+Postupak je implementiran u funkciji \texttt{build\_groups} (modul
+\code{data.py}) i odvija se u dva koraka.
+
+\paragraph{Imena i pripadnost.} Prolazi se kroz sve dodele koje navode
+\texttt{groupIds}; za svaki naziv grupe smer i semestar se \emph{ne}
+zadaju posebno, nego se čitaju sa predmeta na koji se dodela odnosi
+(\texttt{courseId}). Grupa \texttt{1i1a} tako pripada smeru i semestru
+predmeta koji sluša. Ako se isti naziv grupe pojavi na predmetima iz
+dva različita para (smer, semestar), to je nekonzistentan ulaz i
+prijavljuje se kao greška:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Imena grupa iz dodela nastave}]
+for a in staff_input.assignments:
+    if not a.group_ids:
+        continue
+    course = courses_by_id.get(a.course_id)
+    key = (course.track_id, course.semester)
+    for gid in a.group_ids:
+        existing = meta.get(gid)
+        if existing is not None and existing != key:
+            raise ValueError(f"Group '{gid}' is used for both {existing} and {key}")
+        meta[gid] = key
+\end{lstlisting}
+\end{english}
+
+\paragraph{Veličine.} Broj studenata se i dalje uzima iz sekcije
+\texttt{studentsEnrolled} osnovnog ulaza, koja je zadata po paru
+(smer, semestar). Upis se ravnomerno deli na sve grupe tog para, a
+ostatak se raspoređuje na prve grupe po abecednom redu naziva, tako da
+se veličine razlikuju najviše za jednog studenta:
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Deljenje upisanih studenata na imenovane grupe}]
+base, rem = divmod(enrollment.count, len(group_ids))
+for i, gid in enumerate(sorted(group_ids)):
+    count = base + (1 if i < rem else 0)
+    groups.append(Group(gid, enrollment.track_id, count, enrollment.semester))
+\end{lstlisting}
+\end{english}
+
+Na primer, 100 upisanih studenata prvog semestra Informatike i šest
+grupa navedenih u dodelama (\texttt{1i1a}, \texttt{1i1b},
+\texttt{1i1v}, \texttt{1i2a}, \texttt{1i2b}, \texttt{1i2v}) daju četiri
+grupe od 17 i dve od 16 studenata.
+
+Podela odgovornosti je time jasna: fajl sa osobljem određuje
+\emph{koje} grupe postoje i \emph{ko} im drži nastavu, a osnovni ulaz
+\emph{koliko} ih je i \emph{šta} slušaju. Ako neki par (smer, semestar)
+nema ni jednu imenovanu grupu u dodelama, za njega se koristi rezervni
+postupak deljenja po veličini grupe iz odeljka \ref{sec:sesije}, pa
+delimično popunjen fajl sa osobljem ne obara raspoređivanje ostatka
+fakulteta.
+
 \section{Kohorte i zajedničke sesije}
 \label{sec:cohorts}
 
@@ -1776,16 +1938,17 @@ Za svaku kohortu i svaki traženi čas iz kvote kreira se tačno jedna
 sesija, čija je lista grupa \texttt{group\_ids} jednaka grupama kohorte.
 Zajednička sesija tako ulazi u ograničenje o koliziji \emph{svake} grupe
 koja je pohađa (tvrdo ograničenje HC2 prolazi kroz sve
-\texttt{session.group\_ids}), a kada su grupe eksplicitno zadate,
-učionica mora imati dovoljan kapacitet za celu kohortu
-($\text{size}_s \leq \text{capacity}_r$).
+\texttt{session.group\_ids}). Veličina kohorte ne ograničava izbor
+učionice tvrdo, ali kroz meko pravilo iz odeljka \ref{sec:kapacitet}
+usmerava sesiju ka dovoljno velikoj sali.
 
 \paragraph{Primer.} Dve grupe \texttt{ga} (30 studenata) i \texttt{gb}
 (25 studenata) slušaju predavanja zajedno, a vežbe odvojeno. Za predmet
 sa 2 predavanja i 2 vežbe nedeljno dobija se: 2 zajedničke teorijske
 sesije (kohorta \texttt{ga+gb}, veličine 55) i po 2 vežbe za svaku grupu
--- ukupno 6 sesija umesto 8, uz zajedničku sesiju koja mora stati u
-učionicu kapaciteta bar 55.
+-- ukupno 6 sesija umesto 8. Zajedničkom predavanju je za 55 slušalaca
+potrebna sala kapaciteta najmanje 55, dok vežbama od 30, odnosno 25
+studenata odgovara i znatno manja učionica.
 
 \section{Pravila nastavnog osoblja}
 \label{sec:staff_rules}
@@ -1898,8 +2061,8 @@ $\min \sum_{r} \text{penalty}_r \cdot \sum_{v \in V_r} v$.
 Osoblje se zadaje u zasebnom JSON fajlu (na primer
 \code{staff_2_semester.json}). Sekcija \texttt{rules} bira koja pravila
 su aktivna i sa kojom cenom, \texttt{teachers} navodi nastavnike, a
-\texttt{assignments} povezuje predmete sa nastavnicima (uz opcione
-zajedničke grupe):
+\texttt{assignments} povezuje predmete sa nastavnicima i istovremeno
+definiše grupe studenata (odeljak \ref{sec:grupe_iz_osoblja}):
 
 \begin{english}
 \begin{lstlisting}[language=Python, caption={Isečak staff ulaznog fajla}]
@@ -1933,8 +2096,9 @@ Ispravnost pravila osoblja proverava se testovima u
 \code{test_staff_rules.py}: da nastavnik nije dvostruko zauzet, da se
 poštuje najveći broj radnih dana (uključujući lične limite), da je
 nedeljni budžet procepa ispunjen, da nastavnik ne menja lokaciju u toku
-dana, i da se zajednička sesija dve grupe rešava kao jedan čas u učionici
-dovoljnog kapaciteta.
+dana, i da se zajednička sesija dve grupe rešava kao jedan čas bez
+kolizija u rasporedu obe grupe. Izvođenje grupa iz dodela pokriveno je
+testovima u \code{test_data.py}.
 
 
 % ------------------------------------------------------------------------------
@@ -1966,10 +2130,11 @@ pokazuje kako se rešavač ponaša na granici rešivosti.
 \subsection{Instance po godinama studija}
 
 Prošireni model radi nad realnim podacima letnjeg semestra
-(\code{input_full_2_semester.json}), u kojima su grupe eksplicitno
-zadate, pa se poštuje i kapacitet učionica. Svaka grupa nosi semestar
-(2, 4, 6 ili 8), što odgovara godini studija, te se instanca može seći
-po godinama:
+(\code{input_full_2_semester.json}) i dodelama nastave iz
+\code{staff_2_semester.json}, iz kojih se izvode grupe studenata
+(odeljak \ref{sec:grupe_iz_osoblja}). Svaka grupa nasleđuje semestar
+predmeta koji sluša (2, 4, 6 ili 8), što odgovara godini studija, te se
+instanca može seći po godinama:
 
 \begin{enumerate}
 \item \textbf{FINAL-S} -- 1. godina (semestar 2),
@@ -1979,12 +2144,11 @@ po godinama:
 
 Za razliku od podskupova iz glave \ref{chp:evaluacija}, ovde se skalira
 samo potražnja: sve tri instance zadržavaju svih 29 učionica i sve tri
-lokacije. Razlog je što se uz eksplicitno zadate grupe poštuje i
-kapacitet učionica, pa bi istovremeno smanjivanje broja učionica lako
-dalo nedopustive instance i time zamaglilo efekat rasta problema.
-Filtriranje se radi samo nad predmetima, grupama i upisima; dodele
-nastavnika koje se odnose na izbačene predmete jednostavno se ne
-aktiviraju, pa ulaz sa osobljem ostaje nepromenjen.
+lokacije, pa se razlikuju jedino po količini nastave koju treba smestiti.
+Filtriraju se samo predmeti i upisi; grupe se povlače same, jer se
+izvode iz dodela za predmete koji su ostali, a dodele za izbačene
+predmete se prosto ne aktiviraju -- ulaz sa osobljem tako ostaje
+nepromenjen.
 
 \subsection{Konfiguracije i funkcija cilja}
 
@@ -1992,8 +2156,9 @@ Svaka skala se rešava u dve konfiguracije:
 
 \begin{itemize}
 \item \textbf{bez osoblja} -- pravila iz glave \ref{chp:nadogradnja}:
-  spajanje časova u blokove kao tvrdo ograničenje i izbegavanje procepa
-  kao meko ograničenje sa cenom 2;
+  spajanje časova u blokove kao tvrdo ograničenje, izbegavanje procepa
+  kao meko ograničenje sa cenom 2 i kapacitet učionica kao meko
+  ograničenje sa cenom 1;
 \item \textbf{sa osobljem} -- dodatno i ceo model iz glave
   \ref{chp:osoblje}: kohorte i zajedničke sesije, tvrdo ograničenje da
   nastavnik nije dvostruko zauzet, tvrda pravila za jednu lokaciju po
@@ -2005,12 +2170,15 @@ Funkcija cilja je, u skladu sa izrazom \eqref{eq:objective} iz odeljka
 \ref{sec:arhitektura_pravila}, težinska suma prekršaja mekih pravila:
 \[
   \min \; 2 \cdot \underbrace{\sum_{g,d,h} \text{gap}_{g,d,h}}_{\text{procepi grupa}}
-  \;+\; 3 \cdot \underbrace{\sum_{t} \text{excess}_{t}}_{\text{dani preko limita nastavnika}},
+  \;+\; 3 \cdot \underbrace{\sum_{t} \text{excess}_{t}}_{\text{dani preko limita nastavnika}}
+  \;+\; 1 \cdot \underbrace{\sum_{s} \text{overflow}_{s}}_{\text{studenti bez mesta}},
 \]
-pri čemu u konfiguraciji bez osoblja drugi sabirak ne postoji. Vrednost
-0 znači da nijedno meko ograničenje nije prekršeno, dakle raspored bez
-ijednog procepa i bez ijednog nastavnika koji radi više dana nego što mu
-je dozvoljeno.
+pri čemu u konfiguraciji bez osoblja drugi sabirak ne postoji. Treći
+sabirak je meko ograničenje kapaciteta iz odeljka \ref{sec:kapacitet} i
+u obe konfiguracije nosi najmanju težinu. Vrednost 0 znači da nijedno
+meko ograničenje nije prekršeno, dakle raspored bez ijednog procepa, bez
+ijednog nastavnika koji radi više dana nego što mu je dozvoljeno i bez
+ijednog studenta koji ostaje bez mesta u učionici.
 
 \subsection{Uslovi merenja}
 
@@ -2027,7 +2195,7 @@ u trenutku $t$ je cilj poslednjeg rešenja nađenog do tog trenutka.
 Rešenja se, kao i u prvoj evaluaciji, nezavisno proveravaju funkcijom
 \code{validate_solution}, koja je za potrebe proširenog modela dopunjena
 i proverom da nastavnik nema dva časa u istom terminu.
-m
+
 \section{Veličina modela}
 \label{sec:finalna_velicina}
 
@@ -2046,10 +2214,11 @@ konfiguracijama.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Metrika} & bez & sa & bez & sa & bez & sa \\
 \midrule
-Sesije             & $204$      & $199$      & $398$      & $378$       & $722$      & $685$ \\
-Promenljive        & $15\,144$  & $36\,278$  & $29\,628$  & $70\,209$   & $53\,952$  & $116\,624$ \\
-Ograničenja        & $27\,829$  & $63\,533$  & $54\,366$  & $122\,961$  & $98\,857$  & $206\,049$ \\
-Vreme konstrukcije & 0,09 s     & 0,20 s     & 0,17 s     & 0,39 s      & 0,31 s     & 0,66 s \\
+Sesije             & $204$      & $216$      & $398$      & $441$       & $722$      & $839$ \\
+Nastavnici         & $0$        & $39$       & $0$        & $81$        & $0$        & $112$ \\
+Promenljive        & $15\,348$  & $41\,036$  & $30\,026$  & $88\,223$   & $54\,652$  & $144\,685$ \\
+Ograničenja        & $27\,857$  & $72\,082$  & $54\,424$  & $155\,803$  & $98\,974$  & $257\,191$ \\
+Vreme konstrukcije & 0,09 s     & 0,24 s     & 0,18 s     & 0,52 s      & 0,35 s     & 0,94 s \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2073,13 +2242,13 @@ najbolji rezultat i koliko je poboljšanja usput pronađeno.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Metrika} & bez & sa & bez & sa & bez & sa \\
 \midrule
-Prvo rešenje         & 1,42 s & 2,58 s  & 4,13 s & 7,24 s   & 20,74 s & 18,81 s \\
-Cilj prvog rešenja   & $0$    & $48$    & $0$    & $182$    & $0$     & $282$ \\
-Broj nađenih rešenja & $1$    & $4$     & $1$    & $16$     & $1$     & $23$ \\
-Vreme do najboljeg   & 1,42 s & 3,03 s  & 4,13 s & 10,51 s  & 20,74 s & 30,86 s \\
-Ukupno vreme         & 1,44 s & 3,05 s  & 4,15 s & 10,58 s  & 20,79 s & 30,96 s \\
-Najbolji cilj        & $0$    & $0$     & $0$    & $0$      & $0$     & $0$ \\
-Donja granica        & $0$    & $0$     & $0$    & $0$      & $0$     & $0$ \\
+Prvo rešenje         & 1,59 s  & 2,69 s & 4,86 s   & 9,06 s   & 23,92 s & 30,03 s \\
+Cilj prvog rešenja   & $1\,355$ & $585$ & $1\,009$ & $1\,849$ & $2\,440$ & $2\,973$ \\
+Broj nađenih rešenja & $23$    & $10$   & $15$     & $38$     & $23$    & $56$ \\
+Vreme do najboljeg   & 2,35 s  & 3,79 s & 6,94 s   & 16,37 s  & 40,84 s & 120,44 s \\
+Ukupno vreme         & 2,46 s  & 4,05 s & 7,15 s   & 16,95 s  & 41,23 s & 121,76 s \\
+Najbolji cilj        & $0$     & $0$    & $0$      & $0$      & $0$     & $0$ \\
+Donja granica        & $0$     & $0$    & $0$      & $0$      & $0$     & $0$ \\
 Status               & \multicolumn{6}{c}{\textsc{optimal}} \\
 Rešenje validno      & \multicolumn{6}{c}{da} \\
 \bottomrule
@@ -2105,14 +2274,14 @@ rešavač još nije imao nijedno dopustivo rešenje.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Vreme} & bez & sa & bez & sa & bez & sa \\
 \midrule
-5 s    & $0$ & $0$ & $0$ & --   & --  & --    \\
-10 s   & $0$ & $0$ & $0$ & $16$ & --  & --    \\
-20 s   & $0$ & $0$ & $0$ & $0$  & --  & $236$ \\
-30 s   & $0$ & $0$ & $0$ & $0$  & $0$ & $3$   \\
-60 s   & $0$ & $0$ & $0$ & $0$  & $0$ & $0$   \\
-120 s  & $0$ & $0$ & $0$ & $0$  & $0$ & $0$   \\
-300 s  & $0$ & $0$ & $0$ & $0$  & $0$ & $0$   \\
-600 s  & $0$ & $0$ & $0$ & $0$  & $0$ & $0$   \\
+5 s    & $0$ & $0$ & $929$ & --       & --    & --    \\
+10 s   & $0$ & $0$ & $0$   & $1\,008$ & --    & --    \\
+20 s   & $0$ & $0$ & $0$   & $0$      & --    & --    \\
+30 s   & $0$ & $0$ & $0$   & $0$      & $519$ & --    \\
+60 s   & $0$ & $0$ & $0$   & $0$      & $0$   & $140$ \\
+120 s  & $0$ & $0$ & $0$   & $0$      & $0$   & $2$   \\
+300 s  & $0$ & $0$ & $0$   & $0$      & $0$   & $0$   \\
+600 s  & $0$ & $0$ & $0$   & $0$      & $0$   & $0$   \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2121,9 +2290,10 @@ Pošto se sva poboljšanja dešavaju u uskom intervalu odmah po nalaženju
 prvog rešenja, gruba mreža preseka ne pokazuje dinamiku pretrage. Zato
 u tabelama \ref{tbl:final_traj_s}, \ref{tbl:final_traj_m} i
 \ref{tbl:final_traj_l} dajemo celu putanju poboljšanja za konfiguraciju
-sa osobljem. Konfiguracija bez osoblja se ne prikazuje na ovaj način jer
-u njoj rešavač već prvim rešenjem pogađa optimum, pa se putanja svodi na
-jednu tačku.
+sa osobljem. Konfiguracija bez osoblja prolazi kroz istu vrstu putanje
+(23, 15 i 23 pronađena rešenja po skalama), samo je kraća i celom
+dužinom se odvija u prvih nekoliko sekundi, pa je ne prikazujemo
+posebno.
 
 \begin{table}[ht]
 \centering
@@ -2133,10 +2303,16 @@ jednu tačku.
 \toprule
 \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-2,58 s & $48$ \\
-2,60 s & $32$ \\
-2,77 s & $10$ \\
-3,03 s & $0$  \\
+2,69 s & $585$ \\
+2,72 s & $557$ \\
+2,75 s & $555$ \\
+2,88 s & $384$ \\
+2,99 s & $275$ \\
+3,24 s & $106$ \\
+3,38 s & $48$ \\
+3,64 s & $12$ \\
+3,66 s & $10$ \\
+3,79 s & $0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2149,14 +2325,25 @@ jednu tačku.
 \toprule
 \textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-7,24 s & $182$ & 9,00 s  & $82$ \\
-7,78 s & $130$ & 9,08 s  & $30$ \\
-7,95 s & $100$ & 9,26 s  & $28$ \\
-8,01 s & $98$  & 9,27 s  & $21$ \\
-8,53 s & $90$  & 9,45 s  & $18$ \\
-8,63 s & $88$  & 9,47 s  & $16$ \\
-8,64 s & $86$  & 10,22 s & $6$  \\
-8,88 s & $84$  & 10,51 s & $0$  \\
+9,06 s  & $1\,849$ & 14,87 s & $32$ \\
+9,18 s  & $1\,789$ & 14,95 s & $30$ \\
+9,29 s  & $1\,563$ & 15,04 s & $29$ \\
+9,89 s  & $1\,008$ & 15,10 s & $27$ \\
+10,09 s & $918$    & 15,18 s & $26$ \\
+10,16 s & $792$    & 15,29 s & $24$ \\
+10,48 s & $667$    & 15,37 s & $23$ \\
+10,64 s & $501$    & 15,44 s & $21$ \\
+10,66 s & $453$    & 15,51 s & $20$ \\
+11,30 s & $346$    & 15,64 s & $18$ \\
+11,52 s & $262$    & 15,70 s & $15$ \\
+11,74 s & $252$    & 15,77 s & $12$ \\
+12,40 s & $170$    & 15,84 s & $11$ \\
+13,29 s & $136$    & 15,90 s & $9$ \\
+13,71 s & $60$     & 15,99 s & $8$ \\
+13,89 s & $57$     & 16,10 s & $6$ \\
+14,61 s & $53$     & 16,22 s & $5$ \\
+14,74 s & $35$     & 16,28 s & $3$ \\
+14,80 s & $33$     & 16,37 s & $0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2165,22 +2352,30 @@ jednu tačku.
 \centering
 \caption{Putanja poboljšanja, FINAL-L sa osobljem}
 \label{tbl:final_traj_l}
-\begin{tabular}{rr@{\hskip 2.5em}rr}
+\begin{tabular}{rr@{\hskip 2em}rr@{\hskip 2em}rr}
 \toprule
-\textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj} \\
+\textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj}
+& \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-18,81 s & $282$ & 24,23 s & $45$ \\
-19,26 s & $236$ & 24,82 s & $43$ \\
-20,28 s & $234$ & 25,56 s & $39$ \\
-20,46 s & $182$ & 25,92 s & $23$ \\
-21,08 s & $180$ & 25,93 s & $21$ \\
-21,12 s & $106$ & 26,37 s & $11$ \\
-21,82 s & $102$ & 27,36 s & $9$  \\
-21,85 s & $99$  & 28,02 s & $6$  \\
-23,07 s & $88$  & 28,19 s & $5$  \\
-23,51 s & $71$  & 29,46 s & $3$  \\
-24,00 s & $57$  & 30,71 s & $2$  \\
-       &       & 30,86 s & $0$  \\
+30,03 s & $2\,973$ & 47,18 s & $472$ & 75,22 s  & $59$ \\
+30,27 s & $2\,799$ & 47,76 s & $404$ & 77,56 s  & $49$ \\
+30,49 s & $2\,612$ & 50,56 s & $386$ & 78,91 s  & $46$ \\
+30,94 s & $2\,332$ & 51,01 s & $265$ & 80,18 s  & $44$ \\
+31,13 s & $2\,322$ & 55,60 s & $241$ & 82,52 s  & $42$ \\
+31,37 s & $2\,319$ & 55,80 s & $179$ & 84,44 s  & $40$ \\
+31,39 s & $2\,303$ & 56,63 s & $157$ & 88,20 s  & $25$ \\
+31,66 s & $2\,259$ & 58,72 s & $153$ & 90,92 s  & $23$ \\
+32,06 s & $1\,823$ & 59,17 s & $152$ & 94,97 s  & $21$ \\
+34,00 s & $1\,527$ & 59,67 s & $140$ & 97,65 s  & $15$ \\
+35,76 s & $1\,173$ & 63,10 s & $138$ & 103,78 s & $12$ \\
+37,81 s & $1\,070$ & 64,72 s & $87$  & 108,77 s & $11$ \\
+38,54 s & $750$    & 66,50 s & $80$  & 109,72 s & $9$ \\
+39,74 s & $746$    & 67,32 s & $78$  & 111,12 s & $8$ \\
+40,10 s & $730$    & 67,55 s & $72$  & 112,46 s & $5$ \\
+40,52 s & $709$    & 67,59 s & $70$  & 118,84 s & $3$ \\
+41,23 s & $691$    & 67,81 s & $69$  & 119,81 s & $2$ \\
+44,85 s & $647$    & 68,51 s & $67$  & 120,44 s & $0$ \\
+46,57 s & $533$    & 71,28 s & $65$  &          &      \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2198,30 +2393,37 @@ bazel run //src/algo:benchmark -- --mode final --max-time 600 \
 \label{sec:finalna_zaostreno}
 
 Rezultati iz prethodnog odeljka pokazuju da rešavač na svim skalama
-dostigne cilj 0, i to za nekoliko desetina sekundi. Razlog je što realna
-instanca ima mnogo slobodnog prostora: 29 učionica puta 60 termina
-nedeljno daje 1740 mesta za najviše 685 časova, dakle popunjenost ispod
-40\%. U tako labavom rasporedu meka ograničenja gotovo da ne dolaze u
-sukob, pa kriva funkcije cilja brzo padne na nulu i o dinamici pretrage
-govori malo.
+dostigne cilj 0, i to za nekoliko desetina sekundi, najviše dva minuta.
+Razlog je što realna instanca ima dovoljno slobodnog prostora: 29
+učionica puta 60 termina nedeljno daje 1740 mesta za najviše 839 časova,
+dakle popunjenost ispod 50\%. U tako labavom rasporedu meka ograničenja
+retko dolaze u stvarni sukob, pa kriva funkcije cilja sigurno padne na
+nulu i o granicama modela govori malo.
 
 Da bismo videli kako se model ponaša kada resursi postanu oskudni,
 uvodimo \emph{zaoštreno okruženje} -- istu instancu sa dve izmene:
 
 \begin{itemize}
-\item nastava traje od 8 do 14 časova umesto do 20, čime broj termina
-  pada sa 1740 na 870
+\item nastava traje od 8 do 15 časova umesto do 20, čime broj termina
+  pada sa 1740 na 1015, a popunjenost najveće instance raste na 83\%;
 \item podrazumevani najveći broj radnih dana nastavnika smanjen je sa 4
   na 2 (lični limiti pojedinih nastavnika, koji su stroži,
   ostaju nepromenjeni).
 \end{itemize}
+
+Dužina dana je birana tako da problem ostane jedva rešiv. Skraćenje
+za još jedan čas (8--14, dakle 870 termina i 96\% popunjenosti) dovodi
+najveću instancu sa osobljem preko granice rešivosti: rešavač za 600
+sekundi ne nađe \emph{nijedno} dopustivo rešenje i vraća status
+\textsc{unknown}. Zona u kojoj je ovaj problem istovremeno rešiv i
+netrivijalan je, dakle, uska -- meri se jednim časom nastave dnevno.
 
 Tabela \ref{tbl:tight_tok} prikazuje tok rešavanja u tako zaoštrenom
 okruženju.
 
 \begin{table}[ht]
 \centering
-\caption{Tok rešavanja u zaoštrenom okruženju (8--14 časova)}
+\caption{Tok rešavanja u zaoštrenom okruženju (8--15 časova)}
 \label{tbl:tight_tok}
 \begin{tabular}{lrrrrrr}
 \toprule
@@ -2231,12 +2433,12 @@ okruženju.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Metrika} & bez & sa & bez & sa & bez & sa \\
 \midrule
-Promenljive          & $8\,064$  & $18\,728$ & $15\,768$ & $36\,219$ & $28\,692$ & $60\,374$ \\
-Ograničenja          & $14\,389$ & $32\,663$ & $28\,086$ & $63\,171$ & $51\,037$ & $106\,059$ \\
-Prvo rešenje         & 0,58 s    & 1,25 s    & 2,11 s    & 6,38 s    & 273,07 s  & 37,44 s \\
-Cilj prvog rešenja   & $0$       & $14$      & $8$       & $45$      & $102$     & $200$ \\
-Broj nađenih rešenja & $1$       & $5$       & $2$       & $19$      & $19$      & $41$ \\
-Vreme do najboljeg   & 0,58 s    & 1,42 s    & 2,17 s    & 7,78 s    & 295,11 s  & 173,93 s \\
+Promenljive          & $9\,448$  & $24\,511$ & $18\,476$ & $52\,648$ & $33\,602$ & $86\,685$ \\
+Ograničenja          & $16\,657$ & $42\,782$ & $32\,524$ & $92\,453$ & $59\,124$ & $152\,891$ \\
+Prvo rešenje         & 1,01 s    & 1,63 s    & 4,01 s    & 7,18 s    & 43,26 s   & 67,06 s \\
+Cilj prvog rešenja   & $744$     & $684$     & $1\,837$  & $1\,677$  & $2\,545$  & $2\,456$ \\
+Broj nađenih rešenja & $18$      & $16$      & $14$      & $23$      & $24$      & $62$ \\
+Vreme do najboljeg   & 1,35 s    & 2,73 s    & 6,51 s    & 14,47 s   & 80,31 s   & 209,53 s \\
 Najbolji cilj        & $0$       & $3$       & $0$       & $6$       & $0$       & $6$ \\
 Donja granica        & $0$       & $3$       & $0$       & $6$       & $0$       & $6$ \\
 Status               & \multicolumn{6}{c}{\textsc{optimal}} \\
@@ -2267,24 +2469,25 @@ trenucima.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Vreme} & bez & sa & bez & sa & bez & sa \\
 \midrule
-10 s  & $0$ & $3$ & $0$ & $6$ & --  & --    \\
-20 s  & $0$ & $3$ & $0$ & $6$ & --  & --    \\
-30 s  & $0$ & $3$ & $0$ & $6$ & --  & --    \\
-40 s  & $0$ & $3$ & $0$ & $6$ & --  & $135$ \\
-50 s  & $0$ & $3$ & $0$ & $6$ & --  & $57$  \\
-60 s  & $0$ & $3$ & $0$ & $6$ & --  & $51$  \\
-90 s  & $0$ & $3$ & $0$ & $6$ & --  & $27$  \\
-120 s & $0$ & $3$ & $0$ & $6$ & --  & $19$  \\
-300 s & $0$ & $3$ & $0$ & $6$ & $0$ & $6$   \\
-600 s & $0$ & $3$ & $0$ & $6$ & $0$ & $6$   \\
+10 s  & $0$ & $3$ & $0$ & $329$ & --    & --    \\
+20 s  & $0$ & $3$ & $0$ & $6$   & --    & --    \\
+30 s  & $0$ & $3$ & $0$ & $6$   & --    & --    \\
+40 s  & $0$ & $3$ & $0$ & $6$   & --    & --    \\
+50 s  & $0$ & $3$ & $0$ & $6$   & $874$ & --    \\
+60 s  & $0$ & $3$ & $0$ & $6$   & $289$ & --    \\
+90 s  & $0$ & $3$ & $0$ & $6$   & $0$   & $472$ \\
+120 s & $0$ & $3$ & $0$ & $6$   & $0$   & $100$ \\
+300 s & $0$ & $3$ & $0$ & $6$   & $0$   & $6$   \\
+600 s & $0$ & $3$ & $0$ & $6$   & $0$   & $6$   \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Kolona ,,FINAL-L sa`` je ono što se u ovakvim merenjima obično i očekuje:
-cilj pada sa 200 na 135, pa na 57, 51, 27, 19 i konačno 6, i to kroz
-skoro tri minuta pretrage. Cela putanja poboljšanja za to pokretanje data
-je u tabeli \ref{tbl:tight_traj_l}.
+prvo rešenje se pojavi tek posle nešto više od minuta, a cilj zatim pada
+sa 472 na 100 i konačno na 6, kroz gotovo tri i po minuta pretrage. Cela
+putanja poboljšanja za to pokretanje data je u tabeli
+\ref{tbl:tight_traj_l}.
 
 \begin{table}[ht]
 \centering
@@ -2295,20 +2498,27 @@ je u tabeli \ref{tbl:tight_traj_l}.
 \textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj}
 & \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-37,44 s & $200$ & 45,85 s & $77$ & 83,08 s  & $35$ \\
-37,54 s & $196$ & 45,86 s & $75$ & 83,15 s  & $33$ \\
-37,84 s & $194$ & 47,63 s & $72$ & 87,13 s  & $30$ \\
-38,04 s & $191$ & 47,99 s & $71$ & 88,40 s  & $27$ \\
-38,25 s & $189$ & 49,78 s & $57$ & 90,05 s  & $24$ \\
-38,39 s & $173$ & 51,88 s & $56$ & 100,78 s & $23$ \\
-38,40 s & $168$ & 56,31 s & $54$ & 107,54 s & $22$ \\
-38,52 s & $164$ & 58,52 s & $51$ & 110,48 s & $19$ \\
-39,19 s & $162$ & 60,61 s & $47$ & 124,38 s & $15$ \\
-39,65 s & $156$ & 64,48 s & $45$ & 127,76 s & $14$ \\
-39,86 s & $135$ & 65,66 s & $44$ & 131,85 s & $12$ \\
-40,28 s & $129$ & 66,23 s & $42$ & 132,72 s & $9$  \\
-41,92 s & $127$ & 70,97 s & $39$ & 173,93 s & $6$  \\
-44,58 s & $97$  & 79,56 s & $36$ &          &      \\
+67,06 s & $2\,456$ & 95,43 s  & $300$ & 131,90 s & $61$ \\
+67,22 s & $2\,413$ & 98,57 s  & $281$ & 131,94 s & $58$ \\
+71,35 s & $2\,025$ & 99,05 s  & $267$ & 135,01 s & $55$ \\
+71,53 s & $1\,978$ & 100,51 s & $227$ & 135,26 s & $54$ \\
+72,03 s & $1\,871$ & 102,28 s & $205$ & 141,89 s & $51$ \\
+72,42 s & $1\,678$ & 102,30 s & $202$ & 144,99 s & $48$ \\
+72,65 s & $1\,646$ & 103,85 s & $171$ & 146,64 s & $45$ \\
+73,86 s & $1\,493$ & 106,47 s & $157$ & 148,90 s & $42$ \\
+75,46 s & $1\,245$ & 106,99 s & $138$ & 149,57 s & $39$ \\
+75,82 s & $1\,232$ & 107,26 s & $121$ & 150,68 s & $36$ \\
+78,47 s & $1\,158$ & 108,58 s & $116$ & 151,06 s & $34$ \\
+81,15 s & $988$    & 109,10 s & $114$ & 152,24 s & $28$ \\
+82,97 s & $845$    & 109,17 s & $110$ & 155,16 s & $25$ \\
+82,99 s & $843$    & 110,29 s & $103$ & 156,43 s & $21$ \\
+84,55 s & $841$    & 112,17 s & $101$ & 158,18 s & $18$ \\
+84,99 s & $689$    & 112,26 s & $100$ & 163,43 s & $15$ \\
+85,99 s & $664$    & 120,63 s & $86$  & 164,17 s & $12$ \\
+88,57 s & $472$    & 126,71 s & $70$  & 166,54 s & $11$ \\
+90,25 s & $470$    & 127,18 s & $67$  & 173,26 s & $9$  \\
+92,01 s & $406$    & 130,02 s & $66$  & 209,53 s & $6$  \\
+93,31 s & $384$    & 131,89 s & $62$  &          &      \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2322,129 +2532,102 @@ bazel run //src/algo:benchmark -- --mode final --profile tight \
 \end{verbatim}
 \end{english}
 
-\section{Međuskalno poređenje}
-\label{sec:finalna_normalizacija}
-
-Apsolutne vrednosti funkcije cilja nisu neposredno uporedive između
-skala: veća instanca ima više grupa kojima raspored može imati procepe i
-više nastavnika kojima limit radnih dana može biti prekoračen, pa
-očekujemo veći zbir kazni i kada je raspored jednako dobar. Zato uz
-apsolutnu vrednost prikazujemo i cilj podeljen brojem sesija, odnosno
-brojem nastavnika koji u datoj instanci imaju bar jedan čas. Rezultati
-su u tabeli \ref{tbl:final_normalizovano}, za konfiguraciju sa osobljem
-(bez osoblja nema nastavnika po kojima bi se normalizovalo).
-
-\begin{table}[ht]
-\centering
-\caption{Normalizovana vrednost cilja, konfiguracija sa osobljem}
-\label{tbl:final_normalizovano}
-\begin{tabular}{lrrr}
-\toprule
-\textbf{Metrika} & \textbf{FINAL-S} & \textbf{FINAL-M} & \textbf{FINAL-L} \\
-\midrule
-Sesije      & $199$ & $378$ & $685$ \\
-Nastavnici  & $39$  & $76$  & $109$ \\
-\midrule
-\multicolumn{4}{l}{\emph{Realno okruženje (8--20 časova)}} \\
-Cilj prvog rešenja   & $48$    & $182$   & $282$   \\
-\quad po sesiji      & $0,241$ & $0,481$ & $0,412$ \\
-\quad po nastavniku  & $1,231$ & $2,395$ & $2,587$ \\
-Najbolji cilj        & $0$     & $0$     & $0$     \\
-\midrule
-\multicolumn{4}{l}{\emph{Zaoštreno okruženje (8--14 časova)}} \\
-Cilj prvog rešenja   & $14$    & $45$    & $200$   \\
-\quad po sesiji      & $0,070$ & $0,119$ & $0,292$ \\
-\quad po nastavniku  & $0,359$ & $0,592$ & $1,835$ \\
-Najbolji cilj        & $3$     & $6$     & $6$     \\
-\quad po sesiji      & $0,015$ & $0,016$ & $0,009$ \\
-\quad po nastavniku  & $0,077$ & $0,079$ & $0,055$ \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Normalizacija menja sliku na dva mesta. Prvo, rast početne kazne sa
-skalom je manji nego što apsolutne vrednosti sugerišu: u realnom
-okruženju cilj prvog rešenja raste 5,9 puta od najmanje do najveće skale
-(48 na 282), ali po nastavniku svega 2,1 puta (1,231 na 2,587), a od
-srednje do najveće skale gotovo da i ne raste. Drugo, kvalitet konačnog
-rešenja u zaoštrenom okruženju \emph{ne} opada sa veličinom problema --
-najbolji cilj po sesiji iznosi 0,015, 0,016 i 0,009, dakle najveća
-instanca daje relativno najbolji raspored. Rešavač, dakle, veće instance
-ne rešava lošije, nego samo sporije.
-
 \section{Analiza rezultata}
 \label{sec:finalna_analiza}
 
 \subsection{Cena proširenja modela}
 
-Uvođenje nastavnog osoblja otprilike udvostručuje model: broj
-promenljivih raste 2,2 do 2,4 puta, a broj ograničenja oko 2,1 puta na
-svim skalama. Zanimljivo je da broj sesija pritom \emph{opada} (na
-primer, sa 722 na 685 na najvećoj skali). Razlog je pojam kohorte iz
-odeljka \ref{sec:cohorts}: dodele oblika
-\texttt{"groupIds": ["2la", "2lb"]} spajaju više grupa u jedan
-zajednički čas, pa nastavnik isto predavanje ne drži dva puta. Rast
-modela, dakle, ne dolazi od većeg broja časova nego od pomoćnih
-promenljivih kojima se izražavaju pravila osoblja.
+Uvođenje nastavnog osoblja model uvećava oko dva i po puta: broj
+promenljivih raste 2,6 do 2,9 puta, a broj ograničenja 2,6 do 2,9 puta
+na svim skalama. Deo tog rasta dolazi od pomoćnih promenljivih kojima se
+izražavaju pravila osoblja, a deo od toga što instanca sa osobljem
+opisuje \emph{više} nastave: na najvećoj skali 839 naspram 722 časa.
+
+Razlog za veći broj časova je to što se grupe izvode iz dodela nastave
+(odeljak \ref{sec:grupe_iz_osoblja}). Bez fajla sa osobljem upis se deli
+na grupe od najviše 50 studenata, pa najveća skala ima 30 grupa; dodele
+nastave, međutim, opisuju stvarnu podelu na 44 grupe (na primer, prva
+godina Informatike ima šest grupa vežbi umesto dve). Više grupa znači i
+više časova vežbi.
+
+Pojam kohorte iz odeljka \ref{sec:cohorts} radi u suprotnom smeru:
+dodele oblika \texttt{"groupIds": ["1i1a", "1i1b", "1i1v"]} spajaju više
+grupa u jedan zajednički čas, pa nastavnik isto predavanje ne drži više
+puta. Na najvećoj skali 139 od 839 časova su takve zajedničke sesije.
+Zbog toga broj časova raste 16\% iako broj grupa raste 47\% -- spajanje
+predavanja pojede veći deo razlike.
 
 \subsection{Ponašanje funkcije cilja kroz vreme}
 
-U konfiguraciji bez osoblja rešavač na svim skalama prvim pronađenim
-rešenjem odmah pogađa optimum, odnosno raspored bez ijednog procepa.
-Meko ograničenje procepa se, uz spajanje časova u blokove, zadovoljava
-bez ustupaka, pa optimizacija praktično nema šta da popravlja.
+U obe konfiguracije prvo pronađeno rešenje je daleko od optimuma, i u
+obe rešavač cilj spusti do nule. Bez osoblja početna vrednost je 1355,
+1009 i 2440 na skalama S, M i L, a do nule se stiže kroz 23, 15 i 23
+pronađena rešenja; sa osobljem početne vrednosti su 585, 1849 i 2973, a
+poboljšanja ima 10, 38 i 56.
 
-U konfiguraciji sa osobljem slika je bitno drugačija. Prvo rešenje je
-osetno lošije (48, 182 i 282 na skalama S, M i L), jer u njemu veliki
-broj nastavnika radi više dana nego što im je dozvoljeno. Odatle
-rešavač u nizu koraka spušta cilj do nule, kroz ukupno 4 nađena rešenja
-na najmanjoj, 16 na srednjoj i 23 na najvećoj instanci. Poboljšanja su
-gusta i neravnomerna -- najveći skokovi dešavaju se rano (na primer, sa
-106 na 99 u svega 0,7 sekundi na skali L), dok poslednji koraci do nule
-traju duže jer je preostale prekršaje sve teže ukloniti.
+Sastav početne kazne se pri tome menja sa konfiguracijom. Bez osoblja u
+njoj su samo procepi u rasporedu grupa i studenti bez mesta u učionici;
+sa osobljem se na to dodaju i nastavnici koji rade više dana nego što im
+je dozvoljeno, pa je početna kazna na srednjoj i najvećoj skali osetno
+veća. Na najmanjoj skali je obrnuto (585 naspram 1355), što pokazuje da
+te dve konfiguracije nisu ni ista instanca: sa osobljem se raspoređuje
+216 časova podeljenih na 11 grupa, bez osoblja 204 časa na 8 grupa.
+
+Poboljšanja su gusta i neravnomerna -- najveći skokovi dešavaju se rano
+(na primer, sa 2259 na 1823 u svega 0,4 sekunde na skali L sa osobljem),
+dok poslednji koraci do nule traju duže jer je preostale prekršaje sve
+teže ukloniti: poslednjih 65 poena cilja na najvećoj skali oduzima
+gotovo pola minuta pretrage.
 
 \subsection{Skalabilnost}
 
 Vreme do prvog dopustivog rešenja raste sa veličinom instance
-(1,42 s, 4,13 s i 20,74 s bez osoblja), što je očekivano jer raste i
-broj sesija koje treba smestiti u isti broj termina i učionica. Ukupno
-vreme do dokazano optimalnog rešenja u konfiguraciji sa osobljem iznosi
-3,05 s, 10,58 s i 30,96 s. Na najvećoj instanci konfiguracija sa
-osobljem je prvo rešenje našla čak i nešto ranije od one bez osoblja
-(18,81 s naspram 20,74 s), što treba pripisati nedeterminističkoj
-paralelnoj pretrazi, a ne prednosti većeg modela.
+(1,59 s, 4,86 s i 23,92 s bez osoblja, odnosno 2,69 s, 9,06 s i 30,03 s
+sa osobljem), što je očekivano jer raste i broj sesija koje treba
+smestiti u isti broj termina i učionica. Ukupno vreme do dokazano
+optimalnog rešenja u konfiguraciji sa osobljem iznosi 4,05 s, 16,95 s i
+121,76 s -- rast je nadlinearan, pa se vidi da najveća skala već traži
+znatan deo posla u fazi optimizacije, a ne samo u traženju prvog
+rešenja.
 
 Bitno je da su svi rezultati dobijeni sa statusom \textsc{optimal},
 dakle donja granica se poklopila sa nađenim rešenjem. Vremenski limit od
 600 sekundi ni na jednoj skali nije ni približno iskorišćen: najsporije
-pokretanje završeno je za oko 31 sekundu, što je nešto više od 5\%
-raspoloživog vremena. Prošireni model, dakle, ne samo da ostaje rešiv
-posle svih dodatih ograničenja, nego i dalje ima znatnu rezervu za
-buduća proširenja navedena u glavi \ref{chp:zakljucak}.
+pokretanje završeno je za oko dva minuta, dakle unutar 21\% raspoloživog
+vremena. Prošireni model, dakle, ne samo da ostaje rešiv posle svih
+dodatih ograničenja, nego i dalje ima rezervu za buduća proširenja
+navedena u glavi \ref{chp:zakljucak}.
 
 \subsection{Uticaj oskudice resursa}
 
 Poređenje dva okruženja pokazuje da težina ovog problema mnogo više
 zavisi od količine raspoloživih termina nego od broja pravila. Skraćenje
-radnog dana sa dvanaest na šest časova ne menja nijedno ograničenje
-modela, a vreme rešavanja najveće instance sa osobljem raste sa 31 na
-174 sekunde, dok cilj prestaje da bude dostižan u nuli.
+radnog dana sa dvanaest na sedam časova ne menja nijedno ograničenje
+modela, a vreme rešavanja najveće instance sa osobljem raste sa 122 na
+210 sekundi, dok cilj prestaje da bude dostižan u nuli.
 
-Zanimljiv je i obrt na najvećoj skali: u zaoštrenom okruženju
-konfiguracija \emph{bez} osoblja teže nalazi prvo rešenje od one sa
-osobljem (273,07 s naspram 37,44 s). Objašnjenje je ponovo pojam kohorte
-iz odeljka \ref{sec:cohorts} -- dodele nastavnika spajaju grupe u
-zajedničke časove, pa instanca sa osobljem ima 685 umesto 722 časa. Kada
-je popunjenost termina oko 79\%, tih 37 časova razlike odlučuje koliko
-će rešavač tražiti prvo dopustivo rešenje. Drugim rečima, na granici
-rešivosti veći model može biti lakši od manjeg ako opisuje manje posla.
+Najviše se, međutim, produži traženje \emph{prvog} dopustivog rešenja:
+na najvećoj skali sa osobljem sa 30 na 67 sekundi, a bez osoblja sa 24
+na 43 sekunde. To je i suština razlike između dva okruženja -- u realnom
+je težak deo posla optimizacija, a u zaoštrenom sama dopustivost. Na
+manjim skalama je efekat blaži (FINAL-S sa osobljem: 2,69 s naspram
+1,63 s), jer prva godina i u kratkom danu ima dovoljno prostora.
 
 Vredi primetiti i da je početna kazna u zaoštrenom okruženju
-\emph{manja} nego u realnom (200 naspram 282 na najvećoj skali), iako je
-okruženje strože. U kratkom danu jednostavno ima manje prilika za
+\emph{manja} nego u realnom (2456 naspram 2973 na najvećoj skali), iako
+je okruženje strože. U kratkom danu jednostavno ima manje prilika za
 procepe. Razlika je u tome što se ta manja kazna ne može svesti na nulu:
 u realnom okruženju cilj je velik ali potpuno uklonjiv, a u zaoštrenom
-je manji ali sadrži nesvodiv ostatak.
+je manji ali sadrži nesvodiv ostatak od 3 poena na najmanjoj i 6 na
+srednjoj i najvećoj skali.
+
+Konačno, granica rešivosti je bliža nego što se iz ovih brojeva vidi.
+Dan od 8 do 15 časova daje 1015 termina za 839 časova, dakle 83\%
+popunjenosti, i rešavač tu još dokazuje optimalnost. Jedan čas kraći dan
+(870 termina, 96\% popunjenosti) menja sliku iz temelja: rešavač za 600
+sekundi ne nađe nijedno dopustivo rešenje. Prelaz od dokazano optimalnog
+rešenja do nemogućnosti da se nađe bilo kakvo mera se, dakle, jednim
+časom nastave dnevno.
 
 \subsection{Validnost}
 
@@ -2497,16 +2680,17 @@ Na osnovu ovih rezultata, CP-SAT je izabran kao osnova za dalju
 nadogradnju sistema za raspoređivanje časova. Nadogradnja je sprovedena
 u dva koraka. U glavi \ref{chp:nadogradnja} uvedena je arhitektura
 pravila (eng. \emph{plugin}) sa podrškom za tvrda i meka ograničenja i
-funkcija cilja koja minimizuje težinsku sumu prekršaja, zajedno sa tri
-nova ograničenja kvaliteta -- spajanje časova u blokove, jedna lokacija
-po danu za grupu i izbegavanje procepa u rasporedu. U glavi
+funkcija cilja koja minimizuje težinsku sumu prekršaja, zajedno sa
+četiri nova ograničenja kvaliteta -- spajanje časova u blokove, jedna
+lokacija po danu za grupu, izbegavanje procepa u rasporedu i kapacitet
+učionice kao meko ograničenje. U glavi
 \ref{chp:osoblje} model je proširen nastavnim osobljem: uveden je pojam
 kohorte i zajedničkih sesija (kojima se izbegava da nastavnik drži isti
 čas više puta), tvrdo ograničenje da nastavnik nije dvostruko zauzet, i
 tri pravila osoblja -- jedna lokacija po danu, najveći broj radnih dana i
 nedeljni budžet procepa. Time je pokazano da se kompaktni CP-SAT model lako
 i modularno proširuje ka realnim potrebama Matematičkog fakulteta, uz
-poštovanje kapaciteta učionica i ograničenja nastavnika.
+kapacitet učionica i ograničenja nastavnika.
 
 Završna evaluacija iz glave \ref{chp:finalna-evaluacija} pokazala je da
 prošireni model ostaje praktično upotrebljiv. Iako raspoređivanje
@@ -2533,7 +2717,8 @@ termina za još 17\% rešavač ne nalazi nijedno dopustivo rešenje ni za
 Kroz glave \ref{chp:nadogradnja} i \ref{chp:osoblje} implementirani su
 meka ograničenja sa funkcijom cilja, lokacijska ograničenja za grupe i
 nastavnike, grupisanje časova u blokove, raspoređivanje nastavnog osoblja
-i poštovanje kapaciteta učionica. Preostali pravci daljeg rada su:
+i kapacitet učionica kao meko ograničenje. Preostali pravci daljeg rada
+su:
 
 \begin{enumerate}
 \item \textbf{Raspoloživost i preferencije nastavnika.}

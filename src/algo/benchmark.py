@@ -442,13 +442,13 @@ FINAL_PROFILES = {
         name="realistic",
         label="realno okruzenje (8-20h, sve ucionice)",
     ),
-    # 8-14h daje 870 termina za 685 sesija najvece skale (79% popunjenosti).
-    # Prostor je namerno biran na ivici: vec pri 720 termina rezavac ne
-    # nadje nijedno dopustivo resenje ni za 600s.
+    # 8-15h daje 1015 termina za 839 sesija najvece skale (83% popunjenosti).
+    # Prostor je namerno biran na ivici: vec pri 870 termina (8-14h) rezavac
+    # ne nadje nijedno dopustivo resenje najvece skale ni za 600s.
     "tight": FinalProfile(
         name="tight",
-        label="zaostreno okruzenje (8-14h, najvise 2 radna dana nastavnika)",
-        end_hour=14,
+        label="zaostreno okruzenje (8-15h, najvise 2 radna dana nastavnika)",
+        end_hour=15,
         staff_max_days=2,
     ),
 }
@@ -886,7 +886,8 @@ def print_final_summary(results: List[AnytimeResult]):
   Profil:     {profile.name} -- {profile.label}
   Skale:      sečenje po godinama studija (semestri 2 / 2,4 / 2,4,6,8)
   Cilj:       tezinska suma prekrsaja mekih pravila
-              (procepi u rasporedu grupa, dani preko limita nastavnika)
+              (procepi u rasporedu grupa, dani preko limita nastavnika,
+               studenti preko kapaciteta ucionice)
   Rezim:      OPTIMIZACIJA -- prati se vrednost cilja kroz vreme
 """)
     for r in results:

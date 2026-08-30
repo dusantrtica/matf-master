@@ -14,7 +14,7 @@
             "enabled": true,
             "penalty": 2
         },
-        "preferLargerRoomsForLargerSessions": {
+        "roomCapacity": {
             "enabled": true,
             "penalty": 1
         }
