@@ -44,14 +44,25 @@
 
 \apstr{%
 U ovom radu razmatramo problem automatskog generisanja rasporeda časova
-na univerzitetskom nivou. Prikazujemo dve paradigme za rešavanje ovog
-problema: programiranje ograničenja (CP) i mešovito celobrojno programiranje
-(MIP). Oba pristupa su implementirana korišćenjem biblioteke Google OR-Tools
-i primenjena na podatke Matematičkog fakulteta Univerziteta u Beogradu.
-Sprovedena je eksperimentalna evaluacija na tri skale problema različite
-veličine. Rezultati pokazuju da CP-SAT rešavač značajno nadmašuje MIP/SCIP
-pristup u pogledu vremena rešavanja, kompaktnosti modela i memorijskog
-otiska, posebno kako veličina problema raste.
+na univerzitetskom nivou, na podacima Matematičkog fakulteta
+Univerziteta u Beogradu. Rad je sproveden u tri koraka. Najpre su
+razvijene dve formulacije osnovnog problema, u kojima se traži raspored
+koji zadovoljava tvrda ograničenja: jedna u paradigmi programiranja
+ograničenja (CP-SAT) i jedna u paradigmi mešovitog celobrojnog
+programiranja (MIP/SCIP), obe implementirane pomoću biblioteke
+Google OR-Tools. Zatim je sprovedeno njihovo eksperimentalno poređenje
+na tri skale realnih podataka, po vremenu konstrukcije modela i
+rešavanja, veličini modela i memorijskom otisku. Obe formulacije daju
+validna rešenja na svim skalama, pri čemu CP-SAT do dopustivog
+rasporeda dolazi brže, te je iz praktičnih razloga izabran kao
+osnova za nastavak rada. U trećem koraku CP model je proširen:
+uvedena je arhitektura pravila sa tvrdim i mekim ograničenjima i
+funkcijom cilja, dodata su ograničenja kvaliteta rasporeda -- spajanje
+časova u blokove, jedna lokacija po danu, izbegavanje procepa i
+kapacitet učionica -- i raspoređivanje nastavnog osoblja. Prošireni
+model je ponovo evaluiran, uz praćenje vrednosti funkcije cilja kroz
+vreme i dodatno merenje u okruženju sa manjim brojem
+termina.
 }
 
 \kljucnereci{raspored časova, programiranje ograničenja, celobrojno programiranje,
@@ -106,22 +117,38 @@ U ovom radu istražujemo dva pristupa za automatsko rešavanje UCTP-a:
 
 \section{Cilj rada}
 
-Primarni cilj ovog rada je komparativna analiza CP i MIP paradigmi na
-problem generisanja rasporeda časova. Kroz eksperimentalnu evaluaciju
-na tri skale problema različite veličine (mali, srednji i veliki podskup
-realnih podataka), ispitujemo:
+Rad ima tri cilja koja se nadovezuju jedan na drugi.
 
-\begin{itemize}
-\item brzinu konstrukcije modela i rešavanja,
-\item kompaktnost formulacije (broj promenljivih i ograničenja),
-\item memorijski otisak,
-\item skalabilnost pristupa pri rastu veličine problema.
-\end{itemize}
+\begin{enumerate}
+\item \textbf{Dve formulacije osnovnog problema.} Za isti skup tvrdih
+  ograničenja razvijamo CP i MIP verziju, svaku u idiomu njene
+  paradigme.
 
-Na osnovu rezultata ove analize, u narednoj fazi rada planira se
-nadogradnja pobedničke paradigme dodatnim ograničenjima (raspoređivanje
-nastavnog osoblja, lokacijska ograničenja, meka ograničenja za
-kvalitetniji raspored).
+\item \textbf{Eksperimentalno poređenje.} Obe formulacije poredimo na
+  tri skale realnih podataka (mali, srednji i veliki podskup) po
+  vremenu konstrukcije modela, vremenu rešavanja, memorijskom otisku,
+  veličini modela i validnosti dobijenog rasporeda.
+
+\item \textbf{Proširenje i ponovna evaluacija.} Jednu od dve
+  formulacije proširujemo mekim ograničenjima, funkcijom cilja i
+  raspoređivanjem nastavnog osoblja, pa prošireni model ponovo
+  evaluiramo.
+\end{enumerate}
+
+Veličinu modela (broj promenljivih i ograničenja) posmatramo kao
+opisnu karakteristiku formulacije, a ne kao meru njenog kvaliteta:
+dve paradigme problem zapisuju na različite načine, pa
+sam broj promenljivih nije uporediv između njih. Kao merila koristimo
+ukupno vreme do dopustivog rešenja, ponašanje pri rastu instance i
+nezavisno proverenu validnost rasporeda.
+
+Za nastavak rada izabran je CP model. Izbor je pragmatičan i vezan za
+konkretan problem, instance i implementacije opisane u ovom radu:
+CP-SAT je na svim ispitanim skalama brže dolazio do dopustivog
+rasporeda, a njegov zapis se pokazao pogodnim za postupno dodavanje
+novih pravila. MIP formulacija takođe daje validne rasporede,
+a drugačija formulacija ili drugi rešavač mogli bi dati drugačiji
+odnos rezultata.
 
 \section{Struktura rada}
 
@@ -139,13 +166,13 @@ Rad je organizovan na sledeći način:
 \item U glavi \ref{chp:formulacija} detaljno izlažemo formulaciju problema,
   model ulaznih podataka i konkretne implementacije u obe paradigme.
 
-\item U glavi \ref{chp:evaluacija} predstavljamo eksperimentalnu evaluaciju
-  osnovnog modela: metodologiju merenja, poređenje dve paradigme na tri
-  skale problema i analizu dobijenih rezultata.
+\item U glavi \ref{chp:evaluacija} predstavljamo evaluaciju
+  osnovnog modela: metodologiju merenja, poređenje dve formulacije na tri
+  skale problema i analizu dobijenih rezultata. Ova evaluacija služi i
+  kao osnov za izbor formulacije koju dalje razvijamo.
 
-\item U glavi \ref{chp:nadogradnja} nadograđujemo izabrani CP model
-  arhitekturom pravila, funkcijom cilja i trima novim ograničenjima
-  kvaliteta rasporeda.
+\item U glavi \ref{chp:nadogradnja} CP model, izabran u prethodnoj glavi,
+  nadograđujemo arhitekturom pravila, funkcijom cilja i uvodimo nova ograničenja.
 
 \item U glavi \ref{chp:osoblje} model proširujemo nastavnim osobljem:
   dodelom nastave, zajedničkim sesijama i pravilima koja štite
@@ -1881,7 +1908,6 @@ grupa navedenih u dodelama (\texttt{1i1a}, \texttt{1i1b},
 \texttt{1i1v}, \texttt{1i2a}, \texttt{1i2b}, \texttt{1i2v}) daju četiri
 grupe od 17 i dve od 16 studenata.
 
-Podela odgovornosti je time jasna: fajl sa osobljem određuje
 \emph{koje} grupe postoje i \emph{ko} im drži nastavu, a osnovni ulaz
 \emph{koliko} ih je i \emph{šta} slušaju. Ako neki par (smer, semestar)
 nema ni jednu imenovanu grupu u dodelama, za njega se koristi rezervni
