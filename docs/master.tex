@@ -96,11 +96,13 @@ broj učionica, uzimajući u obzir radne dane, raspoložive termine i različite
 vrste ograničenja.
 
 Problem raspoređivanja časova (eng. \emph{University Course Timetabling
-Problem} -- UCTP) jeste NP-težak problem \cite{even1975, garey1979}, što
-znači da ne postoji poznat algoritam koji bi ga efikasno rešio u opštem
-slučaju. Tradicionalno, rasporedi se prave ručno, što zahteva veliku
-količinu ljudskog rada, vremena i stručnosti. Čak i iskusni raspoređivači
-mogu da propuste kolizije ili da stvore neoptimalan raspored.
+Problem} -- UCTP) javlja se u više varijanti, a za opšte varijante
+poznato je da su NP-teške \cite{even1975, garey1979}: algoritam
+polinomijalne složenosti za njihov opšti slučaj povlačio bi
+$\mathrm{P} = \mathrm{NP}$. Tradicionalno, rasporedi se prave ručno,
+što zahteva veliku količinu ljudskog rada, vremena i stručnosti. Čak i
+iskusni raspoređivači mogu da propuste kolizije ili da stvore
+neoptimalan raspored.
 
 U ovom radu istražujemo dva pristupa za automatsko rešavanje UCTP-a:
 
@@ -271,14 +273,23 @@ predviđeni su za drugi deo rada.
 
 \subsection{NP-težina problema}
 
-Even, Itai i Shamir \cite{even1975} su dokazali da je problem
-raspoređivanja NP-težak redukcijom sa problema bojenja grafova.
-Garey i Johnson \cite{garey1979} su ovaj rezultat uključili u svoju
-obimnu katalogizaciju NP-kompletnih problema. Ovo znači da je
-malo verovatno da postoji algoritam polinomijalne složenosti za
-rešavanje opšteg slučaja problema raspoređivanja, te se u praksi
-pribegava heuristikama ili egzaktnim metodama sa eksponencijalnom
-najgorom složenošću.
+Raspoređivanje nastave nije jedan problem, već porodica varijanti koje
+se razlikuju po tome šta se raspoređuje i koja ograničenja važe, pa se
+i složenost mora vezati za tačno određenu varijantu. Even, Itai i
+Shamir \cite{even1975} pokazali su da je jedna ograničena varijanta
+problema raspoređivanja nastave po razredima i nastavnicima
+NP-kompletna, svođenjem problema 3-SAT na nju (teorema 1, str. 692), i
+odatle zaključuju da su i uobičajene, opštije varijante NP-kompletne.
+Garey i Johnson \cite{garey1979} uvrstili su taj rezultat u svoju
+katalogizaciju NP-kompletnih problema.
+
+Za ovaj rad je dovoljna posledica tog rezultata: kada je neka varijanta
+NP-teška, algoritam polinomijalne složenosti za njen opšti slučaj
+povlačio bi $\mathrm{P} = \mathrm{NP}$. Pošto se za to ne očekuje da
+važi, u praksi se pribegava heuristikama ili egzaktnim metodama čija je
+najgora složenost eksponencijalna. Model koji razvijamo u ovom radu ne
+poklapa se ni sa jednom varijantom iz navedenih dokaza, ali deli
+njihovu kombinatornu strukturu, pa ga i posmatramo kao računski težak.
 
 \section{Programiranje ograničenja}
 \label{sec:cp}
