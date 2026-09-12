@@ -276,18 +276,22 @@ def benchmark_mip(
     )
 
 
-DEFAULT_REAL_SOURCE = "src/algo/input_full_1_semester.json"
+# Isti ulaz kao zavrsna evaluacija (FINAL_SOURCE), da bi instance pre i
+# posle prosirenja modela bile uporedive.
+DEFAULT_REAL_SOURCE = "src/algo/input_full_2_semester.json"
 
+# Skaliramo samo potraznju (godine studija); resursi (svih 29 ucionica na
+# tri lokacije) ostaju isti u svim skalama, kao u FINAL_SCALE_CONFIGS.
 SCALE_CONFIGS = {
-    "S": {"semesters": [1], "loc_ids": [1], "max_time": 60},
-    "M": {"semesters": [1, 3], "loc_ids": [1, 3], "max_time": 120},
-    "L": {"semesters": [1, 3, 5, 7], "loc_ids": [1, 2, 3], "max_time": 600},
+    "S": {"semesters": [2], "loc_ids": [1, 2, 3], "max_time": 60},
+    "M": {"semesters": [2, 4], "loc_ids": [1, 2, 3], "max_time": 120},
+    "L": {"semesters": [2, 4, 6, 8], "loc_ids": [1, 2, 3], "max_time": 600},
 }
 
 SCALE_LABELS = {
-    "S": "MATF-S: 1. godina, lok. Studentski trg",
-    "M": "MATF-M: 1-2. godina, lok. Studentski trg + Jagiceva",
-    "L": "MATF-L: sve godine, sve lokacije",
+    "S": "MATF-S: 1. godina",
+    "M": "MATF-M: 1-2. godina",
+    "L": "MATF-L: sve godine",
 }
 
 
