@@ -322,43 +322,50 @@ osobljem:
 
 | Skala   | Godine | Semestri  | Sesije (bez / sa osobljem) |
 |---------|--------|-----------|----------------------------|
-| FINAL-S | 1.     | 2         | 204 / 199                  |
-| FINAL-M | 1-2.   | 2, 4      | 398 / 378                  |
-| FINAL-L | 1-4.   | 2,4,6,8   | 722 / 685                  |
+| FINAL-S | 1.     | 2         | 204 / 216                  |
+| FINAL-M | 1-2.   | 2, 4      | 398 / 437                  |
+| FINAL-L | 1-4.   | 2,4,6,8   | 722 / 835                  |
 
-Broj sesija je manji sa osobljem jer dodele sa vise grupa (`groupIds`)
-prave zajednicke sesije (kohorte).
+Sa osobljem ima vise sesija jer se grupe izvode iz dodela nastave (44
+grupe na najvecoj skali) umesto deljenjem upisa na grupe od najvise 50
+studenata (30 grupa). Kohorte rade u suprotnom smeru: dodele sa vise
+grupa (`groupIds`) prave jednu zajednicku sesiju, pa je rast broja
+sesija (16%) manji od rasta broja grupa (47%).
 
 Posto prosireni model ima funkciju cilja, prati se i njena vrednost kroz
 vreme: `ObjectiveTracker` (callback nad CP-SAT-om) belezi svako
 poboljsanje, pa se iz putanje racunaju vrednosti u presecima
 (`--checkpoints`). Rezultat po pokretanju:
 
-| Skala   | Konfiguracija | Prvo resenje | Cilj prvog resenja | Do optimuma | Status  |
-|---------|---------------|--------------|--------------------|-------------|---------|
-| FINAL-S | bez osoblja   | 1.42 s       | 0                  | 1.42 s      | OPTIMAL |
-| FINAL-S | sa osobljem   | 2.58 s       | 48                 | 3.03 s      | OPTIMAL |
-| FINAL-M | bez osoblja   | 4.13 s       | 0                  | 4.13 s      | OPTIMAL |
-| FINAL-M | sa osobljem   | 7.24 s       | 182                | 10.51 s     | OPTIMAL |
-| FINAL-L | bez osoblja   | 20.74 s      | 0                  | 20.74 s     | OPTIMAL |
-| FINAL-L | sa osobljem   | 18.81 s      | 282                | 30.86 s     | OPTIMAL |
+| Skala   | Konfiguracija | Prvo resenje | Cilj prvog | Do najboljeg | Dokaz opt. | Resenja | Status  |
+|---------|---------------|--------------|------------|--------------|------------|---------|---------|
+| FINAL-S | bez osoblja   | 1.62 s       | 1355       | 2.38 s       | 2.40 s     | 22      | OPTIMAL |
+| FINAL-S | sa osobljem   | 2.67 s       | 696        | 4.17 s       | 4.20 s     | 19      | OPTIMAL |
+| FINAL-M | bez osoblja   | 4.90 s       | 1009       | 7.26 s       | 7.28 s     | 16      | OPTIMAL |
+| FINAL-M | sa osobljem   | 8.76 s       | 1444       | 15.20 s      | 15.26 s    | 32      | OPTIMAL |
+| FINAL-L | bez osoblja   | 23.17 s      | 2440       | 40.43 s      | 40.48 s    | 43      | OPTIMAL |
+| FINAL-L | sa osobljem   | 27.46 s      | 3095       | 76.66 s      | 76.78 s    | 73      | OPTIMAL |
 
-Bez osoblja prvo resenje je vec optimalno (nema procepa), dok sa osobljem
-solver kroz 4 do 23 nadjena resenja spusta cilj do nule. Sva pokretanja
-zavrsavaju daleko ispod limita od 600 s. Validacija je za ovaj rezim
-prosirena i proverom da nastavnik nema dva casa u istom terminu.
+U obe konfiguracije prvo dopustivo resenje je daleko od optimuma, pa ga
+solver kroz 16 do 73 prijavljena resenja spusta do nule (broj resenja
+ukljucuje i prvo dopustivo, pa je strogih poboljsanja jedno manje). Sva
+pokretanja zavrsavaju daleko ispod limita od 600 s: najsporije za 77.6 s
+ukupno, dakle unutar 13% limita. Validacija je za ovaj rezim prosirena
+i proverom da nastavnik nema dva casa u istom terminu; blokovi, lokacija
+po danu i budzet procepa pokriveni su testovima pojedinacnih pravila, a
+ne proverom svakog dobijenog rasporeda.
 
 ### Profili instance: `--profile`
 
-Realna instanca ima puno slobodnog prostora (29 ucionica x 60 termina =
-1740 mesta za najvise 685 casova), pa solver optimum dostigne za desetak
-sekundi i kriva cilja odmah padne na nulu. Profil `tight` smanjuje
-resurse da bi meka pravila stvarno dosla u sukob:
+Realna instanca ima puno slobodnog prostora (29 ucionica x 12 termina x
+5 dana = 1740 parova za najvise 835 casova, dakle 48% popunjenosti), pa
+kriva cilja pouzdano padne na nulu. Profil `tight` smanjuje resurse da bi
+meka pravila stvarno dosla u sukob:
 
-| Profil      | Radni dan | Termina | maxDays | Namena                          |
-|-------------|-----------|---------|---------|---------------------------------|
-| `realistic` | 8-20 h    | 1740    | 4       | da li je model upotrebljiv      |
-| `tight`     | 8-14 h    | 870     | 2       | ponasanje na granici resivosti  |
+| Profil      | Radni dan | Parova (ucionica, termin) | maxDays | Namena                         |
+|-------------|-----------|---------------------------|---------|--------------------------------|
+| `realistic` | 8-20 h    | 1740                      | 4       | da li je model upotrebljiv     |
+| `tight`     | 8-15 h    | 1015                      | 2       | ponasanje kad je prostor uzak  |
 
 ```bash
 bazel run //src/algo:benchmark -- --mode final --profile tight \
@@ -367,17 +374,19 @@ bazel run //src/algo:benchmark -- --mode final --profile tight \
 
 | Skala   | Konfiguracija | Prvo resenje | Cilj prvog | Do najboljeg | Najbolji cilj |
 |---------|---------------|--------------|------------|--------------|---------------|
-| FINAL-S | bez osoblja   | 0.58 s       | 0          | 0.58 s       | 0             |
-| FINAL-S | sa osobljem   | 1.25 s       | 14         | 1.42 s       | 3             |
-| FINAL-M | bez osoblja   | 2.11 s       | 8          | 2.17 s       | 0             |
-| FINAL-M | sa osobljem   | 6.38 s       | 45         | 7.78 s       | 6             |
-| FINAL-L | bez osoblja   | 273.07 s     | 102        | 295.11 s     | 0             |
-| FINAL-L | sa osobljem   | 37.44 s      | 200        | 173.93 s     | 6             |
+| FINAL-S | bez osoblja   | 1.14 s       | 744        | 1.50 s       | 0             |
+| FINAL-S | sa osobljem   | 1.67 s       | 1050       | 2.60 s       | 3             |
+| FINAL-M | bez osoblja   | 3.80 s       | 1837       | 6.13 s       | 0             |
+| FINAL-M | sa osobljem   | 6.63 s       | 1676       | 12.36 s      | 6             |
+| FINAL-L | bez osoblja   | 37.29 s      | 2545       | 58.11 s      | 0             |
+| FINAL-L | sa osobljem   | 50.61 s      | 2821       | 194.32 s     | 6             |
 
-Sve i dalje zavrsava sa `OPTIMAL`, ali najbolji cilj vise nije nula --
-u zbijenoj nedelji svi nastavnici ne mogu stati u dva radna dana bez
-ijednog procepa kod grupa. Granica je uska: pri 720 termina (nastava do
-13 h) nema nijednog dopustivog resenja ni za 600 s.
+Sve i dalje zavrsava sa `OPTIMAL`, ali najbolji cilj vise nije nula.
+Ceo preostali cilj dolazi od pravila `staffMaxWorkingDays`
+(`objective_by_rule`): jedan nastavnik na S, dva na M i L rade jedan dan
+preko limita. Prostor je uzak: pri 870 parova (nastava do 14 h) solver
+za 600 s ne nadje nijedno dopustivo resenje niti dokaze da ga nema
+(status `UNKNOWN`).
 
 ### Normalizovan cilj
 
@@ -390,13 +399,24 @@ Ispisuju se u tabeli "MEDJUSKALNO POREDJENJE" i cuvaju u JSON izvestaju.
 
 ## 9. Zakljucak
 
-Na osnovu merenja iznad, **CP-SAT je znatno performantiji i pogodniji** za nas problem
-nedeljnog rasporeda nastave.
+Zakljucci vaze za dve konkretne formulacije iz ovog repozitorijuma, za
+CP-SAT i SCIP u podrazumevanim podesavanjima i za tri opisane instance.
+Oba modela resavaju problem dopustivosti, pa MIP radi bez funkcije cilja
+i ne koristi donju granicu iz LP relaksacije.
 
-1. **Velicina modela** -- linearna umesto multiplikativne (**109-258x**
-   manje promenljivih).
-2. **Vreme resavanja** -- **54-110x brze** na svim skalama; na MATF-L
-   (762 sesije) CP zavrsi za 0.90 s, MIP za 48.13 s.
-3. **Memorija** -- **138-362x** manje za model.
-4. **Skalabilnost** -- CP-SAT uspesno resava problem sa 762 sesije i 29
-   ucionica za manje od sekunde, sto omogucuje interaktivnu upotrebu.
+1. **Validnost** -- resenja oba resavaca prolaze nezavisnu proveru
+   tvrdih ogranicenja na sve tri instance.
+2. **Vreme resavanja** -- na ovim instancama je CP-SAT bio brzi:
+   ukupno vreme MIP/SCIP-a je 198x vece na MATF-S, 158x na MATF-M i 22x
+   na MATF-L. Relativna prednost opada sa velicinom instance, dok
+   apsolutna razlika raste (8.3 s na MATF-S, 34.8 s na MATF-L).
+3. **Obim zapisa** -- CP koristi 6 celobrojnih promenljivih po sesiji, a
+   0-1 ILP po jednu binarnu promenljivu po (sesija, dan, sat, dozvoljena
+   ucionica). Iz tog odnosa se ne zakljucuje o tezini resavanja: jedno
+   globalno ogranicenje obuhvata mnogo promenljivih.
+4. **Memorija** -- `tracemalloc` meri samo alokacije na strani Pythona,
+   ne i interne strukture OR-Tools-a u C++; `ru_maxrss` je vrhunac celog
+   procesa kroz sva pokretanja, pa nije mera po instanci.
+
+Za dalji razvoj je izabran CP-SAT, jer je na ovim instancama bio brzi i
+jer se globalna ogranicenja lakse prosiruju novim pravilima.

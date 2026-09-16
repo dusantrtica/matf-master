@@ -6,6 +6,10 @@
 \setheaderspaces{*}{1.7\onelineskip}{*}
 \checkandfixthelayout
 
+% glava o evaluaciji ima tri nivoa naslova ispod glave
+\setsecnumdepth{subsubsection}
+\settocdepth{subsection}
+
 \usepackage{iftex}
 \ifpdftex
   \usepackage{cmsrb}
@@ -115,7 +119,7 @@ U ovom radu istražujemo dva pristupa za automatsko rešavanje UCTP-a:
 \item \textbf{Mešovito celobrojno programiranje} (eng. \emph{Mixed Integer
   Programming} -- MIP) -- matematička optimizacija u kojoj se problem
   zapisuje linearnom funkcijom cilja i linearnim ograničenjima nad
-  promenljivama koje mogu biti celobrojne ili kontinualne. Model koji
+  promenljivama koje mogu biti celobrojne ili neprekidne. Model koji
   razvijamo u ovom radu koristi isključivo binarne promenljive, pa je
   reč o binarnom celobrojnom linearnom modelu (0-1 ILP, odnosno BIP),
   posebnom slučaju šire klase MIP modela. Rešavamo ga SCIP
@@ -162,33 +166,31 @@ odnos rezultata.
 Rad je organizovan na sledeći način:
 
 \begin{itemize}
-\item U glavi \ref{chp:teorija} izlažemo teorijske osnove: definiciju
-  problema raspoređivanja časova, paradigmu programiranja ograničenja
-  i paradigmu celobrojnog linearnog programiranja.
+\item U glavi \ref{chp:teorija} izlažemo teorijske osnove -- definiciju
+  problema raspoređivanja časova, paradigmu programiranja ograničenja i
+  paradigmu celobrojnog linearnog programiranja -- i na njih nadovezujemo
+  formalnu specifikaciju problema u obe paradigme, sa promenljivama,
+  domenima i ograničenjima (odeljak \ref{sec:formalna_specifikacija}).
 
-\item U glavi \ref{chp:alati} dajemo kratak pregled korišćenih alata:
-  biblioteke Google OR-Tools, sistema za gradnju Bazel i pomoćnih
-  Python biblioteka.
+\item U glavi \ref{chp:implementacija} prikazujemo izvedbu: korišćene
+  alate (odeljak \ref{sec:alati}), model ulaznih podataka i formiranje
+  sesija, implementaciju oba modela u OR-Tools-u i strukturno poređenje
+  dve formulacije.
 
-\item U glavi \ref{chp:formulacija} izlažemo model ulaznih podataka,
-  formalnu specifikaciju problema u obe paradigme -- promenljive,
-  domene i ograničenja -- i njihovu implementaciju.
-
-\item U glavi \ref{chp:evaluacija} predstavljamo preliminarnu evaluaciju
-  osnovnog modela: metodologiju merenja, poređenje dve formulacije na tri
-  skale problema i analizu dobijenih rezultata. Ova evaluacija služi i
-  kao osnov za izbor formulacije koju dalje razvijamo.
-
-\item U glavi \ref{chp:nadogradnja} CP model, izabran u prethodnoj glavi,
-  nadograđujemo arhitekturom pravila, funkcijom cilja i uvodimo nova ograničenja.
+\item U glavi \ref{chp:nadogradnja} CP model nadograđujemo arhitekturom
+  pravila, funkcijom cilja i novim ograničenjima kvaliteta rasporeda.
 
 \item U glavi \ref{chp:osoblje} model proširujemo nastavnim osobljem:
   dodelom nastave, zajedničkim sesijama i pravilima koja štite
   raspored nastavnika.
 
-\item U glavi \ref{chp:finalna-evaluacija} dajemo završnu evaluaciju
-  proširenog modela na tri skale, sa naglaskom na vrednost funkcije
-  cilja u zavisnosti od proteklog vremena izračunavanja.
+\item Glava \ref{chp:evaluacija-glava} objedinjuje merenja. Odeljak
+  \ref{sec:preliminarna-evaluacija} donosi preliminarnu evaluaciju
+  osnovnog modela, sa poređenjem dve formulacije na tri skale problema,
+  koja služi i kao osnov za izbor formulacije za dalji razvoj; odeljak
+  \ref{sec:zavrsna-evaluacija} donosi završnu evaluaciju proširenog
+  modela, sa naglaskom na vrednost funkcije cilja u zavisnosti od
+  proteklog vremena izračunavanja.
 
 \item U glavi \ref{chp:zakljucak} sumiramo zaključke i navodimo pravce
   daljeg rada.
@@ -196,22 +198,26 @@ Rad je organizovan na sledeći način:
 
 
 % ------------------------------------------------------------------------------
-\chapter{Teorijske osnove}
+\chapter{Teorijske osnove i formulacija problema}
 \label{chp:teorija}
+\chaptermark{Teorijske osnove}
 % ------------------------------------------------------------------------------
 
-U ovoj glavi izlažemo teorijski okvir za razumevanje problema i pristupa
-koje koristimo u ovom radu. Najpre definišemo problem raspoređivanja
-časova, zatim opisujemo paradigmu programiranja ograničenja, i na kraju
-predstavljamo celobrojno linearno programiranje.
+U ovoj glavi izlažemo teorijski okvir problema i pristupa
+koje koristimo u ovom radu, a zatim na njega nadovezujemo formalnu
+specifikaciju problema. Najpre definišemo problem raspoređivanja
+časova, zatim opisujemo paradigmu programiranja ograničenja, pa
+celobrojno linearno programiranje, i na kraju, u odeljku
+\ref{sec:formalna_specifikacija}, zapisujemo konkretan model u obe
+paradigme -- promenljive, njihove domene i ograničenja.
 
 \section{Problem raspoređivanja časova}
 \label{sec:uctp}
 
-Problem raspoređivanja univerzitetskih časova (UCTP) sastoji se od
+Problem raspoređivanja univerzitetskih časova sastoji se od
 dodele časova predavanja, vežbi u raspoložive
 vremenske termine i učionice, tako da budu zadovoljena određena
-ograničenja \cite{schaerf1999, burke2004}.
+ograničenja.
 
 Formalno, problem se može opisati sledećim elementima:
 
@@ -341,7 +347,7 @@ ograničenja \cite{rossi2006}:
 
 \subsection{Globalna ograničenja}
 
-Ključna prednost CP-a je podrška za \emph{globalna ograničenja} --
+Bitna karakteristika CP-a je podrška za \emph{globalna ograničenja} --
 specijalizovane strukture koje obuhvataju odnose između većeg broja
 promenljivih i koje imaju efikasne algoritme propagacije \cite{regin1994}.
 
@@ -355,7 +361,7 @@ grafovima \cite{regin1994}.
 
 \textbf{AllowedAssignments.}
 Ograničenje $\texttt{AllowedAssignments}$ (poznato i kao
-\emph{table constraint}) eksplicitno navodi dozvoljene kombinacije
+\emph{table constraint}) eksplicitno navodi dozvoljene 
 vrednosti promenljivih pomoću tabele (skupa torki). Ovo je korisno
 za ograničenja koja se ne mogu izraziti prostom aritmetikom, na primer
 ograničenje da sesija može biti raspoređena samo u podskup učionica.
@@ -377,7 +383,7 @@ učenja konflikata poznatom iz SAT rešavača.
 Mešovito celobrojno programiranje (eng. \emph{Mixed Integer Programming}
 -- MIP) je paradigma matematičke optimizacije u kojoj se problem
 formuliše pomoću linearne funkcije cilja i linearnih ograničenja
-nad promenljivama koje mogu biti celobrojne ili kontinualne
+nad promenljivama koje mogu biti celobrojne ili neprekidne
 \cite{wolsey1998, nemhauser1988}.
 
 \subsection{Definicija MIP problema}
@@ -386,7 +392,7 @@ MIP problem u opštem obliku glasi:
 
 \begin{align}
 \min \quad & \mathbf{c}^T \mathbf{x} \label{eq:mip_obj} \\
-\text{p.o.} \quad & A\mathbf{x} \leq \mathbf{b} \label{eq:mip_constr} \\
+\text{t.d.} \quad & A\mathbf{x} \leq \mathbf{b} \label{eq:mip_constr} \\
 & x_i \in \mathbb{Z}, \quad i \in I \label{eq:mip_int} \\
 & x_j \geq 0, \quad j \notin I \label{eq:mip_cont}
 \end{align}
@@ -396,7 +402,7 @@ koeficijenata ograničenja, $\mathbf{b}$ vektor desnih strana, a $I$
 skup indeksa celobrojnih promenljivih.
 
 Unutar ove klase razlikujemo uže slučajeve. Ako su sve promenljive
-celobrojne, odnosno ako je $I$ skup svih indeksa, reč je o
+celobrojne, reč je o
 \emph{celobrojnom linearnom programu} (eng. \emph{Integer Linear
 Program} -- ILP). Ako su uz to sve promenljive binarne, $x_i \in \{0,
 1\}$, govori se o \emph{binarnom celobrojnom linearnom programu}
@@ -408,60 +414,323 @@ ILP modelu, posebnom slučaju opšteg MIP oblika
 \eqref{eq:mip_obj}--\eqref{eq:mip_cont}. U tabelama i u tekstu zadržana
 je kraća oznaka MIP/SCIP, koja imenuje paradigmu i rešavač.
 
-Osnovni model, izložen u glavi \ref{chp:formulacija}, postavljen je kao
+Osnovni model, izložen u odeljku \ref{sec:formalna_specifikacija}, postavljen je kao
 problem dopustivosti: funkcija cilja iz izraza \eqref{eq:mip_obj} se ne
 koristi, već se traži bilo koja dodela vrednosti koja zadovoljava sva
 linearna ograničenja. Prošireni CP model iz glava
 \ref{chp:nadogradnja} i \ref{chp:osoblje}, nasuprot tome, uvodi meka
 ograničenja i funkciju cilja \eqref{eq:objective} koja se minimizuje.
 
-\subsection{Tehnike rešavanja}
-
-MIP rešavači koriste kombinaciju sledećih tehnika \cite{wolsey1998}:
-
-\begin{enumerate}
-\item \textbf{LP relaksacija} -- opuštanje celobrojnih ograničenja
-  i rešavanje kontinualnog linearnog programa. Ovo daje donju granicu
-  za funkciju cilja (ili test nedopustivosti).
-
-\item \textbf{Grananje i odsecanje} (eng. \emph{branch and bound}) --
-  sistematska pretraga koja deli prostor rešenja na manje podprobleme,
-  koristeći LP relaksaciju za odsecanje grana koje ne mogu sadržati
-  bolje rešenje.
-
-\item \textbf{Ravni odsecanja} (eng. \emph{cutting planes}) --
-  dodavanje linearnih ograničenja koja eliminišu frakciona rešenja
-  LP relaksacije, a ne eliminišu celobrojna rešenja.
-\end{enumerate}
-
 \subsection{SCIP rešavač}
 
-SCIP (Solving Constraint Integer Programs) \cite{scip2009} je jedan
-od najsnažnijih akademskih rešavača za MIP i mešovito celobrojno
-nelinearno programiranje. SCIP kombinuje tehnike grananja i odsecanja
-sa propagacijom ograničenja i heuristikama. U našem radu koristimo
-SCIP integrisanog u Google OR-Tools putem interfejsa
-\texttt{pywraplp}.
+SCIP (Solving Constraint Integer Programs) \cite{scip2009} je
+akademski rešavač za celobrojno i mešovito celobrojno programiranje.
+Kao i drugi rešavači ove klase \cite{wolsey1998}, oslanja se na
+opuštanje uslova celobrojnosti (LP relaksacija), koje daje donju
+granicu funkcije cilja, na grananje i odsecanje (eng. \emph{branch and
+bound}) i na ravni odsecanja (eng. \emph{cutting planes}), uz
+propagaciju ograničenja i heuristike. U ovom radu koristimo SCIP
+integrisan u biblioteku Google OR-Tools.
 
-Time smo postavili pojmovni okvir: problem raspoređivanja i dva načina
-da se on zapiše, jedan preko promenljivih sa domenima i ograničenja
-koja se propagiraju, drugi preko binarnih promenljivih i linearnih
-nejednakosti. Naredna glava ukratko predstavlja alate kojima su ta dva
-zapisa implementirana.
+
+\section{Formalna specifikacija}
+\label{sec:formalna_specifikacija}
+
+\subsection{Zajednička notacija}
+\label{sec:notacija}
+
+Obe formulacije opisuju isti problem nad istim ulazom, pa oznake
+uvodimo na jednom mestu. Sesija je ovde jednosatni čas jedne kohorte
+iz jednog predmeta; kako se od ulaznih podataka dobija skup sesija
+opisuje odeljak \ref{sec:sesije}, a ovde taj skup uzimamo kao dat.
+
+\begin{itemize}
+\item $\mathcal{S}$ -- skup sesija, indeksiran sa
+  $s \in \{0, 1, \ldots, |\mathcal{S}|-1\}$;
+\item $\mathcal{D}$ -- skup radnih dana i $D = |\mathcal{D}|$ njihov
+  broj; $\mathcal{H}$ -- skup raspoloživih sati u toku jednog dana i
+  $H = |\mathcal{H}|$ njihov broj; $\mathcal{R}$ -- skup učionica i
+  $R = |\mathcal{R}|$ njihov broj. Dani, sati i učionice indeksiraju se
+  redom sa $d \in \{0, \ldots, D-1\}$, $h \in \{0, \ldots, H-1\}$ i
+  $r \in \{0, \ldots, R-1\}$;
+\item $\mathcal{G}$ -- skup grupa studenata i $G = |\mathcal{G}|$
+  njihov broj;
+\item $\mathcal{S}_g \subseteq \mathcal{S}$ -- skup sesija koje pohađa
+  grupa $g \in \mathcal{G}$. Sesija koju zajednički sluša više grupa
+  pripada skupu svake od njih (odeljak \ref{sec:cohorts});
+\item $\text{comp}_s \in \{0,1\}$ -- oznaka da li sesija $s$ zahteva
+  računarsku učionicu;
+\item $\mathcal{R}_{\text{comp}} = \{r \in \mathcal{R} :
+  \text{hasComputers}(r)\}$ -- skup učionica opremljenih računarima,
+  gde je $\text{hasComputers}(r)$ atribut učionice iz ulaza;
+\item $\text{Elig}(s) \subseteq \mathcal{R}$ -- skup učionica u kojima
+  sesija $s$ sme da se održi:
+  \[
+    \text{Elig}(s) =
+    \begin{cases}
+      \mathcal{R}_{\text{comp}}, & \text{comp}_s = 1,\\
+      \mathcal{R}, & \text{comp}_s = 0.
+    \end{cases}
+  \]
+\end{itemize}
+
+Rešenje pridružuje svakoj sesiji $s$ trojku $(d_s, h_s, r_s) \in
+\mathcal{D} \times \mathcal{H} \times \mathcal{R}$ -- dan, sat i
+učionicu. Tvrda ograničenja problema, zajednička za obe formulacije,
+označavamo istim oznakama u oba modela:
+
+\begin{itemize}
+\item \textbf{HC1} -- svaka sesija dobija tačno jedan termin i tačno
+  jednu učionicu;
+\item \textbf{HC2} -- u jednoj učionici u jednom terminu održava se
+  najviše jedna sesija;
+\item \textbf{HC3} -- nijedna grupa nema dve sesije u istom terminu;
+\item \textbf{HC4} -- sesija koja zahteva računare održava se u
+  učionici iz skupa $\mathcal{R}_{\text{comp}}$.
+\end{itemize}
+
+Zahtev za računarima jedini je tvrdi uslov na izbor
+učionice: kapacitet ne ulazi u $\text{Elig}(s)$, već se tek u glavi
+\ref{chp:nadogradnja} uvodi kao meko ograničenje (odeljak
+\ref{sec:kapacitet}). Osnovni model radi u režimu izvodljivosti --
+traži se bilo koje rešenje koje zadovoljava sva tvrda ograničenja, bez
+funkcije cilja.
+
+\subsection{CP model: promenljive, domeni i ograničenja}
+\label{sec:cp_form}
+
+\textbf{Promenljive i domeni.}
+Za svaku sesiju $s \in \{0, 1, \ldots, |\mathcal{S}|-1\}$ definišemo
+sledeće celobrojne promenljive:
+
+\begin{align}
+\text{day}_s &\in \{0, 1, \ldots, D-1\} \label{eq:cp_day} \\
+\text{slot}_s &\in \{0, 1, \ldots, H-1\} \label{eq:cp_slot} \\
+\text{room}_s &\in \{0, 1, \ldots, R-1\} \label{eq:cp_room}
+\end{align}
+
+Dodatno, definišemo tri izvedene promenljive:
+
+\begin{align}
+\text{flatTime}_s &= \text{day}_s \cdot H + \text{slot}_s
+  \label{eq:cp_flat} \\
+\text{roomTime}_s &= \text{room}_s \cdot (D \cdot H) +
+  \text{flatTime}_s \label{eq:cp_roomtime} \\
+\text{loc}_s &= \text{loc}(\text{room}_s) \label{eq:cp_loc}
+\end{align}
+
+Promenljiva $\text{flatTime}_s$ linearizuje par (dan, sat) u
+jedinstven indeks unutar nedelje, a $\text{roomTime}_s$ trojku
+(učionica, dan, sat) u jedinstven indeks preko svih učionica i
+termina. Promenljiva $\text{loc}_s$ nosi lokaciju dodeljene učionice,
+dobijenu indeksiranjem niza lokacija vrednošću $\text{room}_s$; ona ne
+sužava skup dopustivih rešenja osnovnog modela, ali je koriste
+lokacijska pravila iz glava \ref{chp:nadogradnja} i \ref{chp:osoblje},
+pa je navodimo već ovde. Izvedene promenljive nisu automatski vezane
+za osnovne: one se uvode kao nove celobrojne promenljive, a jednakosti
+\eqref{eq:cp_flat}--\eqref{eq:cp_loc} dodaju se eksplicitno kao
+ograničenja. Ukupno model ima $6 \cdot |\mathcal{S}|$ celobrojnih
+promenljivih.
+
+\medskip
+\textbf{HC1: Svaka sesija dobija tačno jedan termin i učionicu.}
+U CP formulaciji ovaj uslov ne zahteva nijedno ograničenje: svaka
+sesija ima po jednu promenljivu za dan, sat i učionicu, pa svaka
+potpuna dodela vrednosti daje tačno jedan termin i tačno jednu
+učionicu po sesiji.
+
+\medskip
+\textbf{HC2: Najviše jedna sesija u datoj učionici u datom terminu.}
+Nikoje dve sesije ne mogu se održavati u istoj učionici u isto vreme:
+
+\begin{equation}
+\texttt{AllDifferent}(\text{roomTime}_0, \text{roomTime}_1,
+  \ldots, \text{roomTime}_{|\mathcal{S}|-1})
+\label{eq:cp_hc2}
+\end{equation}
+
+Ovo globalno ograničenje obuhvata sve sesije i garantuje
+da su sve trojke $(d_s, h_s, r_s)$ međusobno različite.
+
+\medskip
+\textbf{HC3: Bez kolizija unutar grupe.}
+Nikoje dve sesije iste grupe ne smeju biti u isto vreme:
+
+\begin{equation}
+\texttt{AllDifferent}(\{\text{flatTime}_s : s \in \mathcal{S}_g\}),
+  \quad \forall g \in \mathcal{G}
+\label{eq:cp_hc3}
+\end{equation}
+
+Oba ograničenja imaju isti oblik, samo nad različitim skupovima
+promenljivih: HC2 nad svim vrednostima $\text{roomTime}$, a HC3 nad
+vrednostima $\text{flatTime}$ jedne grupe. Sesija ulazi u HC3 za
+\emph{svaku} grupu kojoj pripada, što je bitno za zajedničke sesije
+koje istovremeno pohađa više grupa.
+
+\medskip
+\textbf{HC4: Ograničenje računarskih učionica.}
+Ako sesija $s$ zahteva računare, njen izbor učionice je ograničen na
+učionice sa računarima:
+
+\begin{equation}
+\text{comp}_s = 1 \implies \text{room}_s \in \mathcal{R}_{\text{comp}}
+\label{eq:cp_hc4}
+\end{equation}
+
+Ekvivalentno, $\text{room}_s \in \text{Elig}(s)$ za svaku sesiju $s$.
+U implementaciji se ovo zapisuje tabelarnim ograničenjem, koje u
+OR-Tools-u nosi ime \texttt{AddAllowedAssignments} (odeljak
+\ref{sec:cp_impl}). Pošto je $\text{comp}_s$ atribut sesije,
+ograničenje se odnosi samo na one sesije čiji tip nastave traži
+računare: predavanja iz predmeta čije vežbe traže računare ostaju
+slobodna da idu u bilo koju učionicu.
+
+\medskip
+\textbf{Veličina modela.} Broj celobrojnih promenljivih je
+$6|\mathcal{S}|$. Broj ograničenja koja model prijavljuje jeste
+\begin{equation}
+3|\mathcal{S}| + 1 + G + |\{s \in \mathcal{S} : \text{comp}_s = 1\}|,
+\label{eq:cp_broj_ogranicenja}
+\end{equation}
+gde $3|\mathcal{S}|$ dolazi od tri jednakosti koje vezuju izvedene
+promenljive za osnovne, jedinica od globalnog ograničenja HC2, $G$ od
+po jednog globalnog ograničenja HC3 za svaku grupu, a poslednji sabirak
+od tabelarnog ograničenja HC4, koje se dodaje samo sesijama sa
+zahtevom za računarima. Na instancama iz odeljka
+\ref{sec:preliminarna-evaluacija} izraz \eqref{eq:cp_broj_ogranicenja}
+daje izmerene vrednosti: za MATF-S je
+$3 \cdot 204 + 1 + 8 + 28 = 649$, za MATF-M
+$3 \cdot 398 + 1 + 16 + 58 = 1269$ i za MATF-L
+$3 \cdot 722 + 1 + 30 + 122 = 2319$. Broj ograničenja je pri tome slaba
+mera obima posla: jedno globalno ograničenje HC2 obuhvata sve sesije
+instance.
+
+\subsection{MIP model: promenljive, domeni i ograničenja}
+\label{sec:mip_form}
+
+\textbf{Promenljive i domeni.}
+Za svaku sesiju $s$ i svaku dopustivu kombinaciju (dan, sat, učionica)
+definišemo binarnu promenljivu:
+
+\begin{equation}
+x_{s,d,h,r} \in \{0, 1\}, \quad \forall s \in \mathcal{S},
+  \forall d \in \mathcal{D}, \forall h \in \mathcal{H},
+  \forall r \in \text{Elig}(s)
+\label{eq:mip_vars}
+\end{equation}
+
+\noindent Promenljiva $x_{s,d,h,r}$ ima vrednost 1 kada se sesija $s$
+održava u danu $d$, satu $h$ i učionici $r$. Promenljive za učionice
+van skupa $\text{Elig}(s)$ se uopšte ne kreiraju, čime je ograničenje
+HC4 zadovoljeno implicitno, kroz domen modela, a ne kroz zasebno
+ograničenje. Broj binarnih promenljivih je
+\begin{equation}
+D \cdot H \cdot \sum_{s \in \mathcal{S}} |\text{Elig}(s)|
+\;\leq\; D \cdot H \cdot R \cdot |\mathcal{S}|,
+\label{eq:mip_broj_promenljivih}
+\end{equation}
+dakle $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$
+
+Sve promenljive modela su binarne, a sva ograničenja linearna, pa je
+ovo binarni celobrojni linearni model (0-1 ILP), poseban slučaj opšteg
+MIP oblika iz odeljka \ref{sec:mip}. Rešava ga SCIP, odakle i oznaka
+MIP/SCIP koju koristimo u tabelama.
+
+\medskip
+\textbf{HC1: Svaka sesija raspoređena tačno jednom.}
+
+\begin{equation}
+\sum_{d \in \mathcal{D}} \sum_{h \in \mathcal{H}}
+  \sum_{r \in \text{Elig}(s)} x_{s,d,h,r} = 1,
+  \quad \forall s \in \mathcal{S}
+\label{eq:mip_hc1}
+\end{equation}
+
+\medskip
+\textbf{HC2: Najviše jedna sesija u datoj učionici u datom terminu.}
+
+\begin{equation}
+\sum_{s \,:\, r \in \text{Elig}(s)} x_{s,d,h,r} \leq 1,
+  \quad \forall d \in \mathcal{D}, \forall h \in \mathcal{H},
+  \forall r \in \mathcal{R}
+\label{eq:mip_hc2}
+\end{equation}
+
+\medskip
+\textbf{HC3: Bez kolizija unutar grupe.}
+
+\begin{equation}
+\sum_{s \in \mathcal{S}_g} \sum_{r \in \text{Elig}(s)} x_{s,d,h,r}
+  \leq 1, \quad \forall g \in \mathcal{G},
+  \forall d \in \mathcal{D}, \forall h \in \mathcal{H}
+\label{eq:mip_hc3}
+\end{equation}
+
+\medskip
+\textbf{Veličina modela.} Broj linearnih ograničenja je najviše
+\begin{equation}
+\underbrace{|\mathcal{S}|}_{\text{HC1}} +
+\underbrace{D H R}_{\text{HC2}} +
+\underbrace{G D H}_{\text{HC3}},
+\label{eq:mip_broj_ogranicenja}
+\end{equation}
+dakle $O(|\mathcal{S}| + DHR + GDH)$. Na instancama iz odeljka
+\ref{sec:preliminarna-evaluacija} vrednost se dostiže tačno: za MATF-S
+je $204 + 1740 + 480 = 2424$, koliko model i prijavljuje. Kraći zapis
+$O(DHR + GDH)$, kakav se sreće u literaturi, opravdan je samo kada važi
+$|\mathcal{S}| \leq DHR$, što na instancama iz ovog rada jeste slučaj
+(722 naspram 1740 na najvećoj skali).
+
+Kao i CP model iz prethodnog pododeljka, osnovni MIP model radi u
+režimu izvodljivosti, bez funkcije cilja. Meka ograničenja i funkcija
+cilja uvode se tek u proširenom CP modelu (glava
+\ref{chp:nadogradnja}).
+
+\subsection{Ekvivalentnost dve formulacije}
+\label{sec:ekvivalentnost}
+
+Ista četiri tvrda uslova zapisana su u dva idioma. Uslov HC1 u MIP
+modelu traži jednakost \eqref{eq:mip_hc1}, dok u CP modelu važi po
+konstrukciji, jer svaka sesija ima po jednu promenljivu za dan, sat i
+učionicu. Uslov HC2 je u CP modelu ograničenje \texttt{AllDifferent}
+nad $\text{roomTime}$, a u MIP modelu familija nejednakosti
+\eqref{eq:mip_hc2}, po jedna za svaku trojku $(d,h,r)$. Uslov HC3 je
+u CP modelu \texttt{AllDifferent} nad $\text{flatTime}$ po grupi, a u
+MIP modelu nejednakost \eqref{eq:mip_hc3} za svaku trojku $(g,d,h)$.
+Uslov HC4 oba modela izražavaju kroz isti skup $\text{Elig}(s)$ --
+CP eksplicitnim ograničenjem nad domenom promenljive
+$\text{room}_s$, a MIP izostavljanjem promenljivih za nedozvoljene
+učionice.
+
+Naredna glava opisuje alate kojima su te specifikacije implementirane, način
+na koji se od ulaznih podataka dobijaju sesije, i sam kod dva modela.
 
 
 % ------------------------------------------------------------------------------
-\chapter{Korišćeni alati i tehnologije}
-\label{chp:alati}
+\chapter{Implementacija i korišćene tehnologije}
+\label{chp:implementacija}
+\chaptermark{Implementacija}
 % ------------------------------------------------------------------------------
 
-U ovoj glavi dajemo kratak pregled alata i tehnologija korišćenih u
+
+U ovoj glavi prelazimo sa specifikacije na izvedbu. Najpre ukratko
+predstavljamo alate i biblioteke korišćene u implementaciji, zatim
+opisujemo ulazne podatke i način na koji se od njih formiraju sesije
+koje treba rasporediti, pa prikazujemo kod kojim se CP i MIP
+specifikacija iz glave \ref{chp:teorija} prevode u modele dva
+rešavača. Glavu zatvaramo strukturnim poređenjem dve formulacije.
+
+\section{Alati i biblioteke}
+\label{sec:alati}
+
+Ovde dajemo kratak pregled alata i tehnologija korišćenih u
 implementaciji, u meri u kojoj su potrebni za razumevanje narednih
-glava. Projekat je napisan u programskom jeziku Python \cite{python} i
+odeljaka. Projekat je napisan u programskom jeziku Python \cite{python} i
 koristi Bazel \cite{bazel} kao sistem za gradnju i upravljanje
 zavisnostima.
 
-\section{Google OR-Tools}
+\subsection{Google OR-Tools}
 \label{sec:ortools}
 
 Google OR-Tools \cite{ortools} je biblioteka otvorenog koda za
@@ -486,17 +755,17 @@ OR-Tools je izabran zato što je otvorenog izvornog koda i što kroz
 jedinstven Python API pokriva obe paradigme, pa se dve formulacije
 mogu porediti bez razlika koje bi poticale od različitih biblioteka.
 
-\section{Bazel}
+\subsection{Bazel}
 \label{sec:bazel}
 
 Bazel \cite{bazel} je sistem za gradnju i testiranje softvera. U ovom
 projektu koristi se zbog hermetičkih, reproducibilnih gradnji: iste
 verzije zavisnosti i isti izvorni kod daju isti rezultat na svakoj
-mašini, što je važno da bi merenja iz glava \ref{chp:evaluacija} i
-\ref{chp:finalna-evaluacija} bila ponovljiva. Inkrementalne gradnje
+mašini, što je važno da bi merenja iz glave
+\ref{chp:evaluacija-glava} bila ponovljiva. Inkrementalne gradnje
 pritom skraćuju ciklus razvoja.
 
-\section{Python biblioteke}
+\subsection{Python biblioteke}
 \label{sec:pylibs}
 
 Ulazni podaci se učitavaju i validiraju pomoću biblioteke Pydantic
@@ -516,27 +785,8 @@ učionica, a pytest \cite{pytest} za testove koji pokrivaju parsiranje
 ulaza, formiranje grupa i sesija i proveru da rešavači daju dopustiva
 rešenja. Testovi se pokreću kroz Bazel.
 
-Teorijski okvir iz glave \ref{chp:teorija} i alati opisani ovde daju
-sve što je potrebno da se problem raspoređivanja zapiše na dva načina.
-U narednoj glavi prelazimo sa opšteg opisa na konkretan model: najpre
-na ulazne podatke i sesije, zatim na formalnu specifikaciju CP i MIP
-modela, i na kraju na njihovu implementaciju u OR-Tools-u.
-
-
-% ------------------------------------------------------------------------------
-\chapter{Formulacija problema i implementacija}
-\label{chp:formulacija}
-% ------------------------------------------------------------------------------
-
-U ovoj glavi prelazimo sa opšteg opisa problema na konkretan model.
-Najpre opisujemo ulazne podatke i način na koji se od njih formiraju
-sesije koje treba rasporediti. Zatim dajemo formalnu specifikaciju --
-promenljive, njihove domene i ograničenja -- odvojeno za CP i za MIP
-paradigmu, i pokazujemo da dve formulacije opisuju isti skup dopustivih
-rešenja. Tek nakon toga prikazujemo implementaciju, odnosno kod kojim
-se te specifikacije prevode u modele dva rešavača.
-
 \section{Ulazni podaci i sesije}
+\label{sec:ulazni_podaci}
 
 \subsection{Model ulaznih podataka}
 \label{sec:input_model}
@@ -582,10 +832,6 @@ Struktura ulaznih podataka je sledeća:
     \emph{odvojeno za predavanja i za vežbe}.
   \end{itemize}
 
-  Predmet je pri tome samo nosilac zajedničkog identiteta i kvote:
-  predavanja i vežbe se dalje raspoređuju kao nezavisni časovi, o čemu
-  detaljno govori sekcija \ref{sec:sesije}.
-
 \item \textbf{StudentsEnrolled} -- broj upisanih studenata po smeru
   i semestru.
 \end{enumerate}
@@ -610,13 +856,12 @@ predstavlja letnji semestar nastave na Matematičkom fakultetu
 (\code{input_full_2_semester.json}, uz \code{staff_2_semester.json}):
 
 \begin{itemize}
-\item 6 smerova,
-\item 134 predmeta raspoređena po semestrima (2, 4, 6 i 8),
-\item 29 učionica na 3 lokacije,
-\item 919 upisanih studenata, iz kojih se dobija 30 grupa deljenjem po
-  veličini, odnosno 44 grupe kada se imena preuzmu iz dodela nastave,
-\item 112 nastavnika i 264 dodele nastave,
-\item radna nedelja od 5 dana, po 12 sati dnevno (8:00--20:00).
+\item smerovi,
+\item predmeti raspoređena po semestrima (2, 4, 6 i 8),
+\item učionice i lokacije,
+\item upisani studenti,
+\item nastavnici i dodele nastave,
+\item radna nedelja i radno vreme fakulteta.
 \end{itemize}
 
 Za ocenu rezultata važno je razdvojiti šta je preuzeto iz zvaničnih
@@ -627,23 +872,23 @@ učionice, njihove lokacije i podatak o tome koje su opremljene
 računarima.
 
 Procene su, sa druge strane, kapaciteti učionica, broj upisanih
-studenata po smeru i semestru, spisak nastavnika i dodele nastave, kao
+studenata po smeru i semestru, kao
 i podrazumevana veličina grupe od 50 studenata (konstanta
 \texttt{GROUP\_SIZE}), na osnovu koje se upis deli na približno
 jednake grupe. Ravnomerna podela je pojednostavljenje: u stvarnosti
 grupe nisu iste veličine, niti se studenti dele isključivo po smeru i
 semestru. Ta konstanta se koristi samo u osnovnom modelu; u proširenom
 modelu podela se preuzima iz dodela nastave, pa je tamo broj grupa
-realniji, a veličine i dalje procenjene.
+realniji.
 
 Te procene utiču na apsolutne vrednosti dveju veličina -- na broj
-grupa, a time i na ukupan broj sesija, i na broj studenata koji u
-mekom ograničenju kapaciteta (odeljak \ref{sec:kapacitet}) ostaju bez
-mesta. Struktura problema time se ne menja, a poređenje dve
-formulacije ostaje korektno, jer oba rešavača dobijaju isti ulaz.
+grupa, a time i na ukupan broj sesija, i na ukupan broj nedostajućih
+mesta po sesijama, koji meri meko ograničenje kapaciteta (odeljak
+\ref{sec:kapacitet}). Struktura problema time se ne menja, a poređenje
+dve formulacije ostaje korektno, jer oba rešavača dobijaju isti ulaz.
 Zaključci o tome kako se model ponaša pri rastu instance takođe ne
-zavise od tačnosti procena, ali broj nenamirenih mesta u učionicama
-treba čitati kao red veličine, a ne kao tačan podatak.
+zavise od tačnosti procena, ali broj nedostajućih mesta treba čitati
+kao red veličine, a ne kao tačan podatak.
 
 \subsection{Formiranje sesija}
 \label{sec:sesije}
@@ -685,7 +930,8 @@ sledećih koraka:
   upisanih. Kod deljenja po veličini svaka grupa dobija $\lfloor n / k
   \rfloor$ studenata, gde je $k$ broj grupa, pa se ostatak gubi: za 55
   upisanih dobijaju se dve grupe po 27, a nad punim semestrom zbir
-  veličina grupa iznosi 918 umesto 919. Na rezultate ove glave to ne
+  veličina grupa iznosi 918 umesto 919. Na preliminarnu evaluaciju
+  (odeljak \ref{sec:preliminarna-evaluacija}) to ne
   utiče, jer osnovni model traži samo dopustivost i veličina grupe u
   njemu ne ulazi ni u jedno ograničenje; kapacitet učionice postaje
   meko ograničenje tek u proširenom modelu (odeljak
@@ -753,7 +999,7 @@ predavanja i vežbe istog predmeta nezavisno određuju:
 \begin{itemize}
 \item \textbf{broj časova} -- \texttt{quota.theory} i
   \texttt{quota.practice} su odvojena polja, tako da predmet može imati
-  npr. 2 časa predavanja i 3 časova vežbi nedeljno ili ne mora uopšte imati vežbe.
+  npr. 2 časa predavanja i 3 časa vežbi nedeljno ili ne mora uopšte imati vežbe.
 \item \textbf{nastavnik} -- dodela nastave
   (\texttt{TeachingAssignment}, sekcija \ref{sec:staff_model}) vezuje se
   za par (predmet, tip nastave), pa predavanja i vežbe tipično drže
@@ -792,190 +1038,6 @@ $\text{comp}_s$ atribut sesije. Skalarni oblik
 (\texttt{"needsComputers": true}) i dalje je dopušten i tumači se kao
 isti zahtev za oba tipa nastave, radi kompatibilnosti sa starijim
 ulaznim fajlovima.
-
-\section{Formalna specifikacija}
-\label{sec:formalna_specifikacija}
-
-\subsection{Zajednička notacija}
-\label{sec:notacija}
-
-Obe formulacije opisuju isti problem nad istim ulazom, pa oznake
-uvodimo na jednom mestu:
-
-\begin{itemize}
-\item $\mathcal{S}$ -- skup sesija, indeksiran sa
-  $s \in \{0, 1, \ldots, |\mathcal{S}|-1\}$;
-\item $D$ -- broj radnih dana, $H$ -- broj raspoloživih sati u toku
-  jednog dana, $R$ -- broj učionica;
-\item $\mathcal{S}_g \subseteq \mathcal{S}$ -- skup sesija koje pohađa
-  grupa $g$. Sesija koju zajednički sluša više grupa pripada skupu
-  svake od njih (odeljak \ref{sec:cohorts});
-\item $\text{comp}_s$ -- zastavica koja kaže da li sesija $s$ zahteva
-  računarsku učionicu. To je atribut sesije, a ne predmeta (odeljak
-  \ref{sec:nezavisnost_tipova});
-\item $\text{hasComputers}(r)$ -- da li učionica $r$ ima računare;
-\item $\text{Elig}(s) = \{r : \neg\,\text{comp}_s \lor
-  \text{hasComputers}(r)\}$ -- skup učionica u kojima sesija $s$ sme
-  da se održi.
-\end{itemize}
-
-Rešenje pridružuje svakoj sesiji $s$ trojku $(d_s, h_s, r_s)$ -- dan,
-sat i učionicu. Zahtev za računarima jedini je tvrdi uslov na izbor
-učionice: kapacitet ne ulazi u $\text{Elig}(s)$, već se tek u glavi
-\ref{chp:nadogradnja} uvodi kao meko ograničenje (odeljak
-\ref{sec:kapacitet}). Osnovni model radi u režimu izvodljivosti --
-traži se bilo koje rešenje koje zadovoljava sva tvrda ograničenja, bez
-funkcije cilja.
-
-\subsection{CP model: promenljive, domeni i ograničenja}
-\label{sec:cp_form}
-
-\textbf{Promenljive i domeni.}
-Za svaku sesiju $s \in \{0, 1, \ldots, |\mathcal{S}|-1\}$ definišemo
-sledeće celobrojne promenljive:
-
-\begin{align}
-\text{day}_s &\in \{0, 1, \ldots, D-1\} \label{eq:cp_day} \\
-\text{slot}_s &\in \{0, 1, \ldots, H-1\} \label{eq:cp_slot} \\
-\text{room}_s &\in \{0, 1, \ldots, R-1\} \label{eq:cp_room}
-\end{align}
-
-Dodatno, definišemo dve izvedene promenljive:
-
-\begin{align}
-\text{flatTime}_s &= \text{day}_s \cdot H + \text{slot}_s
-  \label{eq:cp_flat} \\
-\text{roomTime}_s &= \text{room}_s \cdot (D \cdot H) +
-  \text{flatTime}_s \label{eq:cp_roomtime}
-\end{align}
-
-Promenljiva $\text{flatTime}_s$ linearizuje par (dan, sat) u
-jedinstven indeks unutar nedelje, a $\text{roomTime}_s$ trojku
-(učionica, dan, sat) u jedinstven indeks preko svih učionica i
-termina. Izvedene promenljive nisu automatski vezane za osnovne: one
-se uvode kao nove celobrojne promenljive, a jednakosti
-\eqref{eq:cp_flat} i \eqref{eq:cp_roomtime} dodaju se eksplicitno kao
-ograničenja. Ukupno model ima $5 \cdot |\mathcal{S}|$ celobrojnih
-promenljivih.
-
-\medskip
-\textbf{HC1: Jedinstvenost učionice u terminu.}
-Nikoje dve sesije ne mogu se održavati u istoj učionici u isto vreme:
-
-\begin{equation}
-\texttt{AllDifferent}(\text{roomTime}_0, \text{roomTime}_1,
-  \ldots, \text{roomTime}_{|\mathcal{S}|-1})
-\label{eq:cp_hc1}
-\end{equation}
-
-Ovo globalno ograničenje obuhvata sve sesije i garantuje
-da su sve trojke $(d_s, h_s, r_s)$ međusobno različite.
-
-\medskip
-\textbf{HC2: Bez kolizija unutar grupe.}
-Nikoje dve sesije iste grupe ne smeju biti u isto vreme:
-
-\begin{equation}
-\texttt{AllDifferent}(\{\text{flatTime}_s : s \in \mathcal{S}_g\}),
-  \quad \forall g
-\label{eq:cp_hc2}
-\end{equation}
-
-Oba ograničenja imaju isti oblik, samo nad različitim skupovima
-promenljivih: HC1 nad svim vrednostima $\text{roomTime}$, a HC2 nad
-vrednostima $\text{flatTime}$ jedne grupe. Sesija ulazi u HC2 za
-\emph{svaku} grupu kojoj pripada, što je bitno za zajedničke sesije
-koje istovremeno pohađa više grupa.
-
-\medskip
-\textbf{HC3: Ograničenje računarskih učionica.}
-Ako sesija $s$ zahteva računare, njen izbor učionice je ograničen
-na podskup učionica sa računarima:
-
-\begin{equation}
-\text{comp}_s \implies \text{room}_s \in
-  \texttt{AllowedAssignments}(\{r : \text{hasComputers}(r)\})
-\label{eq:cp_hc3}
-\end{equation}
-
-Pošto je $\text{comp}_s$ atribut sesije, ograničenje se odnosi samo na
-one sesije čiji tip nastave traži računare: predavanja iz predmeta
-čije vežbe traže računare ostaju slobodna da idu u bilo koju učionicu.
-
-\subsection{MIP model: promenljive, domeni i ograničenja}
-\label{sec:mip_form}
-
-\textbf{Promenljive i domeni.}
-Za svaku sesiju $s$ i svaku dopustivu kombinaciju (dan, sat, učionica)
-definišemo binarnu promenljivu:
-
-\begin{equation}
-x_{s,d,h,r} \in \{0, 1\}, \quad \forall s, \forall d \in
-  \{0,\ldots,D\!-\!1\}, \forall h \in \{0,\ldots,H\!-\!1\},
-  \forall r \in \text{Elig}(s)
-\label{eq:mip_vars}
-\end{equation}
-
-\noindent Promenljive za učionice van skupa $\text{Elig}(s)$ se uopšte
-ne kreiraju, čime se ograničenje računarskih učionica poštuje
-implicitno, kroz domen modela, a ne kroz zasebno ograničenje. Ukupan
-broj promenljivih je $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$.
-
-Sve promenljive modela su binarne, a sva ograničenja linearna, pa je
-ovo binarni celobrojni linearni model (0-1 ILP), poseban slučaj opšteg
-MIP oblika iz odeljka \ref{sec:mip}. Rešava ga SCIP, odakle i oznaka
-MIP/SCIP koju koristimo u tabelama.
-
-\medskip
-\textbf{HC1: Svaka sesija raspoređena tačno jednom.}
-
-\begin{equation}
-\sum_{d,h,r} x_{s,d,h,r} = 1, \quad \forall s \in \mathcal{S}
-\label{eq:mip_hc1}
-\end{equation}
-
-\medskip
-\textbf{HC2: Najviše jedna sesija u datoj učionici u datom terminu.}
-
-\begin{equation}
-\sum_{s \in \mathcal{S}} x_{s,d,h,r} \leq 1, \quad \forall d,h,r
-\label{eq:mip_hc2}
-\end{equation}
-
-\medskip
-\textbf{HC3: Bez kolizija unutar grupe.}
-Za svaku grupu $g$ i svaki termin $(d,h)$:
-
-\begin{equation}
-\sum_{s \in \mathcal{S}_g} \sum_{r} x_{s,d,h,r} \leq 1,
-  \quad \forall g, \forall d, \forall h
-\label{eq:mip_hc3}
-\end{equation}
-
-Kao i CP model iz prethodnog pododeljka, osnovni MIP model radi u
-režimu izvodljivosti, bez funkcije cilja. Meka ograničenja i funkcija
-cilja uvode se tek u proširenom CP modelu (glava
-\ref{chp:nadogradnja}).
-
-\subsection{Ekvivalentnost dve formulacije}
-\label{sec:ekvivalentnost}
-
-Ograničenja dva modela odgovaraju jedno drugom. MIP ograničenje HC1
-obezbeđuje da svaka sesija dobije tačno jednu dodelu; u CP modelu to
-važi po konstrukciji, jer svaka sesija ima po jednu promenljivu za dan,
-sat i učionicu. MIP ograničenje HC2 odgovara ograničenju
-\texttt{AllDifferent} nad $\text{roomTime}$, a HC3 ograničenju
-\texttt{AllDifferent} nad $\text{flatTime}$ po grupi. Zahtev za
-računarima oba modela izražavaju kroz isti skup $\text{Elig}(s)$ --
-CP eksplicitnim ograničenjem nad domenom promenljive
-$\text{room}_s$, a MIP izostavljanjem promenljivih za nedozvoljene
-učionice.
-
-Obe formulacije zato opisuju isti skup dopustivih rešenja. To je uslov
-bez koga poređenje iz glave \ref{chp:evaluacija} ne bi bilo
-smisleno: razlike u izmerenim veličinama potiču od načina zapisa
-problema i od rešavača, a ne od toga da jedan model rešava lakši
-problem.
 
 \section{Implementacija}
 \label{sec:implementacija}
@@ -1026,6 +1088,7 @@ class SchedulingInput:
 \end{english}
 
 \subsection{CP implementacija}
+\label{sec:cp_impl}
 
 Izvedene promenljive $\text{flatTime}_s$ i $\text{roomTime}_s$ uvode se
 kao nove celobrojne promenljive, a jednakosti \eqref{eq:cp_flat} i
@@ -1047,15 +1110,15 @@ self.model.Add(
 \end{lstlisting}
 \end{english}
 
-Ograničenja HC1 i HC2 svode se na isti poziv nad različitim skupovima
+Ograničenja HC2 i HC3 svode se na isti poziv nad različitim skupovima
 promenljivih:
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Ograničenja HC1 i HC2 u CP-SAT modelu}, label={lst:cp_alldiff}]
-# HC1: nikoje dve sesije ne dele istu (ucionicu, dan, sat)
+\begin{lstlisting}[language=Python, caption={Ograničenja HC2 i HC3 u CP-SAT modelu}, label={lst:cp_alldiff}]
+# HC2: nikoje dve sesije ne dele istu (ucionicu, dan, sat)
 self.model.AddAllDifferent(list(self.room_time_var.values()))
 
-# HC2: nikoje dve sesije iste grupe nisu u istom terminu
+# HC3: nikoje dve sesije iste grupe nisu u istom terminu
 groups = defaultdict(list)
 for s, session in enumerate(self.sessions):
     for group_id in session.group_ids:
@@ -1067,14 +1130,15 @@ for group_id, session_indices in groups.items():
 \end{lstlisting}
 \end{english}
 
-Uz pet promenljivih iz specifikacije, implementacija po sesiji gradi i
-šestu, $\text{loc}_s$, koja se iz $\text{room}_s$ dobija indeksiranjem
-niza lokacija. Ona ne utiče na skup dopustivih rešenja osnovnog
+Promenljiva $\text{loc}_s$ iz jednakosti \eqref{eq:cp_loc} dobija se
+indeksiranjem niza lokacija vrednošću $\text{room}_s$, pozivom
+\texttt{AddElement}. Ona ne utiče na skup dopustivih rešenja osnovnog
 modela, ali je koriste pravila vezana za lokacije u glavama
-\ref{chp:nadogradnja} i \ref{chp:osoblje}, pa je izmereni broj
-promenljivih u glavi \ref{chp:evaluacija} $6 \cdot |\mathcal{S}|$.
+\ref{chp:nadogradnja} i \ref{chp:osoblje}. Sa njom model po sesiji ima
+šest celobrojnih promenljivih, koliko ih i merenje u odeljku
+\ref{sec:preliminarna-evaluacija} pokazuje.
 
-Skup $\text{Elig}(s)$ iz ograničenja HC3 gradi se po sesiji, a
+Skup $\text{Elig}(s)$ iz ograničenja HC4 gradi se po sesiji, a
 ograničenje se dodaje samo kada je taj skup uži od skupa svih
 učionica:
 
@@ -1145,290 +1209,43 @@ for group_id, session_indices in groups.items():
 \end{lstlisting}
 \end{english}
 
-Razlika u načinu zapisa vidi se već ovde: ono što CP model izražava
-jednim pozivom nad skupom promenljivih, MIP model zapisuje petljom
-koja generiše po jednu nejednakost za svaku kombinaciju indeksa.
-
-\section{Poređenje formulacija}
+\section{Strukturno poređenje formulacija i rešavača}
 \label{sec:poredjenje_formulacija}
 
-Tabela \ref{tbl:formulacije} sumira ključne razlike između dve
-formulacije.
+Tabela \ref{tbl:formulacije} sumira strukturne razlike između dve
+formulacije i dva rešavača.
 
 \begin{table}[ht]
 \centering
-\caption{Poređenje CP i MIP formulacija}
+\caption{Strukturno poređenje formulacija i rešavača}
 \label{tbl:formulacije}
 \begin{tabular}{lll}
 \toprule
 \textbf{Aspekt} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
 \midrule
 Tip promenljivih & Celobrojne & Binarne \\
-Broj promenljivih & $O(|\mathcal{S}|)$ & $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ \\
-Tip ograničenja & Globalna & Linearne nejednakosti \\
-Broj ograničenja & Kompaktan & $O(D \cdot H \cdot R + G \cdot D \cdot H)$ \\
+Broj promenljivih & $6|\mathcal{S}|$ &
+  $D H \sum_s |\text{Elig}(s)|$ \\
+Tip ograničenja & Globalna & Linearne jednakosti i nejednakosti \\
+Broj ograničenja & $3|\mathcal{S}| + 1 + G + |\{s : \text{comp}_s\}|$ &
+  najviše $|\mathcal{S}| + DHR + GDH$ \\
 Pretraga & Propagacija + SAT & LP relaksacija + B\&B \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-CP formulacija koristi mali broj celobrojnih promenljivih sa globalnim ograničenjima,
-dok MIP formulacija eksplicitno enumeriše sve moguće dodele kroz
-binarne promenljive. Ovo ima uticaj na memorijski otisak
-i brzinu konstrukcije modela.
-
-Kako se te razlike ponašaju na realnim podacima ne može se zaključiti
-iz same formulacije, pa u narednoj glavi obe implementacije merimo na
-tri skale problema.
-
-
-% ------------------------------------------------------------------------------
-\chapter{Preliminarna evaluacija osnovnog modela}
-\label{chp:evaluacija}
-\chaptermark{Preliminarna evaluacija}
-% ------------------------------------------------------------------------------
-
-U ovoj glavi opisujemo metodologiju merenja performansi, predstavljamo
-rezultate eksperimenata i analiziramo dobijene podatke.
-
-Evaluacija je preliminarna u dva smisla. Odnosi se na osnovni model iz
-glave \ref{chp:formulacija}, dakle na traženje dopustivog rasporeda uz
-tri tvrda ograničenja i bez funkcije cilja, i služi tome da se izabere
-formulacija koju ćemo dalje razvijati. Završna evaluacija proširenog
-modela, sa mekim ograničenjima, funkcijom cilja i nastavnim osobljem,
-data je odvojeno u glavi \ref{chp:finalna-evaluacija}.
-
-\section{Metodologija}
-\label{sec:metodologija}
-
-\subsection{Podskupovi realnih podataka}
-
-Eksperimenti su sprovedeni na tri podskupa realnih podataka letnjeg
-semestra (\code{input_full_2_semester.json}), dobijena filtriranjem po
-godinama studija:
-
-\begin{enumerate}
-\item \textbf{MATF-S} (mali) -- 1. godina (semestar 2): 30 predmeta,
-  8 grupa i 204 sesije.
-
-\item \textbf{MATF-M} (srednji) -- 1. i 2. godina (semestri 2 i 4):
-  63 predmeta, 16 grupa i 398 sesija.
-
-\item \textbf{MATF-L} (veliki) -- sve četiri godine (semestri 2, 4, 6
-  i 8): 134 predmeta, 30 grupa i 722 sesije. Ovo je pun obim nastave
-  jednog semestra.
-\end{enumerate}
-
-Skalira se, dakle, samo potražnja: sve tri instance zadržavaju svih 29
-učionica na tri lokacije, pa se razlikuju jedino po količini nastave
-koju treba smestiti. Podskupovi su namerno definisani isto kao u
-završnoj evaluaciji (odeljak \ref{sec:finalna_metodologija}) i nad
-istim ulaznim fajlom, kako bi se rezultati pre i posle proširenja
-modela odnosili na istu instancu.
-
-Jedna razlika ipak ostaje i treba je imati u vidu. Ovde se grupe
-studenata dobijaju deljenjem broja upisanih na grupe od najviše 50
-studenata, jer osnovni model ne poznaje nastavno osoblje, dok se u
-glavi \ref{chp:finalna-evaluacija} grupe izvode iz imena navedenih u
-dodelama nastave (odeljak \ref{sec:grupe_iz_osoblja}), koja opisuju
-stvarnu podelu na fakultetu. Na najvećoj skali to je razlika između 30
-i 44 grupe, pa ista instanca tamo ima 839 umesto 722 sesije. Sam
-postupak raspoređivanja se ne menja -- menja se samo koliko časova
-ulazi u model -- ali apsolutne vrednosti iz ove glave i iz glave
-\ref{chp:finalna-evaluacija} zato nisu neposredno uporedive.
-
-\subsection{Metrike}
-
-Za svaki par (rešavač, skala) merimo sledeće metrike:
-
-\begin{itemize}
-\item \textbf{Broj sesija} -- ukupan broj časova koje treba rasporediti.
-\item \textbf{Broj promenljivih} -- veličina modela u terminima
-  odlučivačkih promenljivih.
-\item \textbf{Broj ograničenja} -- ukupan broj ograničenja u modelu.
-\item \textbf{Vreme konstrukcije} -- vreme potrebno za kreiranje
-  modela (promenljivih i ograničenja), mereno pomoću
-  \texttt{time.perf\_counter()}.
-\item \textbf{Vreme rešavanja} -- vreme potrebno za pronalaženje
-  dopustivog rešenja.
-\item \textbf{Ukupno vreme} -- zbir vremena konstrukcije i rešavanja.
-\item \textbf{Memorija modela} -- memorijski otisak modela, meren
-  pomoću \texttt{tracemalloc} (razlika memorijskih snimaka pre i
-  posle konstrukcije modela).
-\item \textbf{Maksimalna RAM} -- vršna potrošnja memorije procesa,
-  merena pomoću \texttt{resource.getrusage()}.
-\item \textbf{Status} -- da li je rešavač našao dopustivo rešenje
-  ili je isteklo vreme.
-\item \textbf{Validnost rešenja} -- nezavisna provera da li dobijeno
-  rešenje zadovoljava sva tvrda ograničenja (bez kolizija učionica,
-  bez kolizija grupa, poštovanje računarskih zahteva).
-\end{itemize}
-
-\subsection{Validacija rešenja}
-
-Rezultati svakog rešavača se nezavisno verifikuju funkcijom
-\texttt{validate\_solution} koja proverava:
-\begin{enumerate}
-\item da nijedna dva časa ne dele istu trojku (dan, sat, učionica),
-\item da nijedna dva časa iste grupe nisu u istom terminu (dan, sat),
-\item da časovi koji zahtevaju računare budu u učionicama sa
-  računarima (provera se vrši nad zahtevom sesije, koji zavisi od tipa
-  nastave),
-\item da broj dodeljenih termina odgovara broju sesija.
-\end{enumerate}
-
-\section{Rezultati}
-\label{sec:rezultati}
-
-U tabelama \ref{tbl:results_s}, \ref{tbl:results_m} i
-\ref{tbl:results_l} prikazani su rezultati za svaku skalu.
-
-\begin{table}[ht]
-\centering
-\caption{Rezultati za MATF-S (1. godina)}
-\label{tbl:results_s}
-\begin{tabular}{lrr}
-\toprule
-\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
-\midrule
-Sesije                 & \multicolumn{2}{c}{204} \\
-Promenljive            & $1\,224$        & $319\,680$ \\
-Ograničenja            & $649$           & $2\,424$ \\
-Vreme konstrukcije     & 0,016 s         & 5,121 s \\
-Vreme rešavanja        & 0,026 s         & 3,206 s \\
-Ukupno vreme           & 0,042 s         & 8,327 s \\
-Memorija modela        & 0,22 MB         & 71,54 MB \\
-Status                 & \textsc{feasible} & \textsc{feasible} \\
-Rešenje validno        & da              & da \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[ht]
-\centering
-\caption{Rezultati za MATF-M (1--2. godina)}
-\label{tbl:results_m}
-\begin{tabular}{lrr}
-\toprule
-\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
-\midrule
-Sesije                 & \multicolumn{2}{c}{398} \\
-Promenljive            & $2\,388$        & $619\,440$ \\
-Ograničenja            & $1\,269$        & $3\,098$ \\
-Vreme konstrukcije     & 0,030 s         & 9,879 s \\
-Vreme rešavanja        & 0,084 s         & 8,170 s \\
-Ukupno vreme           & 0,114 s         & 18,049 s \\
-Memorija modela        & 0,39 MB         & 138,56 MB \\
-Status                 & \textsc{feasible} & \textsc{feasible} \\
-Rešenje validno        & da              & da \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[ht]
-\centering
-\caption{Rezultati za MATF-L (sve četiri godine)}
-\label{tbl:results_l}
-\begin{tabular}{lrr}
-\toprule
-\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
-\midrule
-Sesije                 & \multicolumn{2}{c}{722} \\
-Promenljive            & $4\,332$        & $1\,102\,560$ \\
-Ograničenja            & $2\,319$        & $4\,262$ \\
-Vreme konstrukcije     & 0,055 s         & 18,600 s \\
-Vreme rešavanja        & 1,598 s         & 17,804 s \\
-Ukupno vreme           & 1,652 s         & 36,404 s \\
-Memorija modela        & 0,70 MB         & 246,57 MB \\
-Status                 & \textsc{feasible} & \textsc{feasible} \\
-Rešenje validno        & da              & da \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\textbf{Napomena:} Prikazani rezultati su dobijeni pokretanjem
-benchmark-a komandom:
-
-\begin{english}
-\begin{verbatim}
-bazel run //src/algo:benchmark -- --mode compare --json report.json
-\end{verbatim}
-\end{english}
-
-\section{Analiza rezultata}
-\label{sec:analiza}
-
-Na osnovu sprovedenih eksperimenata, možemo izvući sledeće zaključke:
-
-\subsection{Kompaktnost modela}
-
-CP-SAT formulacija koristi $O(|\mathcal{S}|)$ celobrojnih
-promenljivih, dok MIP/SCIP formulacija koristi
-$O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ binarnih promenljivih.
-Sa $D=5$ dana, $H=12$ sati i $R=29$ učionica svaka sesija u MIP-u
-generiše do $5 \cdot 12 \cdot 29 = 1740$ binarnih promenljivih,
-naspram šest celobrojnih u CP-u. Izmereni broj od šest promenljivih po
-sesiji je za jednu veći od pet iz specifikacije (odeljak
-\ref{sec:cp_form}), jer implementacija uz njih uvek gradi i pomoćnu
-promenljivu lokacije, koju koriste pravila iz glava
-\ref{chp:nadogradnja} i \ref{chp:osoblje}. Ova razlika od dva do tri
-reda veličine odražava se na memorijski otisak i vreme konstrukcije
+CP formulacija koristi mali broj celobrojnih promenljivih sa globalnim
+ograničenjima, dok MIP formulacija eksplicitno enumeriše sve moguće
+dodele kroz binarne promenljive. Brojevi iz tabele nisu mera obima
+posla koji rešavač obavlja, nego opis zapisa: jedno globalno
+ograničenje HC2 u CP modelu obuhvata sve sesije instance, dok mu u MIP
+modelu odgovara $DHR$ zasebnih nejednakosti. Razlika u zapisu ipak ima
+merljivu posledicu na memorijski otisak i na vreme konstrukcije
 modela.
 
-\subsection{Brzina rešavanja}
-
-CP-SAT rešavač koristi globalna ograničenja
-(\texttt{AllDifferent}, \texttt{AllowedAssignments}) sa
-specijalizovanim algoritmima propagacije koji rano eliminišu
-nedopustive vrednosti iz domena promenljivih. U kombinaciji sa
-SAT tehnologijama učenja konflikata, ovo omogućava znatno bržu
-pretragu prostora rešenja u poređenju sa LP relaksacijom i
-branch-and-bound pristupom MIP/SCIP rešavača.
-
-\subsection{Skalabilnost}
-
-Razlika u performansama između dva pristupa postaje izraženija sa
-rastom veličine problema. Oba rešavača su na sve tri skale našla
-validan raspored u okviru zadatog limita, ali MIP/SCIP-u je za to
-potrebno znatno više vremena, i to vreme raste brže: od 8,3 sekunde na
-MATF-S do 36,4 sekunde na MATF-L, naspram 0,04 i 1,65 sekundi kod
-CP-SAT-a. Pošto sve tri instance koriste isti skup od 29 učionica,
-razlika potiče isključivo od porasta broja sesija.
-
-\subsection{Teorijska kompleksnost}
-
-Tabela \ref{tbl:complexity} sumira teorijsku kompleksnost
-oba pristupa.
-
-\begin{table}[ht]
-\centering
-\caption{Teorijska kompleksnost formulacija}
-\label{tbl:complexity}
-\begin{tabular}{lll}
-\toprule
-\textbf{Aspekt} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
-\midrule
-Promenljive & $O(|\mathcal{S}|)$ &
-  $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ \\
-Ograničenja & Kompaktna globalna &
-  $O(D \cdot H \cdot R + G \cdot D \cdot H)$ \\
-Propagacija & Specijalizovani algoritmi &
-  LP relaksacija \\
-Učenje & Konflikti (SAT klauze) &
-  Ravni odsecanja \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-Rezultati ove glave odnose se na osnovni model i služe izboru
-formulacije za dalji razvoj. Pošto se model u glavama
-\ref{chp:nadogradnja} i \ref{chp:osoblje} znatno proširuje, u glavi
-\ref{chp:finalna-evaluacija} dajemo završnu evaluaciju konačne verzije
-rešavača na istim trima skalama.
-
-U narednoj glavi zato prelazimo sa poređenja dve formulacije na razvoj
-jedne: CP model dobija arhitekturu pravila, funkciju cilja i prva
-ograničenja kvaliteta rasporeda.
+Naredne dve glave prate dalji razvoj
+jedne od njih, CP modela, koji se proširuje pravilima kvaliteta i
+raspoređivanjem nastavnog osoblja.
 
 
 % ------------------------------------------------------------------------------
@@ -1437,10 +1254,14 @@ ograničenja kvaliteta rasporeda.
 \chaptermark{Nadogradnja CP rešavača}
 % ------------------------------------------------------------------------------
 
-Na osnovu rezultata iz glave \ref{chp:evaluacija}, CP-SAT rešavač je
-izabran kao osnova za dalji razvoj sistema. U ovoj glavi opisujemo
-nadogradnju modela dodatnim ograničenjima koja raspored približavaju
-realnim potrebama Matematičkog fakulteta. Za razliku od prvog dela rada,
+Za dalji razvoj sistema izabran je CP-SAT model. Izbor je pragmatičan i
+vezan za dve konkretne formulacije, dva rešavača i ispitane instance:
+CP-SAT je na njima brže dolazio do dopustivog rasporeda, a njegov zapis
+se pokazao pogodnim za postupno dodavanje pravila. Merenja na kojima
+izbor počiva data su u odeljku \ref{sec:preliminarna-evaluacija}, pošto
+su obe evaluacije objedinjene u glavi \ref{chp:evaluacija-glava}. U
+ovoj glavi opisujemo nadogradnju modela dodatnim ograničenjima koja
+raspored približavaju realnim potrebama Matematičkog fakulteta. Za razliku od prvog dela rada,
 gde smo tražili bilo koje dopustivo rešenje, ovde uvodimo i funkciju
 cilja koja optimizuje kvalitet rasporeda kroz meka ograničenja.
 
@@ -1453,7 +1274,7 @@ Implementirana su četiri nova ograničenja:
 \item \textbf{bez procepa u rasporedu} -- izbegavanje slobodnih sati
   između dva zauzeta sata u istom danu;
 \item \textbf{kapacitet učionice} -- prekoračenje kapaciteta se kažnjava
-  brojem studenata bez mesta, ali nije zabranjeno.
+  brojem nedostajućih mesta, ali nije zabranjeno.
 \end{itemize}
 
 \section{Arhitektura pravila}
@@ -1518,6 +1339,15 @@ Ova konfiguracija se učitava u Pydantic model \texttt{RuleConfig}
 \texttt{joinSameClasses} je tvrdo (penalty 0), dok je
 \texttt{noGapsInSchedule} meko sa cenom 5 po prekršaju.
 
+Pored polja \texttt{enabled} i \texttt{penalty}, \texttt{RuleConfig} ima
+i opciono polje \texttt{params} -- rečnik koji je podrazumevano prazan.
+Njegov sadržaj se prosleđuje konstruktoru pravila kao imenovani
+argumenti, pa pravilo tim putem dobija svoje parametre. Taj mehanizam
+koriste pravila nastavnog osoblja (\texttt{maxDays} i
+\texttt{maxGapHours}, odeljak \ref{sec:staff_config}); postupak je za
+sva pravila isti, bez obzira na to da li konfiguracija dolazi iz
+osnovnog ili iz staff ulaznog fajla.
+
 \subsection{Primena pravila i funkcija cilja}
 
 Rešavač održava registar pravila \texttt{RULE\_REGISTRY} koji preslikava
@@ -1533,7 +1363,9 @@ def apply_rules(self):
         if not config.enabled:
             continue
         rule_class = RULE_REGISTRY.get(rule_name)
-        rule = rule_class(enabled=config.enabled, penalty=config.penalty)
+        rule = rule_class(
+            enabled=config.enabled, penalty=config.penalty, **config.params
+        )
         violations = rule.apply(self)
         for v in violations:
             self.penalty_vars.append((config.penalty, v))
@@ -1555,6 +1387,16 @@ Funkcija cilja je dakle težinska suma svih prekršaja mekih ograničenja:
 gde je $V_r$ skup promenljivih prekršaja koje vraća pravilo $r$, a
 $\text{penalty}_r$ njegova cena. Tvrda ograničenja ne učestvuju u
 funkciji cilja jer vraćaju praznu listu prekršaja.
+
+Težine su heuristički izabrane, kao izraz pretpostavljenog redosleda
+važnosti, a ne merene na ishodima. One određuju kako rešavač trguje
+između pravila: pošto jedan procep u rasporedu grupe nosi 2 poena, a
+jedan dan preko limita nastavnika 3, rešavaču se isplati da nastavniku
+doda radni dan tek ako time ukloni bar dva procepa. Isto važi i za
+kapacitet: deset nedostajućih mesta nosi kaznu 10, pa preteže nad
+dodatnim radnim danom nastavnika, koji nosi 3. Drugačiji izbor težina
+daje drugačiji optimum, pa su i rezultati u odeljku
+\ref{sec:zavrsna-evaluacija} vezani za ovaj konkretan izbor.
 
 \section{CP-SAT tehnike modeliranja}
 \label{sec:cpsat_tehnike}
@@ -1658,6 +1500,12 @@ Tako se tročasovni blok drži zajedno, dok se četiri časa dele na dva
 dvočasa. Unutar svakog bloka, prva sesija se bira kao \emph{sidro}
 (eng. \emph{anchor}), a ostale se vezuju za nju.
 
+Funkcija je definisana samo za $n \leq 4$, što je dovoljno za razmatrane
+ulaze: u sva tri korišćena fajla najveća kvota jeste četiri časa
+nedeljno, i po tipu nastave i po predmetu. Veće kvote model, dakle, ne
+podržava; da bi ih podržao, definiciju \eqref{eq:blocks} bi trebalo
+dopuniti pravilom podele za $n \geq 5$.
+
 \subsection{Tvrda varijanta}
 
 U tvrdoj varijanti, svaka sesija $s_i$ u bloku (sa rednim brojem $i$ u
@@ -1705,8 +1553,11 @@ solver.model.Add(violation == 0).OnlyEnforceIf(b)
 \end{english}
 
 Promenljiva \texttt{violation} ulazi u funkciju cilja
-\eqref{eq:objective}, pa rešavač spaja blokove kad god je to
-moguće, a krši pravilo samo kada je neophodno.
+\eqref{eq:objective}, pa nespojen blok nosi kaznu koju rešavač
+minimizuje zajedno sa ostalim komponentama cilja. Blok će, dakle, ostati
+nespojen kada je ta kazna manja od zbira kazni koje bi spajanje izazvalo
+kod drugih pravila; nije reč o tome da rešavač pravilo krši samo kada je
+dopustivost drugačije nemoguća.
 
 \section{Pravilo: jedna lokacija po danu za grupu}
 \label{sec:rule_location}
@@ -1882,8 +1733,8 @@ osetljiv na kvalitet ulaznih podataka:
 Zbog toga kapacitet prelazi iz tvrdih ograničenja u pravilo
 \code{rule_room_capacity.py} (\texttt{roomCapacity}). U mekoj varijanti
 pravilo ne sužava dopustiv skup -- sesija sme u bilo koju učionicu koja
-zadovoljava tvrda ograničenja -- ali plaća cenu jednaku broju studenata
-koji u toj učionici ostaju bez mesta:
+zadovoljava tvrda ograničenja -- ali plaća cenu jednaku broju
+nedostajućih mesta u toj učionici:
 
 \begin{equation}
 \text{cost}_s = \max
@@ -1895,17 +1746,20 @@ Bitno je da se kažnjava \emph{samo} prekoračenje. Sve učionice u koje
 cela kohorta staje su međusobno jednako dobre, pa pravilo ne pravi
 nepotrebnu razliku između njih i ne troši prostor rešenja na to da
 najveću salu dobije najveća grupa kad to nikome ne pomaže. Kazna je nula
-uvek kada raspored nikoga ne ostavlja bez mesta, što je i uobičajen
-ishod: prekoračenje se javlja samo tamo gde učionica odgovarajuće
-veličine (ili odgovarajuće opremljena računarima) više nije slobodna.
+kada u rasporedu nema nedostajućih mesta. Pošto je ovo meko pravilo,
+rešavač sme da izabere premalu učionicu kad god je zbir ušteda kod
+drugih komponenti cilja veći od cene prekoračenja; prekoračenje, dakle,
+ne znači nužno da odgovarajuća učionica nije bila slobodna.
 
 Za razliku od procepa, prekršaj ovde nije ,,jedan događaj`` nego
 \emph{količina} -- pravilo je prvo koje kao prekršaj vraća celobrojne, a
 ne binarne promenljive. Funkcija cilja \eqref{eq:objective} je težinska
 suma vraćenih promenljivih, pa se takva cena uklapa bez izmena u jezgru
-rešavača. Cena po prekršaju je pri tome namerno niska, a
-niska težina drži ovaj sabirak podređenim ostalim ciljevima čak i kada
-se prekoračenje meri desetinama studenata.
+rešavača. Cena po prekršaju je pri tome namerno niska (1 po
+nedostajućem mestu), ali pošto se sabira po mestima, dovoljno veliko
+prekoračenje ipak može da prevagne nad ostalim komponentama: deset
+nedostajućih mesta nosi kaznu 10, dakle više od tri procepa u rasporedu
+grupe (6) ili od tri dodatna radna dana nastavnika (9).
 
 U implementaciji se za svaku sesiju gradi tabela prekoračenja po
 učionicama (konstante, jer su i veličina sesije i kapaciteti poznati
@@ -1951,19 +1805,17 @@ učionice zabranjuje.
 
 Do sada je model raspoređivao samo grupe studenata u učionice i termine.
 U ovoj glavi model proširujemo nastavnim osobljem: svakoj sesiji se
-dodeljuje nastavnik, uvode se ograničenja vezana za nastavnike, i uvodi
-se pojam \emph{kohorte} -- skupa grupa koje zajedno slušaju isti čas.
+dodeljuje nastavnik, uvodi se pojam \emph{kohorte} -- skupa grupa koje
+zajedno slušaju isti čas -- i tek potom, nad tako proširenim modelom,
+uvode se ograničenja vezana za nastavnike.
 Ovaj deo predstavlja poslednji korak u približavanju modela realnom
 scenariju na Matematičkom fakultetu.
 
 Nastavno osoblje se zadaje u \emph{odvojenom} ulaznom fajlu, tako da
 osnovni ulaz (predmeti, učionice, broj upisanih) ostaje nepromenjen.
-Time se podaci o osoblju mogu menjati nezavisno, a raspoređivanje bez
-osoblja i dalje radi kao ranije. Pokazaće se da je taj fajl i prirodno
-mesto za definisanje grupa studenata (odeljak
-\ref{sec:grupe_iz_osoblja}): grupa postoji tek onda kada neko drži
-nastavu za nju.
-
+Taj fajl sadrži podatke o nastavnicima, koje predmete drže i kojim grupama.
+Recimo, profesor Predrag Janičić drži čas iz predmeta ``Programske paradigme'' za grupe 1i1a, 1i1b i 1i1v.
+Fajl je unapred zadat, i dostavljen je kandidatu na uvid prilikom pisanja ovog rada.
 \section{Model osoblja i dodela nastave}
 \label{sec:staff_model}
 
@@ -1993,37 +1845,9 @@ class TeachingAssignment:
 
 Dodela (\texttt{TeachingAssignment}) povezuje par (predmet, tip nastave)
 sa nastavnikom, i opciono navodi konkretne grupe. Prilikom generisanja
-sesija, svaka sesija dobija polje \texttt{teacher\_id}, a rešavač gradi
-preslikavanje \texttt{teacher\_sessions} (nastavnik $\rightarrow$ indeksi
-njegovih sesija). Sesije bez dodeljenog nastavnika (\texttt{teacher\_id}
+sesija, svaka sesija dobija polje \texttt{teacher\_id}.
+Sesije bez dodeljenog nastavnika (\texttt{teacher\_id}
 jednako \texttt{None}) ne učestvuju u pravilima osoblja.
-
-\subsection{Nastavnik ne može držati dva časa istovremeno}
-
-Prvo i osnovno ograničenje osoblja je tvrdo i dodaje se u jezgru
-rešavača: nijedan nastavnik ne može držati dve sesije u istom terminu.
-Analogno ograničenju za grupe (HC2, listing \ref{lst:cp_alldiff}),
-koristimo \texttt{AllDifferent} nad apsolutnim vremenima svih sesija
-jednog nastavnika:
-
-\begin{equation}
-\texttt{AllDifferent}(\{\text{flatTime}_s : s \in \mathcal{S}_t\}),
-  \quad \forall t
-\label{eq:staff_nodouble}
-\end{equation}
-
-gde je $\mathcal{S}_t$ skup sesija nastavnika $t$. U kodu
-(modul \code{cp_solver.py}):
-
-\begin{english}
-\begin{lstlisting}[language=Python, caption={Nastavnik nije dvostruko zauzet}]
-for teacher_id, session_indices in self.teacher_sessions.items():
-    if len(session_indices) > 1:
-        self.model.AddAllDifferent(
-            [self.flat_time_var[s] for s in session_indices]
-        )
-\end{lstlisting}
-\end{english}
 
 \section{Grupe studenata izvedene iz dodela nastave}
 \label{sec:grupe_iz_osoblja}
@@ -2031,7 +1855,7 @@ for teacher_id, session_indices in self.teacher_sessions.items():
 Dodela nastave imenuje grupe kojima nastavnik drži čas, na primer
 \texttt{"groupIds": ["1i1a", "1i1b", "1i1v"]}. Time je u fajlu sa
 osobljem već zapisano \emph{koje} grupe postoje, pa bi njihovo ponovno
-navođenje u osnovnom ulazu bilo redudantno.
+navođenje u osnovnom ulazu bilo redundantno.
 
 Postupak je implementiran u funkciji \texttt{build\_groups} (modul
 \code{data.py}) i odvija se u dva koraka.
@@ -2135,6 +1959,12 @@ for g in remaining.values():                    # grupe bez eksplicitne dodele
 \end{lstlisting}
 \end{english}
 
+Postupak pretpostavlja ispravan ulaz i ne proverava ga: ako se ista
+grupa pojavi u dve eksplicitne dodele za isti predmet i tip nastave,
+dobiće dve kohorte i time dvostruku kvotu časova, a ako postoji više
+generičkih dodela, primenjuje se poslednja pročitana. Takve slučajeve
+treba ukloniti pre pokretanja.
+
 Za svaku kohortu i svaki traženi čas iz kvote kreira se tačno jedna
 sesija, čija je lista grupa \texttt{group\_ids} jednaka grupama kohorte.
 Zajednička sesija tako ulazi u ograničenje o koliziji \emph{svake} grupe
@@ -2154,11 +1984,41 @@ studenata odgovara i znatno manja učionica.
 \section{Pravila nastavnog osoblja}
 \label{sec:staff_rules}
 
-Pravila osoblja koriste istu \emph{plugin} arhitekturu i CP-SAT tehnike
+Sada kada su uvedeni nastavnici, dodele nastave, grupe i kohorte, model
+proširujemo ograničenjima nad rasporedom nastavnika. Osim prvog,
+osnovnog ograničenja koje je ugrađeno u jezgro rešavača, pravila osoblja
+koriste istu \emph{plugin} arhitekturu i CP-SAT tehnike
 (reifikacija, \texttt{AddMaxEquality}, \texttt{AddBoolAnd}/\texttt{AddBoolOr},
 \texttt{AddElement}) uvedene u glavi \ref{chp:nadogradnja}. Konfigurišu
 se u \texttt{rules} sekciji staff fajla i mogu biti tvrda
 (\texttt{penalty} 0) ili meka (\texttt{penalty} > 0).
+
+\subsection{Nastavnik ne može držati dva časa istovremeno}
+
+Prvo i osnovno ograničenje osoblja je tvrdo i dodaje se u jezgru
+rešavača: nijedan nastavnik ne može držati dve sesije u istom terminu.
+Analogno ograničenju za grupe (HC3, listing \ref{lst:cp_alldiff}),
+koristimo \texttt{AllDifferent} nad apsolutnim vremenima svih sesija
+jednog nastavnika:
+
+\begin{equation}
+\texttt{AllDifferent}(\{\text{flatTime}_s : s \in \mathcal{S}_t\}),
+  \quad \forall t
+\label{eq:staff_nodouble}
+\end{equation}
+
+gde je $\mathcal{S}_t$ skup sesija nastavnika $t$. U kodu
+(modul \code{cp_solver.py}):
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Nastavnik nije dvostruko zauzet}]
+for teacher_id, session_indices in self.teacher_sessions.items():
+    if len(session_indices) > 1:
+        self.model.AddAllDifferent(
+            [self.flat_time_var[s] for s in session_indices]
+        )
+\end{lstlisting}
+\end{english}
 
 \subsection{Jedna lokacija po danu za nastavnika}
 
@@ -2211,7 +2071,7 @@ if self.is_hard:
     solver.model.Add(worked_days <= limit)
 else:
     excess = solver.model.NewIntVar(0, D, f"staff_days_excess_{teacher_id}")
-    solver.model.Add(excess >= worked_days - limit)
+    solver.model.AddMaxEquality(excess, [worked_days - limit, 0])
     violations.append(excess)               # ulazi u funkciju cilja
 \end{lstlisting}
 \end{english}
@@ -2247,10 +2107,21 @@ if self.is_hard:
     solver.model.Add(total_gaps <= self.max_gap_hours)
 else:
     excess = solver.model.NewIntVar(0, D * H, f"staff_gap_excess_{teacher_id}")
-    solver.model.Add(excess >= total_gaps - self.max_gap_hours)
+    solver.model.AddMaxEquality(excess, [total_gaps - self.max_gap_hours, 0])
     violations.append(excess)
 \end{lstlisting}
 \end{english}
+
+U oba pravila prekoračenje se vezuje \emph{jednakošću}
+$e = \max(0,\ w - L)$, a ne nejednakostima $e \geq 0$ i $e \geq w - L$.
+Same nejednakosti ne bi odredile vrednost promenljive: one dopuštaju i
+$e$ veće od stvarnog prekoračenja, a na tačnu vrednost je u optimumu
+svodi tek pozitivna težina u funkciji cilja, pod uslovom da se $e$
+nigde drugde ne koristi. Takav zapis je za samu optimizaciju ispravan,
+ali vrednost pomoćne promenljive tada ne bi smela da se čita kao
+stvarno prekoračenje u međurešenjima koja rešavač prijavljuje tokom
+pretrage. Pošto te vrednosti očitavamo po komponentama (odeljak
+\ref{sec:finalna_zaostreno}), jednakost namećemo izričito.
 
 Svi prekršaji mekih pravila osoblja ulaze u istu globalnu funkciju cilja
 iz glave \ref{chp:nadogradnja}:
@@ -2302,17 +2173,327 @@ kolizija u rasporedu obe grupe. Izvođenje grupa iz dodela pokriveno je
 testovima u \code{test_data.py}.
 
 
+
 % ------------------------------------------------------------------------------
-\chapter{Završna evaluacija proširenog modela}
-\label{chp:finalna-evaluacija}
-\chaptermark{Završna evaluacija}
+\chapter{Evaluacija}
+\label{chp:evaluacija-glava}
 % ------------------------------------------------------------------------------
 
-Evaluacija iz glave \ref{chp:evaluacija} poredila je dve paradigme na
+
+Evaluacija je sprovedena u dva koraka, koji odgovaraju dvema fazama
+razvoja modela. Preliminarna evaluacija (odeljak
+\ref{sec:preliminarna-evaluacija}) poredi CP i MIP formulaciju
+osnovnog modela, u režimu traženja bilo kog dopustivog rasporeda, i
+služi izboru formulacije koja se dalje razvija. Završna evaluacija
+(odeljak \ref{sec:zavrsna-evaluacija}) meri prošireni CP model,
+sa mekim ograničenjima, funkcijom cilja i nastavnim osobljem, uz
+praćenje vrednosti funkcije cilja kroz vreme.
+
+Obe evaluacije koriste isti ulazni fajl i isto sečenje po godinama
+studija, pa se odnose na istu nastavu; razlikuju se po tome koliko je
+pravila u modelu i kako se grupe studenata formiraju, o čemu govore
+odgovarajući odeljci o metodologiji.
+
+% ------------------------------------------------------------------------------
+\section{Preliminarna evaluacija osnovnog modela}
+\label{sec:preliminarna-evaluacija}
+% ------------------------------------------------------------------------------
+
+U ovom odeljku opisujemo metodologiju merenja performansi,
+predstavljamo rezultate eksperimenata i analiziramo dobijene podatke.
+
+Evaluacija je preliminarna u dva smisla. Odnosi se na osnovni model iz
+odeljka \ref{sec:formalna_specifikacija}, dakle na traženje dopustivog rasporeda uz
+tri tvrda ograničenja i bez funkcije cilja, i služi tome da se izabere
+formulacija koju ćemo dalje razvijati. Završna evaluacija proširenog
+modela, sa mekim ograničenjima, funkcijom cilja i nastavnim osobljem,
+data je odvojeno u odeljku \ref{sec:zavrsna-evaluacija}.
+
+\subsection{Metodologija}
+\label{sec:metodologija}
+
+\subsubsection{Podskupovi realnih podataka}
+
+Eksperimenti su sprovedeni na tri podskupa realnih podataka letnjeg
+semestra (\code{input_full_2_semester.json}), dobijena filtriranjem po
+godinama studija:
+
+\begin{enumerate}
+\item \textbf{MATF-S} (mali) -- 1. godina (semestar 2): 30 predmeta,
+  8 grupa i 204 sesije.
+
+\item \textbf{MATF-M} (srednji) -- 1. i 2. godina (semestri 2 i 4):
+  63 predmeta, 16 grupa i 398 sesija.
+
+\item \textbf{MATF-L} (veliki) -- sve četiri godine (semestri 2, 4, 6
+  i 8): 134 predmeta, 30 grupa i 722 sesije. Ovo je pun obim nastave
+  jednog semestra.
+\end{enumerate}
+
+Skalira se, dakle, samo potražnja: sve tri instance zadržavaju svih 29
+učionica na tri lokacije, pa se razlikuju jedino po količini nastave
+koju treba smestiti. Podskupovi su namerno definisani isto kao u
+završnoj evaluaciji (odeljak \ref{sec:finalna_metodologija}) i nad
+istim ulaznim fajlom, kako bi se rezultati pre i posle proširenja
+modela odnosili na istu instancu.
+
+Jedna razlika ipak ostaje i treba je imati u vidu. Ovde se grupe
+studenata dobijaju deljenjem broja upisanih na grupe od najviše 50
+studenata, jer osnovni model ne poznaje nastavno osoblje, dok se u
+odeljku \ref{sec:zavrsna-evaluacija} grupe izvode iz imena navedenih u
+dodelama nastave (odeljak \ref{sec:grupe_iz_osoblja}), koja opisuju
+stvarnu podelu na fakultetu. Na najvećoj skali to je razlika između 30
+i 44 grupe, pa ista instanca tamo ima 835 umesto 722 sesije. Sam
+postupak raspoređivanja se ne menja -- menja se samo koliko časova
+ulazi u model -- ali apsolutne vrednosti iz ovog odeljka i iz odeljka
+\ref{sec:zavrsna-evaluacija} zato nisu neposredno uporedive.
+
+\subsubsection{Metrike}
+
+Za svaki par (rešavač, skala) merimo sledeće metrike:
+
+\begin{itemize}
+\item \textbf{Broj sesija} -- ukupan broj časova koje treba rasporediti.
+\item \textbf{Broj promenljivih} -- veličina modela u terminima
+  odlučivačkih promenljivih.
+\item \textbf{Broj ograničenja} -- ukupan broj ograničenja u modelu.
+\item \textbf{Vreme konstrukcije} -- vreme potrebno za kreiranje
+  modela (promenljivih i ograničenja), mereno pomoću
+  \texttt{time.perf\_counter()}.
+\item \textbf{Vreme rešavanja} -- vreme potrebno za pronalaženje
+  dopustivog rešenja.
+\item \textbf{Ukupno vreme} -- zbir vremena konstrukcije i rešavanja.
+\item \textbf{Memorija modela} -- memorijski otisak modela, meren
+  pomoću \texttt{tracemalloc} (razlika memorijskih snimaka pre i
+  posle konstrukcije modela).
+\item \textbf{Status} -- da li je rešavač našao dopustivo rešenje
+  ili je isteklo vreme.
+\item \textbf{Validnost rešenja} -- nezavisna provera da li dobijeno
+  rešenje zadovoljava sva tvrda ograničenja (bez kolizija učionica,
+  bez kolizija grupa, poštovanje računarskih zahteva).
+\end{itemize}
+
+Merenje memorije treba čitati sa ogradom. \texttt{tracemalloc} prati
+isključivo alokacije na strani Pythona, dakle objekte kojima se model
+opisuje pre nego što se preda rešavaču, a ne interne strukture
+rešavača, koje su u oba slučaja u prevedenom kodu biblioteke. Zbog
+toga prikazujemo tu meru kao pokazatelj veličine zapisa modela, a ne
+kao ukupnu potrošnju memorije pri rešavanju. Vršna potrošnja celog
+procesa, koju daje \texttt{resource.getrusage()}, ne razdvaja
+pokretanja: ona je maksimum kroz ceo život procesa, pa u jednom
+pokretanju obuhvata i sve prethodno izmerene skale i oba rešavača.
+Zato je ne navodimo po instanci.
+
+\subsubsection{Validacija rešenja}
+
+Rezultati svakog rešavača se nezavisno verifikuju funkcijom
+\texttt{validate\_solution} koja proverava:
+\begin{enumerate}
+\item da nijedna dva časa ne dele istu trojku (dan, sat, učionica),
+\item da nijedna dva časa iste grupe nisu u istom terminu (dan, sat),
+\item da časovi koji zahtevaju računare budu u učionicama sa
+  računarima (provera se vrši nad zahtevom sesije, koji zavisi od tipa
+  nastave),
+\item da broj dodeljenih termina odgovara broju sesija.
+\end{enumerate}
+
+\subsection{Rezultati}
+\label{sec:rezultati}
+
+U tabelama \ref{tbl:results_s}, \ref{tbl:results_m} i
+\ref{tbl:results_l} prikazani su rezultati za svaku skalu.
+
+\begin{table}[ht]
+\centering
+\caption{Rezultati za MATF-S (1. godina)}
+\label{tbl:results_s}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Sesije                 & \multicolumn{2}{c}{204} \\
+Promenljive            & $1\,224$        & $319\,680$ \\
+Ograničenja            & $649$           & $2\,424$ \\
+Vreme konstrukcije     & 0,016 s         & 5,121 s \\
+Vreme rešavanja        & 0,026 s         & 3,206 s \\
+Ukupno vreme           & 0,042 s         & 8,327 s \\
+Memorija modela        & 0,22 MB         & 71,54 MB \\
+Status                 & \textsc{feasible} & \textsc{feasible} \\
+Rešenje validno        & da              & da \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Rezultati za MATF-M (1--2. godina)}
+\label{tbl:results_m}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Sesije                 & \multicolumn{2}{c}{398} \\
+Promenljive            & $2\,388$        & $619\,440$ \\
+Ograničenja            & $1\,269$        & $3\,098$ \\
+Vreme konstrukcije     & 0,030 s         & 9,879 s \\
+Vreme rešavanja        & 0,084 s         & 8,170 s \\
+Ukupno vreme           & 0,114 s         & 18,049 s \\
+Memorija modela        & 0,39 MB         & 138,56 MB \\
+Status                 & \textsc{feasible} & \textsc{feasible} \\
+Rešenje validno        & da              & da \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Rezultati za MATF-L (sve četiri godine)}
+\label{tbl:results_l}
+\begin{tabular}{lrr}
+\toprule
+\textbf{Metrika} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Sesije                 & \multicolumn{2}{c}{722} \\
+Promenljive            & $4\,332$        & $1\,102\,560$ \\
+Ograničenja            & $2\,319$        & $4\,262$ \\
+Vreme konstrukcije     & 0,055 s         & 18,600 s \\
+Vreme rešavanja        & 1,598 s         & 17,804 s \\
+Ukupno vreme           & 1,652 s         & 36,404 s \\
+Memorija modela        & 0,70 MB         & 246,57 MB \\
+Status                 & \textsc{feasible} & \textsc{feasible} \\
+Rešenje validno        & da              & da \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\textbf{Napomena:} Prikazani rezultati su dobijeni pokretanjem
+benchmark-a komandom:
+
+\begin{english}
+\begin{verbatim}
+bazel run //src/algo:benchmark -- --mode compare --json report.json
+\end{verbatim}
+\end{english}
+
+\subsection{Analiza rezultata}
+\label{sec:analiza}
+
+Zaključci koji slede odnose se na dve konkretne formulacije iz odeljka
+\ref{sec:formalna_specifikacija}, na rešavače CP-SAT i SCIP u
+podrazumevanim podešavanjima, i na tri opisane instance. Ne tvrdimo
+ništa o paradigmama uopšte: drugačija MIP formulacija, drugačije
+podešen rešavač ili instanca druge strukture mogli bi dati drugačiji
+odnos.
+
+\subsubsection{Veličina zapisa modela}
+
+CP-SAT formulacija ima $6|\mathcal{S}|$ celobrojnih promenljivih, dok
+MIP/SCIP formulacija ima $D H \sum_s |\text{Elig}(s)|$ binarnih. Sa
+$D=5$ dana, $H=12$ sati i $R=29$ učionica svaka sesija koja ne traži
+računare u MIP-u daje $5 \cdot 12 \cdot 29 = 1740$ binarnih
+promenljivih, naspram šest celobrojnih u CP-u, pa je razlika u broju
+promenljivih dva do tri reda veličine. Tako izražena razlika nije mera
+kvaliteta formulacije -- dve paradigme problem zapisuju na različite
+načine, pa brojevi promenljivih nisu neposredno uporedivi -- ali se
+vidi u dvema izmerenim veličinama: u memoriji koju zauzima zapis
+modela na strani Pythona i u vremenu konstrukcije modela, koje je kod
+MIP-a od 5,1 do 18,6 sekundi, naspram 0,016 do 0,055 sekundi kod
+CP-a.
+
+\subsubsection{Vreme do dopustivog rešenja}
+
+Na sve tri instance oba rešavača nalaze validan raspored. CP-SAT do
+njega stiže brže: ukupno vreme je 0,042 s naspram 8,3 s na MATF-S,
+0,114 s naspram 18,0 s na MATF-M i 1,65 s naspram 36,4 s na MATF-L.
+Deo te razlike otpada na konstrukciju modela, a deo na samu pretragu;
+kod najveće instance MIP troši 18,6 s na konstrukciju i 17,8 s na
+rešavanje, a CP 0,055 s i 1,60 s.
+
+Objašnjenje koje se nameće jeste da CP-SAT radi sa globalnim
+ograničenjima, čiji specijalizovani algoritmi propagacije rano
+eliminišu nedopustive vrednosti iz domena, uz učenje konflikata
+preuzeto iz SAT rešavača, dok SCIP nad istim problemom rešava niz LP
+relaksacija u okviru grananja i odsecanja. Treba, međutim, imati u
+vidu i da je zadatak postavljen kao problem dopustivosti, bez funkcije
+cilja, pa mehanizam ograničavanja pomoću LP relaksacije, koji je
+snaga MIP pristupa, ovde nema šta da ograničava (odeljak
+\ref{sec:mip_bez_cilja}).
+
+\subsubsection{Ponašanje pri rastu instance}
+
+Odnos ukupnih vremena nije stalan i ne raste sa veličinom instance:
+MIP/SCIP je sporiji 198 puta na MATF-S, 158 puta na MATF-M i 22 puta
+na MATF-L. Relativna prednost CP-a, dakle, opada kako instanca raste,
+dok apsolutna razlika raste -- sa 8,3 sekunde na MATF-S na 34,8
+sekundi na MATF-L. Pošto sve tri instance koriste isti skup od 29
+učionica, razlika između skala potiče isključivo od porasta broja
+sesija.
+
+\subsubsection{Asimptotski obim formulacija}
+
+Tabela \ref{tbl:complexity} sumira asimptotski obim dve formulacije i
+mehanizme na koje se rešavači oslanjaju.
+
+\begin{table}[ht]
+\centering
+\caption{Asimptotski obim formulacija i mehanizmi rešavača}
+\label{tbl:complexity}
+\begin{tabular}{lll}
+\toprule
+\textbf{Aspekt} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
+\midrule
+Promenljive & $O(|\mathcal{S}|)$ &
+  $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ \\
+Ograničenja & $O(|\mathcal{S}| + G)$, globalna &
+  $O(|\mathcal{S}| + DHR + GDH)$, linearna \\
+Inferencija & Propagacija globalnih ograničenja &
+  LP relaksacija \\
+Učenje & Konflikti (SAT klauze) &
+  Ravni odsecanja \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Brojevi iz tabele opisuju obim zapisa, ne i količinu posla pri
+rešavanju: jedno globalno ograničenje u CP modelu obuhvata sve sesije
+instance, pa manji broj ograničenja ne znači i lakši problem.
+
+\subsubsection{Ograničenje pristupa: MIP model bez funkcije cilja}
+\label{sec:mip_bez_cilja}
+
+Oba modela ovog odeljka postavljena su kao problemi dopustivosti, pa
+MIP model radi bez funkcije cilja, u degenerisanom optimizacionom
+režimu: vektor $\mathbf{c}$ iz izraza \eqref{eq:mip_obj} je nula i
+svako dopustivo rešenje je optimalno. Time ostaje neiskorišćen
+mehanizam po kome je MIP pristup poznat -- donja granica iz LP
+relaksacije, koja u optimizaciji vodi pretragu i omogućava odsecanje
+grana. Poređenje zato treba čitati kao poređenje dva načina da se
+\emph{nađe dopustiv raspored}, a ne kao poređenje optimizacionih
+sposobnosti dva rešavača.
+
+Meka ograničenja uvedena u glavi \ref{chp:nadogradnja} mogla bi se
+zapisati i linearno i uvrstiti u MIP funkciju cilja; to bi omogućilo
+poređenje dva rešavača u optimizacionom režimu, sa donjim granicama i
+procepom optimalnosti sa obe strane. U ovom radu to nije urađeno i
+navedeno je kao pravac daljeg rada (glava \ref{chp:zakljucak}).
+
+Rezultati ovog odeljka odnose se na osnovni model i služe izboru
+formulacije za dalji razvoj. Pošto se model u glavama
+\ref{chp:nadogradnja} i \ref{chp:osoblje} znatno proširuje, u odeljku
+\ref{sec:zavrsna-evaluacija} dajemo završnu evaluaciju konačne verzije
+rešavača na istim trima skalama.
+
+
+% ------------------------------------------------------------------------------
+\section{Završna evaluacija proširenog modela}
+\label{sec:zavrsna-evaluacija}
+% ------------------------------------------------------------------------------
+
+Evaluacija iz odeljka \ref{sec:preliminarna-evaluacija} poredila je dve paradigme na
 osnovnom modelu, u režimu traženja bilo kog dopustivog rasporeda. Pošto
 je model u glavama \ref{chp:nadogradnja} i \ref{chp:osoblje} proširen
 mekim ograničenjima, funkcijom cilja i raspoređivanjem nastavnog osoblja,
-u ovoj glavi merimo kako se tako prošireni CP-SAT model ponaša na tri
+u ovom odeljku merimo kako se tako prošireni CP-SAT model ponaša na tri
 skale problema. Za razliku od prve evaluacije, ovde nas ne zanima samo
 da li rešenje postoji, nego i \emph{kvalitet} rešenja i brzina kojom se
 on popravlja, pa pratimo vrednost funkcije cilja u zavisnosti od
@@ -2325,10 +2506,10 @@ prošireni model upotrebljiv u praksi. Drugo je zaoštreno okruženje
 termina smanjen tako da meka ograničenja dođu u stvarni sukob, i ono
 pokazuje kako se rešavač ponaša na granici rešivosti.
 
-\section{Metodologija}
+\subsection{Metodologija}
 \label{sec:finalna_metodologija}
 
-\subsection{Instance po godinama studija}
+\subsubsection{Instance po godinama studija}
 
 Prošireni model radi nad realnim podacima letnjeg semestra
 (\code{input_full_2_semester.json}) i dodelama nastave iz
@@ -2350,8 +2531,8 @@ same, jer se izvode iz dodela za predmete koji su ostali, a dodele za
 izbačene predmete se prosto ne aktiviraju -- ulaz sa osobljem tako
 ostaje nepromenjen.
 
-Ovako definisane instance poklapaju se sa podskupovima iz glave
-\ref{chp:evaluacija}: isti je ulazni fajl, iste godine studija i isti
+Ovako definisane instance poklapaju se sa podskupovima iz odeljka
+\ref{sec:preliminarna-evaluacija}: isti je ulazni fajl, iste godine studija i isti
 skup učionica, tako da se rezultati pre i posle proširenja modela
 odnose na istu nastavu. U konfiguraciji bez osoblja skup sesija je
 doslovno isti (204, 398 i 722 sesije po skalama). Kada se uključi
@@ -2360,7 +2541,7 @@ grupe od najviše 50 studenata, pa se broj sesija menja -- raste broj
 imenovanih grupa, a predavanja koja više grupa sluša zajedno spajaju se
 u jednu sesiju.
 
-\subsection{Konfiguracije i funkcija cilja}
+\subsubsection{Konfiguracije i funkcija cilja}
 
 Svaka skala se rešava u dve konfiguracije:
 
@@ -2381,16 +2562,20 @@ Funkcija cilja je, u skladu sa izrazom \eqref{eq:objective} iz odeljka
 \[
   \min \; 2 \cdot \underbrace{\sum_{g,d,h} \text{gap}_{g,d,h}}_{\text{procepi grupa}}
   \;+\; 3 \cdot \underbrace{\sum_{t} \text{excess}_{t}}_{\text{dani preko limita nastavnika}}
-  \;+\; 1 \cdot \underbrace{\sum_{s} \text{overflow}_{s}}_{\text{studenti bez mesta}},
+  \;+\; 1 \cdot \underbrace{\sum_{s} \text{overflow}_{s}}_{\text{nedostajuća mesta}},
 \]
 pri čemu u konfiguraciji bez osoblja drugi sabirak ne postoji. Treći
 sabirak je meko ograničenje kapaciteta iz odeljka \ref{sec:kapacitet} i
-u obe konfiguracije nosi najmanju težinu. Vrednost 0 znači da nijedno
-meko ograničenje nije prekršeno, dakle raspored bez ijednog procepa, bez
-ijednog nastavnika koji radi više dana nego što mu je dozvoljeno i bez
-ijednog studenta koji ostaje bez mesta u učionici.
+u obe konfiguracije nosi najmanju težinu po jedinici prekršaja, mada se
+sabira po mestima, pa veliko prekoračenje može prevagnuti. Vrednost 0
+znači da nijedno meko ograničenje nije prekršeno, dakle raspored bez
+ijednog procepa, bez ijednog nastavnika koji radi više dana nego što mu
+je dozvoljeno i bez ijednog nedostajućeg mesta u učionici. Težine 2, 3
+i 1 su, kao što je rečeno u odeljku \ref{sec:arhitektura_pravila},
+heuristički izabrane, pa su i rezultati ovog odeljka vezani za taj
+izbor.
 
-\subsection{Uslovi merenja}
+\subsubsection{Uslovi merenja}
 
 Merenja su izvršena na računaru sa procesorom Apple M4 (10 jezgara) i
 24\,GB radne memorije, pod operativnim sistemom macOS 26.5, sa
@@ -2406,7 +2591,7 @@ Rešenja se, kao i u prvoj evaluaciji, nezavisno proveravaju funkcijom
 \code{validate_solution}, koja je za potrebe proširenog modela dopunjena
 i proverom da nastavnik nema dva časa u istom terminu.
 
-\section{Veličina modela}
+\subsection{Veličina modela}
 \label{sec:finalna_velicina}
 
 Tabela \ref{tbl:final_size} prikazuje veličinu modela po skalama i
@@ -2424,11 +2609,11 @@ konfiguracijama.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Metrika} & bez & sa & bez & sa & bez & sa \\
 \midrule
-Sesije             & $204$      & $216$      & $398$      & $441$       & $722$      & $839$ \\
+Sesije             & $204$      & $216$      & $398$      & $437$       & $722$      & $835$ \\
 Nastavnici         & $0$        & $39$       & $0$        & $81$        & $0$        & $112$ \\
-Promenljive        & $15\,348$  & $41\,036$  & $30\,026$  & $88\,223$   & $54\,652$  & $144\,685$ \\
-Ograničenja        & $27\,857$  & $72\,082$  & $54\,424$  & $155\,803$  & $98\,974$  & $257\,191$ \\
-Vreme konstrukcije & 0,09 s     & 0,24 s     & 0,18 s     & 0,52 s      & 0,35 s     & 0,94 s \\
+Promenljive        & $15\,348$  & $41\,036$  & $30\,026$  & $87\,697$   & $54\,652$  & $144\,159$ \\
+Ograničenja        & $27\,857$  & $72\,082$  & $54\,424$  & $154\,777$  & $98\,974$  & $256\,165$ \\
+Vreme konstrukcije & 0,08 s     & 0,24 s     & 0,17 s     & 0,48 s      & 0,31 s     & 0,83 s \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2436,9 +2621,24 @@ Vreme konstrukcije & 0,09 s     & 0,24 s     & 0,18 s     & 0,52 s      & 0,35 s
 Kolone označene sa ,,bez`` odnose se na konfiguraciju bez osoblja, a
 kolone ,,sa`` na konfiguraciju sa raspoređivanjem nastavnog osoblja.
 
-Tabela \ref{tbl:final_tok} sumira tok rešavanja: kada je nađeno prvo
-rešenje, kolika je bila njegova vrednost cilja, kada je dostignut
-najbolji rezultat i koliko je poboljšanja usput pronađeno.
+Tabela \ref{tbl:final_tok} sumira tok rešavanja. Vremena u njoj imaju
+četiri različita značenja i u nastavku ih dosledno razlikujemo:
+
+\begin{itemize}
+\item \emph{prvo dopustivo rešenje} -- trenutak kada je rešavač prvi put
+  prijavio raspored koji zadovoljava sva tvrda ograničenja;
+\item \emph{vreme do najboljeg} -- trenutak poslednjeg poboljšanja
+  funkcije cilja;
+\item \emph{dokaz optimalnosti} -- kraj pretrage, kada je donja granica
+  dostigla vrednost najboljeg rešenja (kod statusa \textsc{optimal} to je
+  isti trenutak kad i kraj pokretanja);
+\item \emph{ukupno vreme} -- konstrukcija modela plus rešavanje, dakle
+  ono što korisnik meri štopericom.
+\end{itemize}
+
+Red ,,broj nađenih rešenja`` broji sva rešenja koja je rešavač prijavio,
+uključujući i prvo dopustivo, pa je broj strogih poboljšanja za jedan
+manji.
 
 \begin{table}[ht]
 \centering
@@ -2452,20 +2652,21 @@ najbolji rezultat i koliko je poboljšanja usput pronađeno.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Metrika} & bez & sa & bez & sa & bez & sa \\
 \midrule
-Prvo rešenje         & 1,59 s  & 2,69 s & 4,86 s   & 9,06 s   & 23,92 s & 30,03 s \\
-Cilj prvog rešenja   & $1\,355$ & $585$ & $1\,009$ & $1\,849$ & $2\,440$ & $2\,973$ \\
-Broj nađenih rešenja & $23$    & $10$   & $15$     & $38$     & $23$    & $56$ \\
-Vreme do najboljeg   & 2,35 s  & 3,79 s & 6,94 s   & 16,37 s  & 40,84 s & 120,44 s \\
-Ukupno vreme         & 2,46 s  & 4,05 s & 7,15 s   & 16,95 s  & 41,23 s & 121,76 s \\
-Najbolji cilj        & $0$     & $0$    & $0$      & $0$      & $0$     & $0$ \\
-Donja granica        & $0$     & $0$    & $0$      & $0$      & $0$     & $0$ \\
-Status               & \multicolumn{6}{c}{\textsc{optimal}} \\
-Rešenje validno      & \multicolumn{6}{c}{da} \\
+Prvo dopustivo rešenje & 1,62 s   & 2,67 s & 4,90 s   & 8,76 s   & 23,17 s  & 27,46 s \\
+Cilj prvog rešenja     & $1\,355$ & $696$  & $1\,009$ & $1\,444$ & $2\,440$ & $3\,095$ \\
+Broj nađenih rešenja   & $22$     & $19$   & $16$     & $32$     & $43$     & $73$ \\
+Vreme do najboljeg     & 2,38 s   & 4,17 s & 7,26 s   & 15,20 s  & 40,43 s  & 76,66 s \\
+Dokaz optimalnosti     & 2,40 s   & 4,20 s & 7,28 s   & 15,26 s  & 40,48 s  & 76,78 s \\
+Ukupno vreme           & 2,49 s   & 4,44 s & 7,45 s   & 15,75 s  & 40,80 s  & 77,61 s \\
+Najbolji cilj          & $0$      & $0$    & $0$      & $0$      & $0$      & $0$ \\
+Donja granica          & $0$      & $0$    & $0$      & $0$      & $0$      & $0$ \\
+Status                 & \multicolumn{6}{c}{\textsc{optimal}} \\
+Rešenje validno        & \multicolumn{6}{c}{da} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\section{Funkcija cilja u zavisnosti od vremena}
+\subsection{Funkcija cilja u zavisnosti od vremena}
 \label{sec:finalna_cilj_vreme}
 
 Tabela \ref{tbl:final_checkpoints} prikazuje vrednost funkcije cilja u
@@ -2484,14 +2685,14 @@ rešavač još nije imao nijedno dopustivo rešenje.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Vreme} & bez & sa & bez & sa & bez & sa \\
 \midrule
-5 s    & $0$ & $0$ & $929$ & --       & --    & --    \\
-10 s   & $0$ & $0$ & $0$   & $1\,008$ & --    & --    \\
-20 s   & $0$ & $0$ & $0$   & $0$      & --    & --    \\
-30 s   & $0$ & $0$ & $0$   & $0$      & $519$ & --    \\
-60 s   & $0$ & $0$ & $0$   & $0$      & $0$   & $140$ \\
-120 s  & $0$ & $0$ & $0$   & $0$      & $0$   & $2$   \\
-300 s  & $0$ & $0$ & $0$   & $0$      & $0$   & $0$   \\
-600 s  & $0$ & $0$ & $0$   & $0$      & $0$   & $0$   \\
+5 s    & $0$ & $0$ & $931$ & --       & --      & --       \\
+10 s   & $0$ & $0$ & $0$   & $223$    & --      & --       \\
+20 s   & $0$ & $0$ & $0$   & $0$      & --      & --       \\
+30 s   & $0$ & $0$ & $0$   & $0$      & $506$   & $1\,848$ \\
+60 s   & $0$ & $0$ & $0$   & $0$      & $0$     & $114$    \\
+120 s  & $0$ & $0$ & $0$   & $0$      & $0$     & $0$      \\
+300 s  & $0$ & $0$ & $0$   & $0$      & $0$     & $0$      \\
+600 s  & $0$ & $0$ & $0$   & $0$      & $0$     & $0$      \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2501,28 +2702,26 @@ prvog rešenja, gruba mreža preseka ne pokazuje dinamiku pretrage. Zato
 u tabelama \ref{tbl:final_traj_s}, \ref{tbl:final_traj_m} i
 \ref{tbl:final_traj_l} dajemo celu putanju poboljšanja za konfiguraciju
 sa osobljem. Konfiguracija bez osoblja prolazi kroz istu vrstu putanje
-(23, 15 i 23 pronađena rešenja po skalama), samo je kraća i celom
-dužinom se odvija u prvih nekoliko sekundi, pa je ne prikazujemo
-posebno.
+(22, 16 i 43 prijavljena rešenja po skalama), samo je kraća: na dve
+manje skale ceo tok stane u prvih nekoliko sekundi, dok na najvećoj
+traje oko 40 sekundi.
 
 \begin{table}[ht]
 \centering
 \caption{Putanja poboljšanja, FINAL-S sa osobljem}
 \label{tbl:final_traj_s}
-\begin{tabular}{rr}
+\begin{tabular}{rr@{\hskip 2em}rr@{\hskip 2em}rr}
 \toprule
-\textbf{Vreme} & \textbf{Cilj} \\
+\textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj}
+& \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-2,69 s & $585$ \\
-2,72 s & $557$ \\
-2,75 s & $555$ \\
-2,88 s & $384$ \\
-2,99 s & $275$ \\
-3,24 s & $106$ \\
-3,38 s & $48$ \\
-3,64 s & $12$ \\
-3,66 s & $10$ \\
-3,79 s & $0$ \\
+2,67 s & $696$ & 3,21 s & $188$ & 4,11 s & $8$ \\
+2,71 s & $604$ & 3,33 s & $109$ & 4,13 s & $6$ \\
+2,74 s & $595$ & 3,41 s & $69$  & 4,14 s & $4$ \\
+2,79 s & $585$ & 3,49 s & $29$  & 4,16 s & $2$ \\
+2,88 s & $398$ & 3,61 s & $27$  & 4,17 s & $0$ \\
+2,94 s & $364$ & 3,94 s & $11$  &        &     \\
+3,04 s & $358$ & 4,09 s & $10$  &        &     \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2531,29 +2730,22 @@ posebno.
 \centering
 \caption{Putanja poboljšanja, FINAL-M sa osobljem}
 \label{tbl:final_traj_m}
-\begin{tabular}{rr@{\hskip 2.5em}rr}
+\begin{tabular}{rr@{\hskip 2em}rr@{\hskip 2em}rr}
 \toprule
-\textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj} \\
+\textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj}
+& \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-9,06 s  & $1\,849$ & 14,87 s & $32$ \\
-9,18 s  & $1\,789$ & 14,95 s & $30$ \\
-9,29 s  & $1\,563$ & 15,04 s & $29$ \\
-9,89 s  & $1\,008$ & 15,10 s & $27$ \\
-10,09 s & $918$    & 15,18 s & $26$ \\
-10,16 s & $792$    & 15,29 s & $24$ \\
-10,48 s & $667$    & 15,37 s & $23$ \\
-10,64 s & $501$    & 15,44 s & $21$ \\
-10,66 s & $453$    & 15,51 s & $20$ \\
-11,30 s & $346$    & 15,64 s & $18$ \\
-11,52 s & $262$    & 15,70 s & $15$ \\
-11,74 s & $252$    & 15,77 s & $12$ \\
-12,40 s & $170$    & 15,84 s & $11$ \\
-13,29 s & $136$    & 15,90 s & $9$ \\
-13,71 s & $60$     & 15,99 s & $8$ \\
-13,89 s & $57$     & 16,10 s & $6$ \\
-14,61 s & $53$     & 16,22 s & $5$ \\
-14,74 s & $35$     & 16,28 s & $3$ \\
-14,80 s & $33$     & 16,37 s & $0$ \\
+8,76 s  & $1\,444$ & 12,76 s & $72$ & 14,48 s & $16$ \\
+8,88 s  & $1\,420$ & 12,94 s & $60$ & 14,66 s & $14$ \\
+9,84 s  & $251$    & 13,05 s & $56$ & 14,72 s & $11$ \\
+9,98 s  & $223$    & 13,05 s & $48$ & 14,78 s & $9$ \\
+10,14 s & $219$    & 13,84 s & $32$ & 14,84 s & $8$ \\
+10,54 s & $217$    & 14,11 s & $30$ & 14,90 s & $6$ \\
+10,81 s & $173$    & 14,21 s & $29$ & 14,96 s & $5$ \\
+10,82 s & $171$    & 14,27 s & $27$ & 15,01 s & $3$ \\
+11,07 s & $155$    & 14,32 s & $25$ & 15,08 s & $2$ \\
+11,99 s & $85$     & 14,40 s & $24$ & 15,20 s & $0$ \\
+12,54 s & $79$     & 14,45 s & $22$ &         &     \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2567,25 +2759,31 @@ posebno.
 \textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj}
 & \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-30,03 s & $2\,973$ & 47,18 s & $472$ & 75,22 s  & $59$ \\
-30,27 s & $2\,799$ & 47,76 s & $404$ & 77,56 s  & $49$ \\
-30,49 s & $2\,612$ & 50,56 s & $386$ & 78,91 s  & $46$ \\
-30,94 s & $2\,332$ & 51,01 s & $265$ & 80,18 s  & $44$ \\
-31,13 s & $2\,322$ & 55,60 s & $241$ & 82,52 s  & $42$ \\
-31,37 s & $2\,319$ & 55,80 s & $179$ & 84,44 s  & $40$ \\
-31,39 s & $2\,303$ & 56,63 s & $157$ & 88,20 s  & $25$ \\
-31,66 s & $2\,259$ & 58,72 s & $153$ & 90,92 s  & $23$ \\
-32,06 s & $1\,823$ & 59,17 s & $152$ & 94,97 s  & $21$ \\
-34,00 s & $1\,527$ & 59,67 s & $140$ & 97,65 s  & $15$ \\
-35,76 s & $1\,173$ & 63,10 s & $138$ & 103,78 s & $12$ \\
-37,81 s & $1\,070$ & 64,72 s & $87$  & 108,77 s & $11$ \\
-38,54 s & $750$    & 66,50 s & $80$  & 109,72 s & $9$ \\
-39,74 s & $746$    & 67,32 s & $78$  & 111,12 s & $8$ \\
-40,10 s & $730$    & 67,55 s & $72$  & 112,46 s & $5$ \\
-40,52 s & $709$    & 67,59 s & $70$  & 118,84 s & $3$ \\
-41,23 s & $691$    & 67,81 s & $69$  & 119,81 s & $2$ \\
-44,85 s & $647$    & 68,51 s & $67$  & 120,44 s & $0$ \\
-46,57 s & $533$    & 71,28 s & $65$  &          &      \\
+27,46 s & $3\,095$ & 50,56 s & $300$ & 68,57 s & $39$ \\
+27,66 s & $3\,053$ & 51,77 s & $292$ & 68,93 s & $38$ \\
+27,96 s & $2\,999$ & 53,67 s & $270$ & 69,15 s & $35$ \\
+28,19 s & $2\,947$ & 55,12 s & $254$ & 69,86 s & $33$ \\
+28,63 s & $2\,824$ & 55,81 s & $215$ & 70,11 s & $32$ \\
+29,26 s & $2\,592$ & 57,23 s & $214$ & 70,39 s & $29$ \\
+29,53 s & $2\,444$ & 57,80 s & $136$ & 70,70 s & $27$ \\
+29,90 s & $1\,848$ & 58,35 s & $114$ & 70,94 s & $26$ \\
+31,36 s & $1\,838$ & 61,42 s & $113$ & 71,33 s & $24$ \\
+31,55 s & $1\,557$ & 61,66 s & $111$ & 71,94 s & $23$ \\
+31,96 s & $1\,386$ & 61,89 s & $110$ & 72,44 s & $21$ \\
+32,21 s & $1\,380$ & 62,13 s & $108$ & 72,87 s & $20$ \\
+34,17 s & $1\,072$ & 62,42 s & $105$ & 73,49 s & $17$ \\
+36,68 s & $1\,026$ & 62,54 s & $86$  & 74,09 s & $16$ \\
+37,21 s & $936$    & 63,41 s & $84$  & 74,35 s & $14$ \\
+38,35 s & $880$    & 63,68 s & $82$  & 74,61 s & $13$ \\
+38,77 s & $833$    & 63,97 s & $80$  & 74,83 s & $11$ \\
+42,26 s & $761$    & 64,24 s & $79$  & 75,13 s & $9$ \\
+42,40 s & $612$    & 64,49 s & $77$  & 75,34 s & $6$ \\
+42,67 s & $606$    & 64,67 s & $51$  & 75,74 s & $5$ \\
+42,99 s & $600$    & 64,95 s & $49$  & 76,07 s & $3$ \\
+43,55 s & $555$    & 65,30 s & $47$  & 76,35 s & $2$ \\
+45,83 s & $545$    & 66,01 s & $45$  & 76,66 s & $0$ \\
+47,16 s & $375$    & 66,58 s & $44$  &         &     \\
+49,95 s & $367$    & 67,20 s & $42$  &         &     \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2599,34 +2797,47 @@ bazel run //src/algo:benchmark -- --mode final --max-time 600 \
 \end{verbatim}
 \end{english}
 
-\section{Zaoštreno okruženje}
+\subsection{Zaoštreno okruženje}
 \label{sec:finalna_zaostreno}
 
 Rezultati iz prethodnog odeljka pokazuju da rešavač na svim skalama
-dostigne cilj 0, i to za nekoliko desetina sekundi, najviše dva minuta.
-Razlog je što realna instanca ima dovoljno slobodnog prostora: 29
-učionica puta 60 termina nedeljno daje 1740 mesta za najviše 839 časova,
-dakle popunjenost ispod 50\%. U tako labavom rasporedu meka ograničenja
-retko dolaze u stvarni sukob, pa kriva funkcije cilja sigurno padne na
-nulu i o granicama modela govori malo.
+dostigne cilj 0, i to za nekoliko desetina sekundi, najviše nešto više
+od minuta. Razlog je što realna instanca ima dovoljno slobodnog
+prostora: 29 učionica puta 12 jednosatnih termina dnevno puta 5 dana
+daje 1740 parova (učionica, termin) za najviše 835 časova, dakle
+popunjenost od 48\%. U tako labavom rasporedu meka ograničenja retko
+dolaze u stvarni sukob, pa kriva funkcije cilja pouzdano padne na nulu i
+o granicama modela govori malo.
 
 Da bismo videli kako se model ponaša kada resursi postanu oskudni,
 uvodimo \emph{zaoštreno okruženje} -- istu instancu sa dve izmene:
 
 \begin{itemize}
-\item nastava traje od 8 do 15 časova umesto do 20, čime broj termina
-  pada sa 1740 na 1015, a popunjenost najveće instance raste na 83\%;
+\item nastava traje od 8 do 15 časova umesto do 20, dakle sedam
+  jednosatnih termina dnevno umesto dvanaest, čime broj parova
+  (učionica, termin) pada sa 1740 na 1015, a popunjenost najveće
+  instance raste na 82\%;
 \item podrazumevani najveći broj radnih dana nastavnika smanjen je sa 4
   na 2 (lični limiti pojedinih nastavnika, koji su stroži,
   ostaju nepromenjeni).
 \end{itemize}
 
-Dužina dana je birana tako da problem ostane jedva rešiv. Skraćenje
-za još jedan čas (8--14, dakle 870 termina i 96\% popunjenosti) dovodi
-najveću instancu sa osobljem preko granice rešivosti: rešavač za 600
-sekundi ne nađe \emph{nijedno} dopustivo rešenje i vraća status
-\textsc{unknown}. Zona u kojoj je ovaj problem istovremeno rešiv i
-netrivijalan je, dakle, uska -- meri se jednim časom nastave dnevno.
+Dužina dana je birana tako da problem ostane jedva rešiv. Skraćenje za
+još jedan čas (8--14, dakle šest termina dnevno, 870 parova i 96\%
+popunjenosti) dovodi najveću instancu sa osobljem do statusa
+\textsc{unknown}: rešavač za 600 sekundi ne nađe \emph{nijedno}
+dopustivo rešenje, ali ni ne dokaže da rešenje ne postoji. Smanjenje
+broja parova sa 1015 na 870 iznosi 14,3\%, pa je zona u kojoj je ovaj
+problem istovremeno rešiv i netrivijalan uska -- meri se jednim časom
+nastave dnevno.
+
+Procenti popunjenosti su, treba naglasiti, gruba mera raspoloživosti: u
+imeniocu su svi parovi (učionica, termin), a mnogi od njih nisu
+upotrebljivi za datu sesiju, jer učionica nema računare, nije na
+odgovarajućoj lokaciji, ili je termin već zauzet grupom ili nastavnikom
+te sesije. Iz procenta popunjenosti ne sledi ni rešivost ni to da cilj
+može pasti na nulu; on služi samo da se dva okruženja uporede po
+količini prostora.
 
 Tabela \ref{tbl:tight_tok} prikazuje tok rešavanja u tako zaoštrenom
 okruženju.
@@ -2643,25 +2854,59 @@ okruženju.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Metrika} & bez & sa & bez & sa & bez & sa \\
 \midrule
-Promenljive          & $9\,448$  & $24\,511$ & $18\,476$ & $52\,648$ & $33\,602$ & $86\,685$ \\
-Ograničenja          & $16\,657$ & $42\,782$ & $32\,524$ & $92\,453$ & $59\,124$ & $152\,891$ \\
-Prvo rešenje         & 1,01 s    & 1,63 s    & 4,01 s    & 7,18 s    & 43,26 s   & 67,06 s \\
-Cilj prvog rešenja   & $744$     & $684$     & $1\,837$  & $1\,677$  & $2\,545$  & $2\,456$ \\
-Broj nađenih rešenja & $18$      & $16$      & $14$      & $23$      & $24$      & $62$ \\
-Vreme do najboljeg   & 1,35 s    & 2,73 s    & 6,51 s    & 14,47 s   & 80,31 s   & 209,53 s \\
-Najbolji cilj        & $0$       & $3$       & $0$       & $6$       & $0$       & $6$ \\
-Donja granica        & $0$       & $3$       & $0$       & $6$       & $0$       & $6$ \\
-Status               & \multicolumn{6}{c}{\textsc{optimal}} \\
-Rešenje validno      & \multicolumn{6}{c}{da} \\
+Promenljive            & $9\,448$  & $24\,511$ & $18\,476$ & $52\,322$ & $33\,602$ & $86\,359$ \\
+Ograničenja            & $16\,657$ & $42\,782$ & $32\,524$ & $91\,827$ & $59\,124$ & $152\,265$ \\
+Prvo dopustivo rešenje & 1,14 s    & 1,67 s    & 3,80 s    & 6,63 s    & 37,29 s   & 50,61 s \\
+Cilj prvog rešenja     & $744$     & $1\,050$  & $1\,837$  & $1\,676$  & $2\,545$  & $2\,821$ \\
+Broj nađenih rešenja   & $16$      & $13$      & $26$      & $31$      & $19$      & $57$ \\
+Vreme do najboljeg     & 1,50 s    & 2,60 s    & 6,13 s    & 12,36 s   & 58,11 s   & 194,32 s \\
+Dokaz optimalnosti     & 1,51 s    & 2,66 s    & 6,14 s    & 12,44 s   & 58,17 s   & 194,42 s \\
+Ukupno vreme           & 1,57 s    & 2,82 s    & 6,27 s    & 12,77 s   & 58,39 s   & 194,94 s \\
+Najbolji cilj          & $0$       & $3$       & $0$       & $6$       & $0$       & $6$ \\
+Donja granica          & $0$       & $3$       & $0$       & $6$       & $0$       & $6$ \\
+Status                 & \multicolumn{6}{c}{\textsc{optimal}} \\
+Rešenje validno        & \multicolumn{6}{c}{da} \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Za razliku od realnog okruženja, ovde najbolji cilj \emph{nije} nula:
-na najmanjoj skali ostaje 3, a na srednjoj i najvećoj 6. Pošto se donja
-granica poklapa sa nađenim rešenjem, reč je o dokazano najboljem
-mogućem kompromisu -- u zbijenoj nedelji prosto nije moguće da svi
-nastavnici stanu u dva radna dana bez ijednog procepa kod grupa.
+u konfiguraciji sa osobljem ostaje 3 na najmanjoj skali, a 6 na srednjoj
+i najvećoj. Pošto se donja granica poklapa sa nađenim rešenjem, reč je o
+dokazano najmanjoj mogućoj vrednosti cilja pri datim težinama.
+
+Tabela \ref{tbl:tight_komponente} pokazuje od čega se ta vrednost
+sastoji. Komponente se očitavaju iz najboljeg nađenog rešenja, tako što
+se za svako meko pravilo saberu vrednosti njegovih promenljivih
+prekršaja.
+
+\begin{table}[ht]
+\centering
+\caption{Komponente funkcije cilja u zaoštrenom okruženju}
+\label{tbl:tight_komponente}
+\begin{tabular}{lrrrrrr}
+\toprule
+& \multicolumn{2}{c}{\textbf{FINAL-S}}
+& \multicolumn{2}{c}{\textbf{FINAL-M}}
+& \multicolumn{2}{c}{\textbf{FINAL-L}} \\
+\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
+\textbf{Komponenta (težina)} & bez & sa & bez & sa & bez & sa \\
+\midrule
+Procepi u rasporedu grupa (2)      & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ \\
+Nedostajuća mesta u učionicama (1) & $0$ & $0$ & $0$ & $0$ & $0$ & $0$ \\
+Radni dani preko limita (3)        & --  & $1$ & --  & $2$ & --  & $2$ \\
+\midrule
+Ukupan cilj                        & $0$ & $3$ & $0$ & $6$ & $0$ & $6$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Ceo preostali cilj potiče, dakle, od jednog jedinog pravila: u zbijenoj
+nedelji jedan nastavnik na najmanjoj skali, odnosno po dva nastavnika na
+druge dve, moraju da rade jedan dan više nego što im limit dozvoljava.
+Procepa u rasporedu grupa nema, niti ijedna sesija završava u premaloj
+učionici. U realnom okruženju su sve tri komponente nula, pa tu tabelu
+ne prikazujemo posebno.
 
 Sada i mreža vremenskih preseka ima šta da pokaže. Tabela
 \ref{tbl:tight_checkpoints} daje vrednost funkcije cilja u zadatim
@@ -2679,25 +2924,25 @@ trenucima.
 \cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
 \textbf{Vreme} & bez & sa & bez & sa & bez & sa \\
 \midrule
-10 s  & $0$ & $3$ & $0$ & $329$ & --    & --    \\
-20 s  & $0$ & $3$ & $0$ & $6$   & --    & --    \\
-30 s  & $0$ & $3$ & $0$ & $6$   & --    & --    \\
-40 s  & $0$ & $3$ & $0$ & $6$   & --    & --    \\
-50 s  & $0$ & $3$ & $0$ & $6$   & $874$ & --    \\
-60 s  & $0$ & $3$ & $0$ & $6$   & $289$ & --    \\
-90 s  & $0$ & $3$ & $0$ & $6$   & $0$   & $472$ \\
-120 s & $0$ & $3$ & $0$ & $6$   & $0$   & $100$ \\
-300 s & $0$ & $3$ & $0$ & $6$   & $0$   & $6$   \\
-600 s & $0$ & $3$ & $0$ & $6$   & $0$   & $6$   \\
+10 s  & $0$ & $3$ & $0$ & $90$ & --       & --       \\
+20 s  & $0$ & $3$ & $0$ & $6$  & --       & --       \\
+30 s  & $0$ & $3$ & $0$ & $6$  & --       & --       \\
+40 s  & $0$ & $3$ & $0$ & $6$  & $1\,817$ & --       \\
+50 s  & $0$ & $3$ & $0$ & $6$  & $165$    & --       \\
+60 s  & $0$ & $3$ & $0$ & $6$  & $0$      & $1\,431$ \\
+90 s  & $0$ & $3$ & $0$ & $6$  & $0$      & $103$    \\
+120 s & $0$ & $3$ & $0$ & $6$  & $0$      & $41$     \\
+300 s & $0$ & $3$ & $0$ & $6$  & $0$      & $6$      \\
+600 s & $0$ & $3$ & $0$ & $6$  & $0$      & $6$      \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 Kolona ,,FINAL-L sa`` je ono što se u ovakvim merenjima obično i očekuje:
-prvo rešenje se pojavi tek posle nešto više od minuta, a cilj zatim pada
-sa 472 na 100 i konačno na 6, kroz gotovo tri i po minuta pretrage. Cela
-putanja poboljšanja za to pokretanje data je u tabeli
-\ref{tbl:tight_traj_l}.
+prvo dopustivo rešenje pojavi se posle 50,6 sekundi, sa ciljem 2821, a
+zatim vrednost pada na 1431 u prvom minutu, 103 u prva dva minuta i
+konačno na 6 posle 194,3 sekunde pretrage. Cela putanja poboljšanja za
+to pokretanje data je u tabeli \ref{tbl:tight_traj_l}.
 
 \begin{table}[ht]
 \centering
@@ -2708,27 +2953,25 @@ putanja poboljšanja za to pokretanje data je u tabeli
 \textbf{Vreme} & \textbf{Cilj} & \textbf{Vreme} & \textbf{Cilj}
 & \textbf{Vreme} & \textbf{Cilj} \\
 \midrule
-67,06 s & $2\,456$ & 95,43 s  & $300$ & 131,90 s & $61$ \\
-67,22 s & $2\,413$ & 98,57 s  & $281$ & 131,94 s & $58$ \\
-71,35 s & $2\,025$ & 99,05 s  & $267$ & 135,01 s & $55$ \\
-71,53 s & $1\,978$ & 100,51 s & $227$ & 135,26 s & $54$ \\
-72,03 s & $1\,871$ & 102,28 s & $205$ & 141,89 s & $51$ \\
-72,42 s & $1\,678$ & 102,30 s & $202$ & 144,99 s & $48$ \\
-72,65 s & $1\,646$ & 103,85 s & $171$ & 146,64 s & $45$ \\
-73,86 s & $1\,493$ & 106,47 s & $157$ & 148,90 s & $42$ \\
-75,46 s & $1\,245$ & 106,99 s & $138$ & 149,57 s & $39$ \\
-75,82 s & $1\,232$ & 107,26 s & $121$ & 150,68 s & $36$ \\
-78,47 s & $1\,158$ & 108,58 s & $116$ & 151,06 s & $34$ \\
-81,15 s & $988$    & 109,10 s & $114$ & 152,24 s & $28$ \\
-82,97 s & $845$    & 109,17 s & $110$ & 155,16 s & $25$ \\
-82,99 s & $843$    & 110,29 s & $103$ & 156,43 s & $21$ \\
-84,55 s & $841$    & 112,17 s & $101$ & 158,18 s & $18$ \\
-84,99 s & $689$    & 112,26 s & $100$ & 163,43 s & $15$ \\
-85,99 s & $664$    & 120,63 s & $86$  & 164,17 s & $12$ \\
-88,57 s & $472$    & 126,71 s & $70$  & 166,54 s & $11$ \\
-90,25 s & $470$    & 127,18 s & $67$  & 173,26 s & $9$  \\
-92,01 s & $406$    & 130,02 s & $66$  & 209,53 s & $6$  \\
-93,31 s & $384$    & 131,89 s & $62$  &          &      \\
+50,61 s & $2\,821$ & 71,53 s & $293$ & 100,71 s & $62$ \\
+50,76 s & $2\,795$ & 72,27 s & $287$ & 101,46 s & $60$ \\
+50,95 s & $2\,791$ & 75,34 s & $263$ & 109,18 s & $56$ \\
+54,15 s & $2\,716$ & 75,67 s & $254$ & 111,45 s & $53$ \\
+54,46 s & $2\,293$ & 76,66 s & $202$ & 112,73 s & $48$ \\
+54,82 s & $2\,258$ & 77,06 s & $188$ & 118,43 s & $41$ \\
+55,09 s & $1\,978$ & 80,96 s & $165$ & 123,01 s & $39$ \\
+56,08 s & $1\,663$ & 83,59 s & $162$ & 133,02 s & $36$ \\
+57,05 s & $1\,431$ & 86,39 s & $136$ & 137,02 s & $33$ \\
+61,15 s & $867$    & 87,60 s & $128$ & 140,49 s & $30$ \\
+62,09 s & $861$    & 87,78 s & $125$ & 145,16 s & $29$ \\
+63,49 s & $724$    & 87,93 s & $116$ & 145,83 s & $27$ \\
+63,70 s & $536$    & 88,46 s & $113$ & 146,88 s & $24$ \\
+64,07 s & $509$    & 88,91 s & $103$ & 149,28 s & $21$ \\
+66,34 s & $445$    & 92,01 s & $82$  & 160,57 s & $18$ \\
+67,76 s & $411$    & 92,92 s & $80$  & 168,03 s & $15$ \\
+70,09 s & $384$    & 95,61 s & $73$  & 170,78 s & $14$ \\
+70,63 s & $322$    & 95,99 s & $68$  & 189,30 s & $11$ \\
+70,84 s & $320$    & 96,78 s & $63$  & 194,32 s & $6$  \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2742,16 +2985,24 @@ bazel run //src/algo:benchmark -- --mode final --profile tight \
 \end{verbatim}
 \end{english}
 
-\section{Analiza rezultata}
+\subsection{Analiza rezultata}
 \label{sec:finalna_analiza}
 
-\subsection{Cena proširenja modela}
+\subsubsection{Cena proširenja modela}
 
 Uvođenje nastavnog osoblja model uvećava oko dva i po puta: broj
-promenljivih raste 2,6 do 2,9 puta, a broj ograničenja 2,6 do 2,9 puta
+promenljivih raste 2,6 do 2,9 puta, a broj ograničenja 2,6 do 2,8 puta
 na svim skalama. Deo tog rasta dolazi od pomoćnih promenljivih kojima se
 izražavaju pravila osoblja, a deo od toga što instanca sa osobljem
-opisuje \emph{više} nastave: na najvećoj skali 839 naspram 722 časa.
+opisuje \emph{više} nastave: na najvećoj skali 835 naspram 722 časa.
+
+Zbog te razlike dve konfiguracije ne treba čitati kao merenje
+,,uticaja pravila osoblja``, nego kao poređenje dve različite
+konfiguracije sistema. One se razlikuju istovremeno po skupu pravila, po
+broju sesija i po podeli na grupe, pa se iz razlike u vremenima ne može
+izdvojiti doprinos samih pravila. Eksperiment koji bi to izdvojio --
+isti skup sesija, sa pravilima osoblja i bez njih -- naveden je kao
+mogući dalji rad u glavi \ref{chp:zakljucak}.
 
 Razlog za veći broj časova je to što se grupe izvode iz dodela nastave
 (odeljak \ref{sec:grupe_iz_osoblja}). Bez fajla sa osobljem upis se deli
@@ -2763,89 +3014,187 @@ više časova vežbi.
 Pojam kohorte iz odeljka \ref{sec:cohorts} radi u suprotnom smeru:
 dodele oblika \texttt{"groupIds": ["1i1a", "1i1b", "1i1v"]} spajaju više
 grupa u jedan zajednički čas, pa nastavnik isto predavanje ne drži više
-puta. Na najvećoj skali 139 od 839 časova su takve zajedničke sesije.
+puta. Na najvećoj skali 139 od 835 časova su takve zajedničke sesije.
 Zbog toga broj časova raste 16\% iako broj grupa raste 47\% -- spajanje
 predavanja pojede veći deo razlike.
 
-\subsection{Ponašanje funkcije cilja kroz vreme}
+\subsubsection{Ponašanje funkcije cilja kroz vreme}
 
-U obe konfiguracije prvo pronađeno rešenje je daleko od optimuma, i u
-obe rešavač cilj spusti do nule. Bez osoblja početna vrednost je 1355,
-1009 i 2440 na skalama S, M i L, a do nule se stiže kroz 23, 15 i 23
-pronađena rešenja; sa osobljem početne vrednosti su 585, 1849 i 2973, a
-poboljšanja ima 10, 38 i 56.
+U obe konfiguracije prvo dopustivo rešenje je daleko od optimuma, i u
+obe rešavač cilj spusti do nule. Bez osoblja cilj prvog rešenja je 1355,
+1009 i 2440 na skalama S, M i L, a do nule se stiže kroz 22, 16 i 43
+prijavljena rešenja; sa osobljem su početne vrednosti 696, 1444 i 3095,
+uz 19, 32 i 73 prijavljena rešenja.
 
 Sastav početne kazne se pri tome menja sa konfiguracijom. Bez osoblja u
-njoj su samo procepi u rasporedu grupa i studenti bez mesta u učionici;
+njoj su samo procepi u rasporedu grupa i nedostajuća mesta u učionicama;
 sa osobljem se na to dodaju i nastavnici koji rade više dana nego što im
-je dozvoljeno, pa je početna kazna na srednjoj i najvećoj skali osetno
-veća. Na najmanjoj skali je obrnuto (585 naspram 1355), što pokazuje da
-te dve konfiguracije nisu ni ista instanca: sa osobljem se raspoređuje
-216 časova podeljenih na 11 grupa, bez osoblja 204 časa na 8 grupa.
+je dozvoljeno. Na najmanjoj skali je početna kazna sa osobljem manja
+nego bez njega (696 naspram 1355), što je još jedan podsetnik da dve
+konfiguracije nisu ista instanca: sa osobljem se raspoređuje 216 časova
+podeljenih na 11 grupa, bez osoblja 204 časa na 8 grupa.
 
 Poboljšanja su gusta i neravnomerna -- najveći skokovi dešavaju se rano
-(na primer, sa 2259 na 1823 u svega 0,4 sekunde na skali L sa osobljem),
+(na primer, sa 2444 na 1848 u svega 0,4 sekunde na skali L sa osobljem),
 dok poslednji koraci do nule traju duže jer je preostale prekršaje sve
-teže ukloniti: poslednjih 65 poena cilja na najvećoj skali oduzima
-gotovo pola minuta pretrage.
+teže ukloniti: poslednjih 42 poena cilja na najvećoj skali oduzimaju
+oko devet i po sekundi pretrage.
 
-\subsection{Skalabilnost}
+\subsubsection{Skalabilnost}
 
 Vreme do prvog dopustivog rešenja raste sa veličinom instance
-(1,59 s, 4,86 s i 23,92 s bez osoblja, odnosno 2,69 s, 9,06 s i 30,03 s
-sa osobljem), što je očekivano jer raste i broj sesija koje treba
-smestiti u isti broj termina i učionica. Ukupno vreme do dokazano
-optimalnog rešenja u konfiguraciji sa osobljem iznosi 4,05 s, 16,95 s i
-121,76 s -- rast je nadlinearan, pa se vidi da najveća skala već traži
-znatan deo posla u fazi optimizacije, a ne samo u traženju prvog
-rešenja.
+(1,62 s, 4,90 s i 23,17 s bez osoblja, odnosno 2,67 s, 8,76 s i 27,46 s
+sa osobljem), što je očekivano jer raste broj sesija koje treba smestiti
+u isti broj termina i učionica. Dokaz optimalnosti u konfiguraciji sa
+osobljem pada u 4,20 s, 15,26 s i 76,78 s, a ukupno vreme sa
+konstrukcijom modela iznosi 4,44 s, 15,75 s i 77,61 s. Rast je
+nadlinearan u odnosu na broj sesija, i to pre svega u fazi optimizacije:
+na najvećoj skali od 77,6 sekundi ukupnog vremena na traženje prvog
+dopustivog rešenja odlazi 27,5 sekundi, a preostalih 49 na spuštanje
+cilja do nule i dokaz da bolje nema.
 
-Bitno je da su svi rezultati dobijeni sa statusom \textsc{optimal},
-dakle donja granica se poklopila sa nađenim rešenjem. Vremenski limit od
-600 sekundi ni na jednoj skali nije ni približno iskorišćen: najsporije
-pokretanje završeno je za oko dva minuta, dakle unutar 21\% raspoloživog
-vremena. Prošireni model, dakle, ne samo da ostaje rešiv posle svih
-dodatih ograničenja, nego i dalje ima rezervu za buduća proširenja
-navedena u glavi \ref{chp:zakljucak}.
+Svi rezultati dobijeni su sa statusom \textsc{optimal}, dakle donja
+granica se poklopila sa nađenim rešenjem. Vremenski limit od 600 sekundi
+ni na jednoj skali nije ni približno iskorišćen: najsporije pokretanje
+završeno je za oko 78 sekundi, dakle unutar 13\% raspoloživog vremena.
+Prošireni model, dakle, ne samo da ostaje rešiv posle svih dodatih
+ograničenja, nego i dalje ima rezervu za buduća proširenja navedena u
+glavi \ref{chp:zakljucak}.
 
-\subsection{Uticaj oskudice resursa}
+\subsubsection{Uticaj oskudice resursa}
 
 Poređenje dva okruženja pokazuje da težina ovog problema mnogo više
-zavisi od količine raspoloživih termina nego od broja pravila. Skraćenje
-radnog dana sa dvanaest na sedam časova ne menja nijedno ograničenje
-modela, a vreme rešavanja najveće instance sa osobljem raste sa 122 na
-210 sekundi, dok cilj prestaje da bude dostižan u nuli.
+zavisi od količine raspoloživog prostora nego od broja pravila.
+Skraćenje radnog dana sa dvanaest na sedam časova ne menja nijedno
+ograničenje modela, a ukupno vreme rešavanja najveće instance sa
+osobljem raste sa 77,6 na 194,9 sekundi, dok cilj prestaje da bude
+dostižan u nuli.
 
-Najviše se, međutim, produži traženje \emph{prvog} dopustivog rešenja:
-na najvećoj skali sa osobljem sa 30 na 67 sekundi, a bez osoblja sa 24
-na 43 sekunde. To je i suština razlike između dva okruženja -- u realnom
-je težak deo posla optimizacija, a u zaoštrenom sama dopustivost. Na
-manjim skalama je efekat blaži (FINAL-S sa osobljem: 2,69 s naspram
-1,63 s), jer prva godina i u kratkom danu ima dovoljno prostora.
+Najviše se pri tome produži traženje \emph{prvog} dopustivog rešenja:
+na najvećoj skali sa osobljem sa 27,5 na 50,6 sekundi, a bez osoblja sa
+23,2 na 37,3 sekunde. To je i suština razlike između dva okruženja -- u
+realnom je težak deo posla optimizacija, a u zaoštrenom i sama
+dopustivost. Na manjim skalama je efekat blaži (FINAL-S sa osobljem:
+2,67 s naspram 1,67 s), jer prva godina i u kratkom danu ima dovoljno
+prostora; na toj skali je zaoštreno okruženje čak i brže, pošto ima
+manje termina kroz koje pretraga ide.
 
-Vredi primetiti i da je početna kazna u zaoštrenom okruženju
-\emph{manja} nego u realnom (2456 naspram 2973 na najvećoj skali), iako
+Vredi primetiti i da je cilj prvog rešenja u zaoštrenom okruženju
+\emph{manji} nego u realnom (2821 naspram 3095 na najvećoj skali), iako
 je okruženje strože. U kratkom danu jednostavno ima manje prilika za
 procepe. Razlika je u tome što se ta manja kazna ne može svesti na nulu:
-u realnom okruženju cilj je velik ali potpuno uklonjiv, a u zaoštrenom
-je manji ali sadrži nesvodiv ostatak od 3 poena na najmanjoj i 6 na
+u realnom okruženju cilj je veći ali potpuno uklonjiv, a u zaoštrenom je
+manji ali sadrži nesvodiv ostatak od 3 poena na najmanjoj i 6 na
 srednjoj i najvećoj skali.
 
-Konačno, granica rešivosti je bliža nego što se iz ovih brojeva vidi.
-Dan od 8 do 15 časova daje 1015 termina za 839 časova, dakle 83\%
-popunjenosti, i rešavač tu još dokazuje optimalnost. Jedan čas kraći dan
-(870 termina, 96\% popunjenosti) menja sliku iz temelja: rešavač za 600
-sekundi ne nađe nijedno dopustivo rešenje. Prelaz od dokazano optimalnog
-rešenja do nemogućnosti da se nađe bilo kakvo mera se, dakle, jednim
-časom nastave dnevno.
+Konačno, prostor u kome je problem rešiv uži je nego što se iz ovih
+brojeva vidi. Dan od 8 do 15 časova daje 1015 parova (učionica, termin)
+za 835 časova, dakle 82\% popunjenosti, i rešavač tu još dokazuje
+optimalnost. Jedan čas kraći dan (870 parova, 96\% popunjenosti) menja
+sliku: rešavač za 600 sekundi ne nađe nijedno dopustivo rešenje i vraća
+status \textsc{unknown}. Naglasimo šta taj status znači, a šta ne: u
+datom vremenskom limitu nije nađeno dopustivo rešenje niti je dokazana
+nedopustivost. Iz njega, dakle, ne sledi da rešenje ne postoji, niti da
+je pređena neka granica rešivosti -- samo da ga ovaj rešavač u ovoj
+formulaciji i u ovom limitu nije našao. Da rešenje ne postoji tvrdio bi
+status \textsc{infeasible}, koji ovde nije dobijen.
 
-\subsection{Validnost}
+\subsubsection{Primer rasporeda}
+\label{sec:primer_rasporeda}
+
+Brojevi iz prethodnih tabela ne pokazuju kako dobijeni raspored zaista
+izgleda, pa u tabeli \ref{tbl:primer_grupe} dajemo nedelju jedne grupe,
+izvučenu iz rešenja najveće skale sa osobljem u zaoštrenom okruženju
+(dakle iz rešenja sa ciljem 6). Reč je o grupi \texttt{1o1}, jednoj od
+grupa prve godine sa 26 časova nedeljno, što je najviše na toj skali.
+Uzastopni časovi istog predmeta u istoj učionici sažeti su u jedan red.
+
+\begin{table}[ht]
+\centering
+\caption{Nedeljni raspored grupe \texttt{1o1} (30 studenata)}
+\label{tbl:primer_grupe}
+\begin{tabular}{llllr}
+\toprule
+\textbf{Dan} & \textbf{Termin} & \textbf{Učionica (kap.)}
+& \textbf{Nastava} & \textbf{Časova} \\
+\midrule
+Ponedeljak & 8--10  & 704 (30)  & Analitička geometrija, pred. & 2 \\
+           & 10--12 & N251 (36) & Analiza 1, vežbe             & 2 \\
+           & 12--15 & N102 (36) & Linearna algebra, pred.      & 3 \\
+\midrule
+Utorak     & 8--10  & N203 (36) & Programiranje 2, pred.       & 2 \\
+           & 10--12 & JAG1 (35) & Analiza 1, pred.             & 2 \\
+           & 12--14 & 843 (30)  & Linearna algebra, vežbe      & 2 \\
+\midrule
+Sreda      & 12--15 & 843 (30)  & Strani jezik, pred.          & 3 \\
+\midrule
+Četvrtak   & 8--11  & JAG2 (35) & Programiranje 2, vežbe       & 3 \\
+           & 11--13 & JAG2 (35) & Analiza 1, pred.             & 2 \\
+\midrule
+Petak      & 8--10  & 830 (40)  & Analiza 1, vežbe             & 2 \\
+           & 10--13 & 704 (30)  & Analitička geometrija, vežbe & 3 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Raspored ilustruje kako pravila iz glava \ref{chp:nadogradnja} i
+\ref{chp:osoblje} izgledaju u ishodu. Časovi istog predmeta spojeni su u
+dvočasove i tročasove, u skladu sa tvrdim pravilom
+\texttt{joinSameClasses}; nijedan dan nema procep, jer su svi časovi
+jednog dana uzastopni; nijedna sesija nije u premaloj učionici, pošto je
+grupa od 30 studenata svuda smeštena u salu kapaciteta bar 30. Preostala
+kazna 6 u ovom pokretanju ne potiče od grupa, nego od dva nastavnika
+koji rade jedan dan više nego što im limit od dva radna dana dozvoljava
+(tabela \ref{tbl:tight_komponente}).
+
+\subsubsection{Praktična upotrebljivost}
+
+Dobijeni raspored je dokazano optimalan za zadatu funkciju cilja, ali
+optimalnost nije isto što i prihvatljivost u praksi. Nekoliko ograda
+treba navesti eksplicitno:
+
+\begin{itemize}
+\item \textbf{Kapacitet je mek.} Rešenje sa nula nedostajućih mesta
+  dobili smo na svim merenim instancama, ali to nije garancija modela:
+  pošto je kazna po nedostajućem mestu 1, rešavač sme da smesti grupu u
+  premalu učionicu kad god time ukloni dovoljno procepa ili radnih dana
+  preko limita. Raspored sa ciljem različitim od nule zato uvek treba
+  pročitati po komponentama, a ne samo po ukupnoj vrednosti.
+\item \textbf{Grupa sme da menja zgradu u toku dana.} Pravilo o jednoj
+  lokaciji po danu (odeljak \ref{sec:rule_location}) u završnoj
+  konfiguraciji je isključeno za grupe, a uključeno samo za nastavnike,
+  jer bi sa uključenim pravilom za grupe instanca postala znatno teža.
+  U tabeli \ref{tbl:primer_grupe} to se i vidi: grupa u utorak prelazi
+  iz zgrade u Ulici Svetog Nikole u Jagićevu, pa na Studentski trg.
+\item \textbf{Raspoloživost nastavnika nije modelovana.} Model poznaje
+  najveći broj radnih dana i nedeljni budžet procepa, ali ne i to da
+  neki nastavnik određenim danima ili u određenim terminima ne može da
+  drži nastavu. Za upotrebu u praksi to je prvo ograničenje koje bi
+  trebalo dodati.
+\item \textbf{Ulazni podaci su procene.} Brojevi upisanih studenata i
+  podela na grupe preuzeti su iz dostupnih izvora i ne moraju odgovarati
+  stvarnom stanju na početku semestra.
+\end{itemize}
+
+Uz te ograde, izlaz rešavača je upotrebljiv kao polazna verzija
+rasporeda koju koordinator dalje dorađuje, a ne kao konačan raspored
+koji se objavljuje bez provere.
+
+\subsubsection{Validnost}
 
 Na svih dvanaest pokretanja, u oba okruženja, nezavisna provera potvrđuje
-da su tvrda ograničenja zadovoljena: nema dva časa u istoj učionici u
-istom terminu, nijedna grupa nema dva časa istovremeno, časovi koji
-zahtevaju računare su u odgovarajućim učionicama, a nijedan nastavnik
-nije dvostruko zauzet.
+da nema dva časa u istoj učionici u istom terminu, da nijedna grupa nema
+dva časa istovremeno, da su časovi koji zahtevaju računare u
+odgovarajućim učionicama i da nijedan nastavnik nije dvostruko zauzet.
+
+Obim te provere treba čitati doslovno: ona pokriva ograničenja ugrađena
+u model, ali ne i preostala tvrda pravila završne konfiguracije --
+spajanje časova u blokove, jednu lokaciju nastavnika po danu i nedeljni
+budžet procepa. Ta pravila su proverena testovima pojedinačnih pravila
+na malim primerima (odeljak \ref{sec:staff_config}), što nije isto što i
+provera na svakom dobijenom rasporedu. Njihovo poštovanje na
+izmerenim instancama zato počiva na ispravnosti samog modela, a ne na
+nezavisnoj potvrdi.
 
 
 % ------------------------------------------------------------------------------
@@ -2862,32 +3211,36 @@ binarni celobrojni linearni model (0-1 ILP), poseban slučaj mešovitog
 celobrojnog programiranja, rešavan SCIP-om (oznaka MIP/SCIP). Oba su
 izvedena korišćenjem biblioteke Google OR-Tools.
 
-Eksperimentalna evaluacija na tri skale realnih podataka pokazala je
-sledeće:
+Preliminarna evaluacija na tri skale realnih podataka (odeljak
+\ref{sec:preliminarna-evaluacija}) pokazala je sledeće:
 
 \begin{enumerate}
-\item \textbf{CP-SAT je značajno kompaktniji.}
-  Sa svega 5 celobrojnih promenljivih po sesiji naspram hiljada
-  binarnih promenljivih u MIP-u, CP model zauzima znatno manje
-  memorije i brže se konstruiše.
+\item \textbf{Obe formulacije daju validne rasporede.}
+  Nezavisna provera potvrđuje da rešenja oba rešavača zadovoljavaju sva
+  tvrda ograničenja osnovnog modela, na sve tri instance.
 
-\item \textbf{CP-SAT je brži.}
-  Zahvaljujući globalnim ograničenjima sa specijalizovanom
-  propagacijom i tehnikama učenja konflikata iz SAT rešavača,
-  CP-SAT nalazi dopustivo rešenje za redove veličine brže od
-  MIP/SCIP rešavača.
+\item \textbf{Na ovim instancama je CP-SAT bio brži.}
+  Ukupno vreme MIP/SCIP formulacije veće je 198 puta na najmanjoj, 158
+  puta na srednjoj i 22 puta na najvećoj instanci. Relativna prednost,
+  dakle, opada sa veličinom instance, dok apsolutna razlika raste
+  (sa oko 8 na oko 35 sekundi).
 
-\item \textbf{CP-SAT bolje skalira.}
-  Na većim instancama problema, prednost CP-SAT pristupa postaje
-  izraženija, dok MIP/SCIP može da ne nađe rešenje u razumnom
-  vremenskom roku.
+\item \textbf{Dve formulacije se razlikuju po obimu zapisa.}
+  CP model koristi šest celobrojnih promenljivih po sesiji, a 0-1 ILP
+  model po jednu binarnu promenljivu za svaku kombinaciju sesije, dana,
+  sata i dozvoljene učionice, što na najvećoj instanci daje okvirno
+  $10^5$ promenljivih. Iz tog odnosa se ne može zaključivati o težini
+  rešavanja, jer jedno globalno ograničenje u CP modelu obuhvata mnogo
+  promenljivih.
 
-\item \textbf{Oba rešavača daju validna rešenja.}
-  Nezavisna validacija potvrđuje da oba pristupa, kada nađu
-  rešenje, zadovoljavaju sva tvrda ograničenja.
+\item \textbf{Poređenje je uže nego što izgleda.}
+  Oba modela rešavaju problem dopustivosti, pa MIP model radi bez
+  funkcije cilja (odeljak \ref{sec:mip_bez_cilja}), a zaključci važe za
+  ove dve konkretne formulacije, ova dva rešavača u podrazumevanim
+  podešavanjima i ove tri instance.
 \end{enumerate}
 
-Na osnovu ovih rezultata, CP-SAT je izabran kao osnova za dalju
+Na osnovu tih rezultata, CP-SAT je izabran kao osnova za dalju
 nadogradnju sistema za raspoređivanje časova. Nadogradnja je sprovedena
 u dva koraka. U glavi \ref{chp:nadogradnja} uvedena je arhitektura
 pravila (eng. \emph{plugin}) sa podrškom za tvrda i meka ograničenja i
@@ -2899,29 +3252,18 @@ učionice kao meko ograničenje. U glavi
 kohorte i zajedničkih sesija (kojima se izbegava da nastavnik drži isti
 čas više puta), tvrdo ograničenje da nastavnik nije dvostruko zauzet, i
 tri pravila osoblja -- jedna lokacija po danu, najveći broj radnih dana i
-nedeljni budžet procepa. Time je pokazano da se kompaktni CP-SAT model lako
-i modularno proširuje ka realnim potrebama Matematičkog fakulteta, uz
-kapacitet učionica i ograničenja nastavnika.
+nedeljni budžet procepa.
 
-Završna evaluacija iz glave \ref{chp:finalna-evaluacija} pokazala je da
-prošireni model ostaje praktično upotrebljiv. Iako raspoređivanje
-nastavnog osoblja otprilike udvostručuje veličinu modela, na najvećoj
-instanci (sve četiri godine studija, 839 časova) rešavač nalazi
-dokazano optimalan raspored -- bez ijednog procepa u rasporedu grupa i
-bez ijednog nastavnika preko dozvoljenog broja radnih dana -- za oko 31
-sekundu, dakle unutar svega nekoliko procenata zadatog limita od 600
-sekundi. Praćenje funkcije cilja kroz vreme pokazuje i da se najveći
-deo kvaliteta rasporeda dobije u prvih nekoliko sekundi nakon prvog
-dopustivog rešenja, što ostavlja prostora za dalja proširenja modela.
-
-Merenje u zaoštrenom okruženju, u kome je nastava skraćena na šest
-časova dnevno, pokazalo je da težina problema mnogo više zavisi od
-oskudice termina nego od broja pravila: isti model tada do najboljeg
-rešenja stiže za 174 sekunde umesto za 31, a najbolji cilj više nije
-nula nego dokazano najmanja moguća vrednost 6. Zona u kojoj je problem
-istovremeno rešiv i netrivijalan pritom je uska -- pri smanjenju broja
-termina za još 17\% rešavač ne nalazi nijedno dopustivo rešenje ni za
-600 sekundi.
+Završna evaluacija iz odeljka \ref{sec:zavrsna-evaluacija} pokazala je
+da prošireni model ostaje praktično upotrebljiv. Uvođenje nastavnog
+osoblja uvećava model oko dva i po puta, a na najvećoj instanci (sve
+četiri godine studija, 835 časova) rešavač nalazi optimalan
+raspored -- bez ijednog procepa u rasporedu grupa, bez ijednog
+nedostajućeg mesta u učionici i bez ijednog nastavnika preko dozvoljenog
+broja radnih dana -- za 77,6 sekundi ukupno.
+Od toga na prvo dopustivo rešenje odlazi 27,5
+sekundi, a preostalih 49 na spuštanje cilja do nule i dokaz
+optimalnosti.
 
 \section{Dalji rad}
 
@@ -2947,12 +3289,27 @@ su:
 \item \textbf{Dodatna meka ograničenja kvaliteta.}
   Na primer, ravnomerna raspodela časova kroz nedelju i izbegavanje
   kasnih termina, uz fino podešavanje težina u funkciji cilja i analizu
-  njihovog međusobnog odnosa.
+  njihovog međusobnog odnosa. Težine korišćene u ovom radu izabrane su
+  heuristički, pa bi i njihovo opravdanje merenjem bilo deo tog posla.
+
+\item \textbf{MIP model sa funkcijom cilja.}
+  Poređenje iz odeljka \ref{sec:preliminarna-evaluacija} sprovedeno je
+  nad problemom dopustivosti, pa MIP model radi bez funkcije cilja
+  (odeljak \ref{sec:mip_bez_cilja}). Zapisivanje mekih ograničenja iz
+  glave \ref{chp:nadogradnja} kao linearnih izraza omogućilo bi
+  poređenje dva rešavača u optimizacionom režimu, sa donjim granicama i
+  procepom optimalnosti sa obe strane.
+
+\item \textbf{Izdvajanje uticaja pravila osoblja.}
+  Konfiguracije ,,sa osobljem`` i ,,bez osoblja`` razlikuju se i po
+  skupu pravila i po broju sesija, pa se iz njihovog poređenja ne vidi
+  koliko koštaju sama pravila osoblja. Merenje nad istim skupom sesija,
+  sa uključenim i isključenim pravilima osoblja, odgovorilo bi na to
+  pitanje.
 
 \item \textbf{Veb interfejs.}
   Izgradnja veb aplikacije koja omogućava unos podataka,
-  pokretanje rešavača i vizuelni prikaz rasporeda, korišćenjem
-  FastAPI okruženja za serversku stranu.
+  pokretanje rešavača i vizuelni prikaz rasporeda.
 \end{enumerate}
 
 

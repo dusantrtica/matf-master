@@ -199,6 +199,9 @@ class SimpleCPSolver:
     def apply_rules(self):
         """Pokreni sve rule plugin-ove koji su uključeni u konfiguraciji."""
         self.penalty_vars: list[tuple[int, cp_model.IntVar]] = []
+        # isti prekrsaji grupisani po pravilu, da bi se posle resavanja
+        # mogle prikazati pojedinacne komponente funkcije cilja
+        self.penalty_vars_by_rule: dict[str, list[tuple[int, cp_model.IntVar]]] = {}
 
         rule_configs = dict(self.scheduling_input.rules)
         if self.staff_input is not None:
@@ -216,11 +219,33 @@ class SimpleCPSolver:
             violations = rule.apply(self)
             for v in violations:
                 self.penalty_vars.append((config.penalty, v))
+            if violations:
+                self.penalty_vars_by_rule[rule_name] = [
+                    (config.penalty, v) for v in violations
+                ]
 
         if self.penalty_vars:
             self.model.Minimize(
                 sum(weight * var for weight, var in self.penalty_vars)
             )
+
+    def objective_breakdown(self) -> dict[str, dict[str, float]]:
+        """Komponente funkcije cilja u najboljem nadjenom resenju.
+
+        Poziva se tek posle solve(). Za svako meko pravilo vraca zbir
+        prekrsaja (u jedinicama tog pravila: sati procepa, dani preko
+        limita, nedostajuca mesta) i njihov doprinos ukupnoj kazni.
+        """
+        breakdown: dict[str, dict[str, float]] = {}
+        for rule_name, entries in self.penalty_vars_by_rule.items():
+            weight = entries[0][0]
+            total = sum(self.solver.Value(var) for _weight, var in entries)
+            breakdown[rule_name] = {
+                "penalty": weight,
+                "violations": total,
+                "weighted": weight * total,
+            }
+        return breakdown
 
     def solve(self, callback: cp_model.CpSolverSolutionCallback | None = None):
         """Callback (ako je zadat) prati poboljsanja funkcije cilja tokom pretrage."""

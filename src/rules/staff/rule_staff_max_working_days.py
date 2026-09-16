@@ -42,11 +42,14 @@ class StaffMaxWorkingDaysRule(SchedulingRule):
             if self.is_hard:
                 solver.model.Add(worked_days <= limit)
             else:
-                # broj dana preko limita, solver ga minimizuje
+                # broj dana preko limita, solver ga minimizuje. Jednakost
+                # excess == max(0, worked_days - limit) namece se izricito,
+                # da bi vrednost promenljive bila stvarno prekoracenje i u
+                # medjuresenjima, a ne tek u optimumu
                 excess = solver.model.NewIntVar(
                     0, D, f"staff_days_excess_{teacher_id}"
                 )
-                solver.model.Add(excess >= worked_days - limit)
+                solver.model.AddMaxEquality(excess, [worked_days - limit, 0])
                 violations.append(excess)
 
         return violations

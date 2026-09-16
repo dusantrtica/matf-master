@@ -1,222 +1,590 @@
 [
   {
+    "profile": "realistic",
     "config_name": "bez osoblja",
     "scale_label": "FINAL-S: 1. godina",
     "num_sessions": 204,
-    "num_variables": 15144,
-    "num_constraints": 27829,
-    "construction_time_s": 0.0881,
-    "solve_time_s": 1.4396,
+    "num_teachers": 0,
+    "num_variables": 15348,
+    "num_constraints": 27857,
+    "construction_time_s": 0.0878,
+    "solve_time_s": 2.346,
+    "total_time_s": 2.4338,
     "status": "OPTIMAL",
-    "first_solution_time_s": 1.4204,
-    "first_objective": 0.0,
-    "time_to_best_s": 1.4204,
+    "first_solution_time_s": 1.6055,
+    "first_objective": 1355.0,
+    "first_objective_per_session": 6.642,
+    "first_objective_per_teacher": null,
+    "time_to_best_s": 2.3253,
+    "search_end_time_s": 2.34,
+    "time_to_optimality_s": 2.34,
+    "num_solutions": 20,
     "best_objective": 0.0,
+    "best_objective_per_session": 0.0,
+    "best_objective_per_teacher": null,
     "best_bound": 0.0,
     "gap_percent": 0.0,
+    "objective_by_rule": {
+      "noGapsInSchedule": {
+        "penalty": 2,
+        "violations": 0,
+        "weighted": 0
+      },
+      "roomCapacity": {
+        "penalty": 1,
+        "violations": 0,
+        "weighted": 0
+      }
+    },
     "solution_valid": true,
     "trajectory": [
       [
-        1.4204,
-        0.0,
-        0.0
-      ]
-    ],
-    "checkpoints": {
-      "5": 0.0,
-      "10": 0.0,
-      "20": 0.0,
-      "30": 0.0,
-      "60": 0.0,
-      "120": 0.0,
-      "300": 0.0,
-      "600": 0.0
-    }
-  },
-  {
-    "config_name": "sa osobljem",
-    "scale_label": "FINAL-S: 1. godina",
-    "num_sessions": 199,
-    "num_variables": 36278,
-    "num_constraints": 63533,
-    "construction_time_s": 0.1999,
-    "solve_time_s": 3.0549,
-    "status": "OPTIMAL",
-    "first_solution_time_s": 2.5817,
-    "first_objective": 48.0,
-    "time_to_best_s": 3.0259,
-    "best_objective": 0.0,
-    "best_bound": 0.0,
-    "gap_percent": 0.0,
-    "solution_valid": true,
-    "trajectory": [
-      [
-        2.5817,
-        48.0,
+        1.6055,
+        1355.0,
         0.0
       ],
       [
-        2.603,
-        32.0,
+        1.6245,
+        1159.0,
         0.0
       ],
       [
-        2.7743,
-        10.0,
+        1.641,
+        1090.0,
         0.0
       ],
       [
-        3.0259,
-        0.0,
-        0.0
-      ]
-    ],
-    "checkpoints": {
-      "5": 0.0,
-      "10": 0.0,
-      "20": 0.0,
-      "30": 0.0,
-      "60": 0.0,
-      "120": 0.0,
-      "300": 0.0,
-      "600": 0.0
-    }
-  },
-  {
-    "config_name": "bez osoblja",
-    "scale_label": "FINAL-M: 1-2. godina",
-    "num_sessions": 398,
-    "num_variables": 29628,
-    "num_constraints": 54366,
-    "construction_time_s": 0.1721,
-    "solve_time_s": 4.1484,
-    "status": "OPTIMAL",
-    "first_solution_time_s": 4.1294,
-    "first_objective": 0.0,
-    "time_to_best_s": 4.1294,
-    "best_objective": 0.0,
-    "best_bound": 0.0,
-    "gap_percent": 0.0,
-    "solution_valid": true,
-    "trajectory": [
-      [
-        4.1294,
-        0.0,
-        0.0
-      ]
-    ],
-    "checkpoints": {
-      "5": 0.0,
-      "10": 0.0,
-      "20": 0.0,
-      "30": 0.0,
-      "60": 0.0,
-      "120": 0.0,
-      "300": 0.0,
-      "600": 0.0
-    }
-  },
-  {
-    "config_name": "sa osobljem",
-    "scale_label": "FINAL-M: 1-2. godina",
-    "num_sessions": 378,
-    "num_variables": 70209,
-    "num_constraints": 122961,
-    "construction_time_s": 0.3855,
-    "solve_time_s": 10.5797,
-    "status": "OPTIMAL",
-    "first_solution_time_s": 7.2367,
-    "first_objective": 182.0,
-    "time_to_best_s": 10.5127,
-    "best_objective": 0.0,
-    "best_bound": 0.0,
-    "gap_percent": 0.0,
-    "solution_valid": true,
-    "trajectory": [
-      [
-        7.2367,
-        182.0,
+        1.7619,
+        426.0,
         0.0
       ],
       [
-        7.7783,
-        130.0,
+        1.7872,
+        372.0,
         0.0
       ],
       [
-        7.9518,
-        100.0,
+        1.7921,
+        370.0,
         0.0
       ],
       [
-        8.0113,
-        98.0,
+        1.81,
+        322.0,
         0.0
       ],
       [
-        8.527,
-        90.0,
+        1.8448,
+        306.0,
         0.0
       ],
       [
-        8.629,
-        88.0,
+        1.8514,
+        282.0,
         0.0
       ],
       [
-        8.6448,
-        86.0,
+        1.8944,
+        272.0,
         0.0
       ],
       [
-        8.8812,
-        84.0,
+        1.9508,
+        258.0,
         0.0
       ],
       [
-        8.9985,
-        82.0,
+        2.0705,
+        26.0,
         0.0
       ],
       [
-        9.0808,
-        30.0,
-        0.0
-      ],
-      [
-        9.2639,
-        28.0,
-        0.0
-      ],
-      [
-        9.2709,
-        21.0,
-        0.0
-      ],
-      [
-        9.454,
-        18.0,
-        0.0
-      ],
-      [
-        9.4671,
+        2.1966,
         16.0,
         0.0
       ],
       [
-        10.2194,
+        2.2533,
+        14.0,
+        0.0
+      ],
+      [
+        2.2632,
+        12.0,
+        0.0
+      ],
+      [
+        2.2762,
+        8.0,
+        0.0
+      ],
+      [
+        2.2849,
         6.0,
         0.0
       ],
       [
-        10.5127,
+        2.3004,
+        4.0,
+        0.0
+      ],
+      [
+        2.314,
+        2.0,
+        0.0
+      ],
+      [
+        2.3253,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": 0.0,
+      "10": 0.0,
+      "20": 0.0,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "profile": "realistic",
+    "config_name": "sa osobljem",
+    "scale_label": "FINAL-S: 1. godina",
+    "num_sessions": 216,
+    "num_teachers": 39,
+    "num_variables": 40997,
+    "num_constraints": 72082,
+    "construction_time_s": 0.2245,
+    "solve_time_s": 3.908,
+    "total_time_s": 4.1325,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 2.6845,
+    "first_objective": 804.0,
+    "first_objective_per_session": 3.722,
+    "first_objective_per_teacher": 20.615,
+    "time_to_best_s": 3.8714,
+    "search_end_time_s": 3.91,
+    "time_to_optimality_s": 3.91,
+    "num_solutions": 17,
+    "best_objective": 0.0,
+    "best_objective_per_session": 0.0,
+    "best_objective_per_teacher": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "objective_by_rule": {
+      "noGapsInSchedule": {
+        "penalty": 2,
+        "violations": 0,
+        "weighted": 0
+      },
+      "roomCapacity": {
+        "penalty": 1,
+        "violations": 0,
+        "weighted": 0
+      }
+    },
+    "solution_valid": true,
+    "trajectory": [
+      [
+        2.6845,
+        804.0,
+        0.0
+      ],
+      [
+        2.732,
+        780.0,
+        0.0
+      ],
+      [
+        2.736,
+        774.0,
+        0.0
+      ],
+      [
+        2.8209,
+        713.0,
+        0.0
+      ],
+      [
+        2.854,
+        689.0,
+        0.0
+      ],
+      [
+        2.8607,
+        551.0,
+        0.0
+      ],
+      [
+        2.8795,
+        549.0,
+        0.0
+      ],
+      [
+        2.9455,
+        475.0,
+        0.0
+      ],
+      [
+        2.9765,
+        319.0,
+        0.0
+      ],
+      [
+        3.0997,
+        289.0,
+        0.0
+      ],
+      [
+        3.1454,
+        213.0,
+        0.0
+      ],
+      [
+        3.15,
+        209.0,
+        0.0
+      ],
+      [
+        3.4166,
+        194.0,
+        0.0
+      ],
+      [
+        3.5154,
+        126.0,
+        0.0
+      ],
+      [
+        3.8456,
+        124.0,
+        0.0
+      ],
+      [
+        3.8569,
+        2.0,
+        0.0
+      ],
+      [
+        3.8714,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": 0.0,
+      "10": 0.0,
+      "20": 0.0,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "profile": "realistic",
+    "config_name": "bez osoblja",
+    "scale_label": "FINAL-M: 1-2. godina",
+    "num_sessions": 398,
+    "num_teachers": 0,
+    "num_variables": 30026,
+    "num_constraints": 54424,
+    "construction_time_s": 0.1705,
+    "solve_time_s": 7.191,
+    "total_time_s": 7.3615,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 4.826,
+    "first_objective": 1009.0,
+    "first_objective_per_session": 2.535,
+    "first_objective_per_teacher": null,
+    "time_to_best_s": 7.1673,
+    "search_end_time_s": 7.19,
+    "time_to_optimality_s": 7.19,
+    "num_solutions": 17,
+    "best_objective": 0.0,
+    "best_objective_per_session": 0.0,
+    "best_objective_per_teacher": null,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "objective_by_rule": {
+      "noGapsInSchedule": {
+        "penalty": 2,
+        "violations": 0,
+        "weighted": 0
+      },
+      "roomCapacity": {
+        "penalty": 1,
+        "violations": 0,
+        "weighted": 0
+      }
+    },
+    "solution_valid": true,
+    "trajectory": [
+      [
+        4.826,
+        1009.0,
+        0.0
+      ],
+      [
+        4.8885,
+        935.0,
+        0.0
+      ],
+      [
+        4.9157,
+        931.0,
+        0.0
+      ],
+      [
+        5.3513,
+        357.0,
+        0.0
+      ],
+      [
+        5.6553,
+        237.0,
+        0.0
+      ],
+      [
+        5.7745,
+        231.0,
+        0.0
+      ],
+      [
+        6.0373,
+        171.0,
+        0.0
+      ],
+      [
+        6.1148,
+        163.0,
+        0.0
+      ],
+      [
+        6.1959,
+        157.0,
+        0.0
+      ],
+      [
+        6.3831,
+        101.0,
+        0.0
+      ],
+      [
+        6.3863,
+        97.0,
+        0.0
+      ],
+      [
+        6.6931,
+        56.0,
+        0.0
+      ],
+      [
+        6.9658,
+        54.0,
+        0.0
+      ],
+      [
+        6.9799,
+        6.0,
+        0.0
+      ],
+      [
+        7.0065,
+        4.0,
+        0.0
+      ],
+      [
+        7.1179,
+        2.0,
+        0.0
+      ],
+      [
+        7.1673,
+        0.0,
+        0.0
+      ]
+    ],
+    "checkpoints": {
+      "5": 931.0,
+      "10": 0.0,
+      "20": 0.0,
+      "30": 0.0,
+      "60": 0.0,
+      "120": 0.0,
+      "300": 0.0,
+      "600": 0.0
+    }
+  },
+  {
+    "profile": "realistic",
+    "config_name": "sa osobljem",
+    "scale_label": "FINAL-M: 1-2. godina",
+    "num_sessions": 437,
+    "num_teachers": 81,
+    "num_variables": 87616,
+    "num_constraints": 154777,
+    "construction_time_s": 0.4795,
+    "solve_time_s": 14.5834,
+    "total_time_s": 15.063,
+    "status": "OPTIMAL",
+    "first_solution_time_s": 8.3367,
+    "first_objective": 1611.0,
+    "first_objective_per_session": 3.686,
+    "first_objective_per_teacher": 19.889,
+    "time_to_best_s": 14.5142,
+    "search_end_time_s": 14.58,
+    "time_to_optimality_s": 14.58,
+    "num_solutions": 24,
+    "best_objective": 0.0,
+    "best_objective_per_session": 0.0,
+    "best_objective_per_teacher": 0.0,
+    "best_bound": 0.0,
+    "gap_percent": 0.0,
+    "objective_by_rule": {
+      "noGapsInSchedule": {
+        "penalty": 2,
+        "violations": 0,
+        "weighted": 0
+      },
+      "roomCapacity": {
+        "penalty": 1,
+        "violations": 0,
+        "weighted": 0
+      }
+    },
+    "solution_valid": true,
+    "trajectory": [
+      [
+        8.3367,
+        1611.0,
+        0.0
+      ],
+      [
+        8.4773,
+        1581.0,
+        0.0
+      ],
+      [
+        8.5003,
+        1579.0,
+        0.0
+      ],
+      [
+        8.8401,
+        1259.0,
+        0.0
+      ],
+      [
+        8.964,
+        1181.0,
+        0.0
+      ],
+      [
+        9.1207,
+        892.0,
+        0.0
+      ],
+      [
+        9.2471,
+        820.0,
+        0.0
+      ],
+      [
+        9.6585,
+        580.0,
+        0.0
+      ],
+      [
+        9.7374,
+        551.0,
+        0.0
+      ],
+      [
+        10.0096,
+        343.0,
+        0.0
+      ],
+      [
+        10.9219,
+        312.0,
+        0.0
+      ],
+      [
+        11.0562,
+        228.0,
+        0.0
+      ],
+      [
+        11.9301,
+        148.0,
+        0.0
+      ],
+      [
+        12.4915,
+        132.0,
+        0.0
+      ],
+      [
+        12.894,
+        57.0,
+        0.0
+      ],
+      [
+        12.9057,
+        53.0,
+        0.0
+      ],
+      [
+        13.6308,
+        15.0,
+        0.0
+      ],
+      [
+        13.8251,
+        14.0,
+        0.0
+      ],
+      [
+        13.9292,
+        12.0,
+        0.0
+      ],
+      [
+        13.9785,
+        10.0,
+        0.0
+      ],
+      [
+        14.1068,
+        8.0,
+        0.0
+      ],
+      [
+        14.3175,
+        4.0,
+        0.0
+      ],
+      [
+        14.4676,
+        2.0,
+        0.0
+      ],
+      [
+        14.5142,
         0.0,
         0.0
       ]
     ],
     "checkpoints": {
       "5": null,
-      "10": 16.0,
+      "10": 551.0,
       "20": 0.0,
       "30": 0.0,
       "60": 0.0,
@@ -226,24 +594,141 @@
     }
   },
   {
+    "profile": "realistic",
     "config_name": "bez osoblja",
     "scale_label": "FINAL-L: sve godine",
     "num_sessions": 722,
-    "num_variables": 53952,
-    "num_constraints": 98857,
-    "construction_time_s": 0.3088,
-    "solve_time_s": 20.786,
+    "num_teachers": 0,
+    "num_variables": 54652,
+    "num_constraints": 98974,
+    "construction_time_s": 0.3139,
+    "solve_time_s": 39.691,
+    "total_time_s": 40.0049,
     "status": "OPTIMAL",
-    "first_solution_time_s": 20.7449,
-    "first_objective": 0.0,
-    "time_to_best_s": 20.7449,
+    "first_solution_time_s": 24.4013,
+    "first_objective": 2310.0,
+    "first_objective_per_session": 3.199,
+    "first_objective_per_teacher": null,
+    "time_to_best_s": 39.6457,
+    "search_end_time_s": 39.69,
+    "time_to_optimality_s": 39.69,
+    "num_solutions": 20,
     "best_objective": 0.0,
+    "best_objective_per_session": 0.0,
+    "best_objective_per_teacher": null,
     "best_bound": 0.0,
     "gap_percent": 0.0,
+    "objective_by_rule": {
+      "noGapsInSchedule": {
+        "penalty": 2,
+        "violations": 0,
+        "weighted": 0
+      },
+      "roomCapacity": {
+        "penalty": 1,
+        "violations": 0,
+        "weighted": 0
+      }
+    },
     "solution_valid": true,
     "trajectory": [
       [
-        20.7449,
+        24.4013,
+        2310.0,
+        0.0
+      ],
+      [
+        24.5004,
+        2168.0,
+        0.0
+      ],
+      [
+        24.5795,
+        2063.0,
+        0.0
+      ],
+      [
+        26.4204,
+        1216.0,
+        0.0
+      ],
+      [
+        26.6756,
+        1140.0,
+        0.0
+      ],
+      [
+        27.9419,
+        906.0,
+        0.0
+      ],
+      [
+        28.1196,
+        825.0,
+        0.0
+      ],
+      [
+        28.6434,
+        734.0,
+        0.0
+      ],
+      [
+        30.3462,
+        537.0,
+        0.0
+      ],
+      [
+        30.6916,
+        453.0,
+        0.0
+      ],
+      [
+        31.2589,
+        433.0,
+        0.0
+      ],
+      [
+        33.3028,
+        245.0,
+        0.0
+      ],
+      [
+        34.3655,
+        190.0,
+        0.0
+      ],
+      [
+        35.6574,
+        188.0,
+        0.0
+      ],
+      [
+        35.855,
+        182.0,
+        0.0
+      ],
+      [
+        36.6186,
+        26.0,
+        0.0
+      ],
+      [
+        36.6282,
+        24.0,
+        0.0
+      ],
+      [
+        37.5545,
+        4.0,
+        0.0
+      ],
+      [
+        38.2619,
+        2.0,
+        0.0
+      ],
+      [
+        39.6457,
         0.0,
         0.0
       ]
@@ -252,7 +737,7 @@
       "5": null,
       "10": null,
       "20": null,
-      "30": 0.0,
+      "30": 734.0,
       "60": 0.0,
       "120": 0.0,
       "300": 0.0,
@@ -260,134 +745,291 @@
     }
   },
   {
+    "profile": "realistic",
     "config_name": "sa osobljem",
     "scale_label": "FINAL-L: sve godine",
-    "num_sessions": 685,
-    "num_variables": 116624,
-    "num_constraints": 206049,
-    "construction_time_s": 0.6596,
-    "solve_time_s": 30.9569,
+    "num_sessions": 835,
+    "num_teachers": 112,
+    "num_variables": 144047,
+    "num_constraints": 256165,
+    "construction_time_s": 0.8676,
+    "solve_time_s": 62.6894,
+    "total_time_s": 63.557,
     "status": "OPTIMAL",
-    "first_solution_time_s": 18.8061,
-    "first_objective": 282.0,
-    "time_to_best_s": 30.8569,
+    "first_solution_time_s": 27.6241,
+    "first_objective": 2849.0,
+    "first_objective_per_session": 3.412,
+    "first_objective_per_teacher": 25.438,
+    "time_to_best_s": 62.5878,
+    "search_end_time_s": 62.68,
+    "time_to_optimality_s": 62.68,
+    "num_solutions": 50,
     "best_objective": 0.0,
+    "best_objective_per_session": 0.0,
+    "best_objective_per_teacher": 0.0,
     "best_bound": 0.0,
     "gap_percent": 0.0,
+    "objective_by_rule": {
+      "noGapsInSchedule": {
+        "penalty": 2,
+        "violations": 0,
+        "weighted": 0
+      },
+      "roomCapacity": {
+        "penalty": 1,
+        "violations": 0,
+        "weighted": 0
+      }
+    },
     "solution_valid": true,
     "trajectory": [
       [
-        18.8061,
-        282.0,
+        27.6241,
+        2849.0,
         0.0
       ],
       [
-        19.2619,
-        236.0,
+        27.8248,
+        2837.0,
         0.0
       ],
       [
-        20.2828,
-        234.0,
+        28.0058,
+        2827.0,
         0.0
       ],
       [
-        20.4582,
-        182.0,
+        28.0295,
+        2753.0,
         0.0
       ],
       [
-        21.0783,
-        180.0,
+        29.3313,
+        2698.0,
         0.0
       ],
       [
-        21.1173,
-        106.0,
+        30.0471,
+        2602.0,
         0.0
       ],
       [
-        21.8234,
+        30.2475,
+        2263.0,
+        0.0
+      ],
+      [
+        30.5404,
+        2218.0,
+        0.0
+      ],
+      [
+        30.8414,
+        2214.0,
+        0.0
+      ],
+      [
+        30.8498,
+        2004.0,
+        0.0
+      ],
+      [
+        32.0191,
+        1750.0,
+        0.0
+      ],
+      [
+        32.5071,
+        1487.0,
+        0.0
+      ],
+      [
+        34.0825,
+        1314.0,
+        0.0
+      ],
+      [
+        36.1326,
+        1312.0,
+        0.0
+      ],
+      [
+        36.1558,
+        1121.0,
+        0.0
+      ],
+      [
+        36.1663,
+        1119.0,
+        0.0
+      ],
+      [
+        36.7108,
+        1029.0,
+        0.0
+      ],
+      [
+        37.1243,
+        997.0,
+        0.0
+      ],
+      [
+        37.1541,
+        955.0,
+        0.0
+      ],
+      [
+        38.0915,
+        920.0,
+        0.0
+      ],
+      [
+        38.2401,
+        908.0,
+        0.0
+      ],
+      [
+        38.691,
+        874.0,
+        0.0
+      ],
+      [
+        39.1829,
+        852.0,
+        0.0
+      ],
+      [
+        39.2849,
+        850.0,
+        0.0
+      ],
+      [
+        39.7499,
+        795.0,
+        0.0
+      ],
+      [
+        39.7628,
+        793.0,
+        0.0
+      ],
+      [
+        41.2816,
+        638.0,
+        0.0
+      ],
+      [
+        43.7837,
+        421.0,
+        0.0
+      ],
+      [
+        45.0311,
+        374.0,
+        0.0
+      ],
+      [
+        45.9878,
+        306.0,
+        0.0
+      ],
+      [
+        46.0086,
+        300.0,
+        0.0
+      ],
+      [
+        46.7067,
+        264.0,
+        0.0
+      ],
+      [
+        47.8015,
+        228.0,
+        0.0
+      ],
+      [
+        49.4826,
+        226.0,
+        0.0
+      ],
+      [
+        49.4926,
+        220.0,
+        0.0
+      ],
+      [
+        49.9773,
+        200.0,
+        0.0
+      ],
+      [
+        50.1521,
+        108.0,
+        0.0
+      ],
+      [
+        50.7939,
+        104.0,
+        0.0
+      ],
+      [
+        52.0938,
         102.0,
         0.0
       ],
       [
-        21.8507,
-        99.0,
+        52.6192,
+        100.0,
         0.0
       ],
       [
-        23.0725,
-        88.0,
+        54.3774,
+        92.0,
         0.0
       ],
       [
-        23.508,
-        71.0,
+        57.638,
+        72.0,
         0.0
       ],
       [
-        23.9962,
-        57.0,
+        58.0551,
+        50.0,
         0.0
       ],
       [
-        24.2344,
-        45.0,
+        58.0673,
+        30.0,
         0.0
       ],
       [
-        24.8166,
-        43.0,
+        59.7146,
+        20.0,
         0.0
       ],
       [
-        25.5621,
-        39.0,
+        60.3309,
+        18.0,
         0.0
       ],
       [
-        25.9175,
-        23.0,
+        61.2118,
+        16.0,
         0.0
       ],
       [
-        25.935,
-        21.0,
+        61.4555,
+        4.0,
         0.0
       ],
       [
-        26.3705,
-        11.0,
-        0.0
-      ],
-      [
-        27.3606,
-        9.0,
-        0.0
-      ],
-      [
-        28.0169,
-        6.0,
-        0.0
-      ],
-      [
-        28.1881,
-        5.0,
-        0.0
-      ],
-      [
-        29.4621,
-        3.0,
-        0.0
-      ],
-      [
-        30.7123,
+        62.3382,
         2.0,
         0.0
       ],
       [
-        30.8569,
+        62.5878,
         0.0,
         0.0
       ]
@@ -395,9 +1037,9 @@
     "checkpoints": {
       "5": null,
       "10": null,
-      "20": 236.0,
-      "30": 3.0,
-      "60": 0.0,
+      "20": null,
+      "30": 2698.0,
+      "60": 20.0,
       "120": 0.0,
       "300": 0.0,
       "600": 0.0

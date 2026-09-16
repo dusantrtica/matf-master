@@ -51,11 +51,15 @@ class StaffMaxGapHoursRule(SchedulingRule):
             if self.is_hard:
                 solver.model.Add(total_gaps <= self.max_gap_hours)
             else:
-                # procepi preko budzeta, solver ih minimizuje
+                # procepi preko budzeta, solver ih minimizuje. Kao i kod
+                # radnih dana, namece se jednakost sa max(0, ...) da bi
+                # vrednost bila stvarno prekoracenje budzeta
                 excess = solver.model.NewIntVar(
                     0, D * H, f"staff_gap_excess_{teacher_id}"
                 )
-                solver.model.Add(excess >= total_gaps - self.max_gap_hours)
+                solver.model.AddMaxEquality(
+                    excess, [total_gaps - self.max_gap_hours, 0]
+                )
                 violations.append(excess)
 
         return violations

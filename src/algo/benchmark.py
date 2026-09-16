@@ -51,6 +51,15 @@ class AnytimeResult:
     Apsolutne vrednosti cilja nisu uporedive izmedju skala jer veca skala
     ima vise grupa i nastavnika, pa se cilj dodatno normalizuje po sesiji
     i po nastavniku.
+
+    Vremena se razlikuju po znacenju:
+      first_solution_time_s -- prvo dopustivo resenje,
+      time_to_best_s        -- poslednje poboljsanje cilja,
+      search_end_time_s     -- kraj pretrage (dokaz optimalnosti ili limit),
+      total_time_s          -- konstrukcija modela plus resavanje.
+
+    num_solutions broji sva resenja koja je resavac prijavio, ukljucujuci
+    prvo dopustivo; broj strogih poboljsanja je za jedan manji.
     """
     profile: str
     config_name: str
@@ -61,17 +70,22 @@ class AnytimeResult:
     num_constraints: int
     construction_time_s: float
     solve_time_s: float
+    total_time_s: float
     status: str
     first_solution_time_s: Optional[float]
     first_objective: Optional[float]
     first_objective_per_session: Optional[float]
     first_objective_per_teacher: Optional[float]
     time_to_best_s: Optional[float]
+    search_end_time_s: Optional[float]
+    time_to_optimality_s: Optional[float]
+    num_solutions: int
     best_objective: Optional[float]
     best_objective_per_session: Optional[float]
     best_objective_per_teacher: Optional[float]
     best_bound: Optional[float]
     gap_percent: Optional[float]
+    objective_by_rule: Dict[str, Dict[str, float]]
     solution_valid: Optional[bool]
     trajectory: List[Tuple[float, float, float]]
     checkpoints: Dict[str, Optional[float]]
@@ -446,9 +460,10 @@ FINAL_PROFILES = {
         name="realistic",
         label="realno okruzenje (8-20h, sve ucionice)",
     ),
-    # 8-15h daje 1015 termina za 839 sesija najvece skale (83% popunjenosti).
-    # Prostor je namerno biran na ivici: vec pri 870 termina (8-14h) rezavac
-    # ne nadje nijedno dopustivo resenje najvece skale ni za 600s.
+    # 8-15h daje 1015 parova (ucionica, termin) za 835 sesija najvece skale,
+    # dakle 82% popunjenosti. Prostor je namerno biran na ivici: vec pri 870
+    # parova (8-14h) rezavac za 600s ne nadje nijedno dopustivo resenje
+    # najvece skale niti dokaze da ga nema (status UNKNOWN).
     "tight": FinalProfile(
         name="tight",
         label="zaostreno okruzenje (8-15h, najvise 2 radna dana nastavnika)",
@@ -591,6 +606,7 @@ def benchmark_cp_anytime(
     best_objective = None
     best_bound = None
     gap_percent = None
+    objective_by_rule: Dict[str, Dict[str, float]] = {}
     if solved and has_objective:
         best_objective = solver.solver.ObjectiveValue()
         best_bound = solver.solver.BestObjectiveBound()
@@ -598,10 +614,18 @@ def benchmark_cp_anytime(
         gap_percent = round(
             100.0 * (best_objective - best_bound) / denominator, 2
         )
+        objective_by_rule = solver.objective_breakdown()
 
     first_solution_time_s = tracker.trajectory[0][0] if tracker.trajectory else None
     first_objective = tracker.trajectory[0][1] if tracker.trajectory else None
     time_to_best_s = tracker.trajectory[-1][0] if tracker.trajectory else None
+
+    # vreme koje je resavac proveo u pretrazi: kod statusa OPTIMAL to je i
+    # trenutak kada je dokazano da bolje resenje ne postoji
+    search_end_time_s = round(solver.solver.WallTime(), 2)
+    time_to_optimality_s = (
+        search_end_time_s if status_code == cp_model.OPTIMAL else None
+    )
 
     num_sessions = len(solver.sessions)
     num_teachers = len(solver.teacher_sessions)
@@ -616,17 +640,22 @@ def benchmark_cp_anytime(
         num_constraints=num_constraints,
         construction_time_s=round(t_construct - t0, 4),
         solve_time_s=round(t_solve - t_construct, 4),
+        total_time_s=round(t_solve - t0, 4),
         status=status,
         first_solution_time_s=first_solution_time_s,
         first_objective=first_objective,
         first_objective_per_session=_normalize(first_objective, num_sessions),
         first_objective_per_teacher=_normalize(first_objective, num_teachers),
         time_to_best_s=time_to_best_s,
+        search_end_time_s=search_end_time_s,
+        time_to_optimality_s=time_to_optimality_s,
+        num_solutions=len(tracker.trajectory),
         best_objective=best_objective,
         best_objective_per_session=_normalize(best_objective, num_sessions),
         best_objective_per_teacher=_normalize(best_objective, num_teachers),
         best_bound=best_bound,
         gap_percent=gap_percent,
+        objective_by_rule=objective_by_rule,
         solution_valid=solution_valid,
         trajectory=tracker.trajectory,
         checkpoints=objective_at_checkpoints(tracker.trajectory, checkpoints),
@@ -805,14 +834,44 @@ def print_final_tables(results: List[AnytimeResult], checkpoints: List[int]):
             "Vreme konstrukcije",
         ) + tuple(f"{r.construction_time_s:.3f}s" for r in results),
         ("Vreme resavanja",) + tuple(f"{r.solve_time_s:.2f}s" for r in results),
+        ("Ukupno vreme",) + tuple(f"{r.total_time_s:.2f}s" for r in results),
         ("Prvo resenje",) + tuple(_fmt_seconds(r.first_solution_time_s) for r in results),
         ("Prvi cilj",) + tuple(_fmt_objective(r.first_objective) for r in results),
         ("Do najboljeg",) + tuple(_fmt_seconds(r.time_to_best_s) for r in results),
-        ("Nadjenih resenja",) + tuple(_fmt_num(len(r.trajectory)) for r in results),
+        ("Kraj pretrage",) + tuple(_fmt_seconds(r.search_end_time_s) for r in results),
+        (
+            "Dokaz optimalnosti",
+        ) + tuple(_fmt_seconds(r.time_to_optimality_s) for r in results),
+        ("Nadjenih resenja",) + tuple(_fmt_num(r.num_solutions) for r in results),
+        (
+            "Poboljsanja posle prvog",
+        ) + tuple(_fmt_num(max(r.num_solutions - 1, 0)) for r in results),
         ("Status",) + tuple(r.status for r in results),
         ("Resenje validno",) + tuple(_fmt_valid(r.solution_valid) for r in results),
     ]
     _print_rows(size_rows, headers)
+
+    rule_names = []
+    for r in results:
+        for name in r.objective_by_rule:
+            if name not in rule_names:
+                rule_names.append(name)
+    if rule_names:
+        breakdown_rows = []
+        for name in rule_names:
+            cells = []
+            for r in results:
+                entry = r.objective_by_rule.get(name)
+                if entry is None:
+                    cells.append("-")
+                else:
+                    cells.append(
+                        f"{_fmt_objective(entry['violations'])}"
+                        f" x{_fmt_num(entry['penalty'])}"
+                        f" = {_fmt_objective(entry['weighted'])}"
+                    )
+            breakdown_rows.append((name,) + tuple(cells))
+        _print_rows(breakdown_rows, ("Komponenta cilja",) + headers[1:])
 
     obj_rows = [
         (f"{t}s",) + tuple(_fmt_objective(r.checkpoints[str(t)]) for r in results)
@@ -899,9 +958,10 @@ def print_final_summary(results: List[AnytimeResult]):
             f"  {r.scale_label} [{r.config_name}]: "
             f"prvo resenje {_fmt_seconds(r.first_solution_time_s)} "
             f"(cilj {_fmt_objective(r.first_objective)}), "
-            f"nadjenih resenja: {len(r.trajectory)}, "
+            f"nadjenih resenja: {r.num_solutions}, "
             f"najbolji cilj: {_fmt_objective(r.best_objective)} "
-            f"u {_fmt_seconds(r.time_to_best_s)} [{r.status}]"
+            f"u {_fmt_seconds(r.time_to_best_s)}, "
+            f"kraj pretrage {_fmt_seconds(r.search_end_time_s)} [{r.status}]"
         )
     print()
 
@@ -912,7 +972,7 @@ def print_summary(results: List[BenchmarkResult]):
     print("=" * 65)
     print("""
   CP-SAT (Constraint Programming):
-    - Promenljive:   O(S) -- 5 integer promenljive per session
+    - Promenljive:   O(S) -- 6 celobrojnih promenljivih po sesiji
     - Ogranicenja:   kompaktne globalne ogranicenja (AllDifferent, AllowedAssignments)
     - Pretraga:      constraint propagation + lazy-clause SAT pretraga
     - Snaga:    kompaktna model; mocna inferencija skracuje pretragu prostora
