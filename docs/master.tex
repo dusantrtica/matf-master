@@ -2184,25 +2184,14 @@ služi izboru formulacije koja se dalje razvija. Završna evaluacija
 sa mekim ograničenjima, funkcijom cilja i nastavnim osobljem, uz
 praćenje vrednosti funkcije cilja kroz vreme.
 
-Obe evaluacije koriste isti ulazni fajl i isto sečenje po godinama
+Obe evaluacije koriste isti ulazni fajl i parne semestre
 studija, pa se odnose na istu nastavu; razlikuju se po tome koliko je
-pravila u modelu i kako se grupe studenata formiraju, o čemu govore
-odgovarajući odeljci o metodologiji.
+pravila u modelu i kako se grupe studenata formiraju.
 
 % ------------------------------------------------------------------------------
 \section{Preliminarna evaluacija osnovnog modela}
 \label{sec:preliminarna-evaluacija}
 % ------------------------------------------------------------------------------
-
-U ovom odeljku opisujemo metodologiju merenja performansi,
-predstavljamo rezultate eksperimenata i analiziramo dobijene podatke.
-
-Evaluacija je preliminarna u dva smisla. Odnosi se na osnovni model iz
-odeljka \ref{sec:formalna_specifikacija}, dakle na traženje dopustivog rasporeda uz
-tri tvrda ograničenja i bez funkcije cilja, i služi tome da se izabere
-formulacija koju ćemo dalje razvijati. Završna evaluacija proširenog
-modela, sa mekim ograničenjima, funkcijom cilja i nastavnim osobljem,
-data je odvojeno u odeljku \ref{sec:zavrsna-evaluacija}.
 
 \subsection{Metodologija}
 \label{sec:metodologija}
@@ -2227,13 +2216,9 @@ godinama studija:
 
 Skalira se, dakle, samo potražnja: sve tri instance zadržavaju svih 29
 učionica na tri lokacije, pa se razlikuju jedino po količini nastave
-koju treba smestiti. Podskupovi su namerno definisani isto kao u
-završnoj evaluaciji (odeljak \ref{sec:finalna_metodologija}) i nad
-istim ulaznim fajlom, kako bi se rezultati pre i posle proširenja
-modela odnosili na istu instancu.
+koju treba smestiti.
 
-Jedna razlika ipak ostaje i treba je imati u vidu. Ovde se grupe
-studenata dobijaju deljenjem broja upisanih na grupe od najviše 50
+Ovde se grupe studenata dobijaju deljenjem broja upisanih na grupe od najviše 50
 studenata, jer osnovni model ne poznaje nastavno osoblje, dok se u
 odeljku \ref{sec:zavrsna-evaluacija} grupe izvode iz imena navedenih u
 dodelama nastave (odeljak \ref{sec:grupe_iz_osoblja}), koja opisuju
@@ -2268,7 +2253,7 @@ Za svaki par (rešavač, skala) merimo sledeće metrike:
   bez kolizija grupa, poštovanje računarskih zahteva).
 \end{itemize}
 
-Merenje memorije treba čitati sa ogradom. \texttt{tracemalloc} prati
+Napomena vezana za merenje memorije. \texttt{tracemalloc} prati
 isključivo alokacije na strani Pythona, dakle objekte kojima se model
 opisuje pre nego što se preda rešavaču, a ne interne strukture
 rešavača, koje su u oba slučaja u prevedenom kodu biblioteke. Zbog
@@ -2361,22 +2346,12 @@ Rešenje validno        & da              & da \\
 \end{tabular}
 \end{table}
 
-\textbf{Napomena:} Prikazani rezultati su dobijeni pokretanjem
-benchmark-a komandom:
-
-\begin{english}
-\begin{verbatim}
-bazel run //src/algo:benchmark -- --mode compare --json report.json
-\end{verbatim}
-\end{english}
-
 \subsection{Analiza rezultata}
 \label{sec:analiza}
 
 Zaključci koji slede odnose se na dve konkretne formulacije iz odeljka
 \ref{sec:formalna_specifikacija}, na rešavače CP-SAT i SCIP u
-podrazumevanim podešavanjima, i na tri opisane instance. Ne tvrdimo
-ništa o paradigmama uopšte: drugačija MIP formulacija, drugačije
+podrazumevanim podešavanjima, i na tri opisane instance, drugačije
 podešen rešavač ili instanca druge strukture mogli bi dati drugačiji
 odnos.
 
@@ -2424,31 +2399,6 @@ sekundi na MATF-L. Pošto sve tri instance koriste isti skup od 29
 učionica, razlika između skala potiče isključivo od porasta broja
 sesija.
 
-\subsubsection{Asimptotski obim formulacija}
-
-Tabela \ref{tbl:complexity} sumira asimptotski obim dve formulacije i
-mehanizme na koje se rešavači oslanjaju.
-
-\begin{table}[ht]
-\centering
-\caption{Asimptotski obim formulacija i mehanizmi rešavača}
-\label{tbl:complexity}
-\begin{tabular}{lll}
-\toprule
-\textbf{Aspekt} & \textbf{CP-SAT} & \textbf{MIP/SCIP} \\
-\midrule
-Promenljive & $O(|\mathcal{S}|)$ &
-  $O(|\mathcal{S}| \cdot D \cdot H \cdot R)$ \\
-Ograničenja & $O(|\mathcal{S}| + G)$, globalna &
-  $O(|\mathcal{S}| + DHR + GDH)$, linearna \\
-Inferencija & Propagacija globalnih ograničenja &
-  LP relaksacija \\
-Učenje & Konflikti (SAT klauze) &
-  Ravni odsecanja \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 Brojevi iz tabele opisuju obim zapisa, ne i količinu posla pri
 rešavanju: jedno globalno ograničenje u CP modelu obuhvata sve sesije
 instance, pa manji broj ograničenja ne znači i lakši problem.
@@ -2457,9 +2407,7 @@ instance, pa manji broj ograničenja ne znači i lakši problem.
 \label{sec:mip_bez_cilja}
 
 Oba modela ovog odeljka postavljena su kao problemi dopustivosti, pa
-MIP model radi bez funkcije cilja, u degenerisanom optimizacionom
-režimu: vektor $\mathbf{c}$ iz izraza \eqref{eq:mip_obj} je nula i
-svako dopustivo rešenje je optimalno. Time ostaje neiskorišćen
+MIP model radi bez funkcije cilja. Time ostaje neiskorišćen
 mehanizam po kome je MIP pristup poznat -- donja granica iz LP
 relaksacije, koja u optimizaciji vodi pretragu i omogućava odsecanje
 grana. Poređenje zato treba čitati kao poređenje dva načina da se
@@ -2484,12 +2432,7 @@ rešavača na istim trima skalama.
 \label{sec:zavrsna-evaluacija}
 % ------------------------------------------------------------------------------
 
-Evaluacija iz odeljka \ref{sec:preliminarna-evaluacija} poredila je dve paradigme na
-osnovnom modelu, u režimu traženja bilo kog dopustivog rasporeda. Pošto
-je model u glavama \ref{chp:nadogradnja} i \ref{chp:osoblje} proširen
-mekim ograničenjima, funkcijom cilja i raspoređivanjem nastavnog osoblja,
-u ovom odeljku merimo kako se tako prošireni CP-SAT model ponaša na tri
-skale problema. Za razliku od prve evaluacije, ovde nas ne zanima samo
+Za razliku od prve evaluacije, ovde nas ne zanima samo
 da li rešenje postoji, nego i \emph{kvalitet} rešenja i brzina kojom se
 on popravlja, pa pratimo vrednost funkcije cilja u zavisnosti od
 proteklog vremena izračunavanja.
@@ -2510,8 +2453,7 @@ Prošireni model radi nad realnim podacima letnjeg semestra
 (\code{input_full_2_semester.json}) i dodelama nastave iz
 \code{staff_2_semester.json}, iz kojih se izvode grupe studenata
 (odeljak \ref{sec:grupe_iz_osoblja}). Svaka grupa nasleđuje semestar
-predmeta koji sluša (2, 4, 6 ili 8), što odgovara godini studija, te se
-instanca može seći po godinama:
+predmeta koji sluša (2, 4, 6 ili 8), što odgovara godini studija:
 
 \begin{enumerate}
 \item \textbf{FINAL-S} -- 1. godina (semestar 2),
@@ -2664,34 +2606,6 @@ Rešenje validno        & \multicolumn{6}{c}{da} \\
 \subsection{Funkcija cilja u zavisnosti od vremena}
 \label{sec:finalna_cilj_vreme}
 
-Tabela \ref{tbl:final_checkpoints} prikazuje vrednost funkcije cilja u
-unapred zadatim vremenskim presecima. Crtica znači da u tom trenutku
-rešavač još nije imao nijedno dopustivo rešenje.
-
-\begin{table}[ht]
-\centering
-\caption{Vrednost funkcije cilja u vremenskim presecima}
-\label{tbl:final_checkpoints}
-\begin{tabular}{lrrrrrr}
-\toprule
-& \multicolumn{2}{c}{\textbf{FINAL-S}}
-& \multicolumn{2}{c}{\textbf{FINAL-M}}
-& \multicolumn{2}{c}{\textbf{FINAL-L}} \\
-\cmidrule(lr){2-3} \cmidrule(lr){4-5} \cmidrule(lr){6-7}
-\textbf{Vreme} & bez & sa & bez & sa & bez & sa \\
-\midrule
-5 s    & $0$ & $0$ & $931$ & --       & --      & --       \\
-10 s   & $0$ & $0$ & $0$   & $223$    & --      & --       \\
-20 s   & $0$ & $0$ & $0$   & $0$      & --      & --       \\
-30 s   & $0$ & $0$ & $0$   & $0$      & $506$   & $1\,848$ \\
-60 s   & $0$ & $0$ & $0$   & $0$      & $0$     & $114$    \\
-120 s  & $0$ & $0$ & $0$   & $0$      & $0$     & $0$      \\
-300 s  & $0$ & $0$ & $0$   & $0$      & $0$     & $0$      \\
-600 s  & $0$ & $0$ & $0$   & $0$      & $0$     & $0$      \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 Pošto se sva poboljšanja dešavaju u uskom intervalu odmah po nalaženju
 prvog rešenja, gruba mreža preseka ne pokazuje dinamiku pretrage. Zato
 u tabelama \ref{tbl:final_traj_s}, \ref{tbl:final_traj_m} i
@@ -2821,10 +2735,7 @@ Dužina dana je birana tako da problem ostane jedva rešiv. Skraćenje za
 još jedan čas (8--14, dakle šest termina dnevno, 870 parova i 96\%
 popunjenosti) dovodi najveću instancu sa osobljem do statusa
 \textsc{unknown}: rešavač za 600 sekundi ne nađe \emph{nijedno}
-dopustivo rešenje, ali ni ne dokaže da rešenje ne postoji. Smanjenje
-broja parova sa 1015 na 870 iznosi 14,3\%, pa je zona u kojoj je ovaj
-problem istovremeno rešiv i netrivijalan uska -- meri se jednim časom
-nastave dnevno.
+dopustivo rešenje, ali ni ne dokaže da rešenje ne postoji.
 
 Procenti popunjenosti su, treba naglasiti, gruba mera raspoloživosti: u
 imeniocu su svi parovi (učionica, termin), a mnogi od njih nisu
@@ -2903,8 +2814,7 @@ Procepa u rasporedu grupa nema, niti ijedna sesija završava u premaloj
 učionici. U realnom okruženju su sve tri komponente nula, pa tu tabelu
 ne prikazujemo posebno.
 
-Sada i mreža vremenskih preseka ima šta da pokaže. Tabela
-\ref{tbl:tight_checkpoints} daje vrednost funkcije cilja u zadatim
+Tabela \ref{tbl:tight_checkpoints} daje vrednost funkcije cilja u zadatim
 trenucima.
 
 \begin{table}[ht]
@@ -3012,28 +2922,6 @@ grupa u jedan zajednički čas, pa nastavnik isto predavanje ne drži više
 puta. Na najvećoj skali 139 od 835 časova su takve zajedničke sesije.
 Zbog toga broj časova raste 16\% iako broj grupa raste 47\% -- spajanje
 predavanja pojede veći deo razlike.
-
-\subsubsection{Ponašanje funkcije cilja kroz vreme}
-
-U obe konfiguracije prvo dopustivo rešenje je daleko od optimuma, i u
-obe rešavač cilj spusti do nule. Bez osoblja cilj prvog rešenja je 1355,
-1009 i 2440 na skalama S, M i L, a do nule se stiže kroz 22, 16 i 43
-prijavljena rešenja; sa osobljem su početne vrednosti 696, 1444 i 3095,
-uz 19, 32 i 73 prijavljena rešenja.
-
-Sastav početne kazne se pri tome menja sa konfiguracijom. Bez osoblja u
-njoj su samo procepi u rasporedu grupa i nedostajuća mesta u učionicama;
-sa osobljem se na to dodaju i nastavnici koji rade više dana nego što im
-je dozvoljeno. Na najmanjoj skali je početna kazna sa osobljem manja
-nego bez njega (696 naspram 1355), što je još jedan podsetnik da dve
-konfiguracije nisu ista instanca: sa osobljem se raspoređuje 216 časova
-podeljenih na 11 grupa, bez osoblja 204 časa na 8 grupa.
-
-Poboljšanja su gusta i neravnomerna -- najveći skokovi dešavaju se rano
-(na primer, sa 2444 na 1848 u svega 0,4 sekunde na skali L sa osobljem),
-dok poslednji koraci do nule traju duže jer je preostale prekršaje sve
-teže ukloniti: poslednjih 42 poena cilja na najvećoj skali oduzimaju
-oko devet i po sekundi pretrage.
 
 \subsubsection{Skalabilnost}
 
@@ -3161,11 +3049,6 @@ treba navesti eksplicitno:
   jer bi sa uključenim pravilom za grupe instanca postala znatno teža.
   U tabeli \ref{tbl:primer_grupe} to se i vidi: grupa u utorak prelazi
   iz zgrade u Ulici Svetog Nikole u Jagićevu, pa na Studentski trg.
-\item \textbf{Raspoloživost nastavnika nije modelovana.} Model poznaje
-  najveći broj radnih dana i nedeljni budžet procepa, ali ne i to da
-  neki nastavnik određenim danima ili u određenim terminima ne može da
-  drži nastavu. Za upotrebu u praksi to je prvo ograničenje koje bi
-  trebalo dodati.
 \item \textbf{Ulazni podaci su procene.} Brojevi upisanih studenata i
   podela na grupe preuzeti su iz dostupnih izvora i ne moraju odgovarati
   stvarnom stanju na početku semestra.
