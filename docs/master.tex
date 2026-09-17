@@ -864,31 +864,14 @@ predstavlja letnji semestar nastave na Matematičkom fakultetu
 \item radna nedelja i radno vreme fakulteta.
 \end{itemize}
 
-Za ocenu rezultata važno je razdvojiti šta je preuzeto iz zvaničnih
-izvora, a šta je procena. Iz plana i programa studija preuzeti su
+Iz plana i programa studija preuzeti su
 smerovi, predmeti, semestri u kojima se predmeti slušaju i nedeljne
-kvote časova predavanja i vežbi. Iz spiska prostorija preuzeti su
-učionice, njihove lokacije i podatak o tome koje su opremljene
-računarima.
+kvote časova predavanja i vežbi. Sa sajta rasporeda su preuzete učionice.
+Njihov kapacitet je podatak koji nije bio na raspolaganju, pa su brojevi izmišljeni.
+Takođe, podatak o tome da li učionice poseduju računare je proizvoljno procenjen.
 
-Procene su, sa druge strane, kapaciteti učionica, broj upisanih
-studenata po smeru i semestru, kao
-i podrazumevana veličina grupe od 50 studenata (konstanta
-\texttt{GROUP\_SIZE}), na osnovu koje se upis deli na približno
-jednake grupe. Ravnomerna podela je pojednostavljenje: u stvarnosti
-grupe nisu iste veličine, niti se studenti dele isključivo po smeru i
-semestru. Ta konstanta se koristi samo u osnovnom modelu; u proširenom
-modelu podela se preuzima iz dodela nastave, pa je tamo broj grupa
-realniji.
-
-Te procene utiču na apsolutne vrednosti dveju veličina -- na broj
-grupa, a time i na ukupan broj sesija, i na ukupan broj nedostajućih
-mesta po sesijama, koji meri meko ograničenje kapaciteta (odeljak
-\ref{sec:kapacitet}). Struktura problema time se ne menja, a poređenje
-dve formulacije ostaje korektno, jer oba rešavača dobijaju isti ulaz.
-Zaključci o tome kako se model ponaša pri rastu instance takođe ne
-zavise od tačnosti procena, ali broj nedostajućih mesta treba čitati
-kao red veličine, a ne kao tačan podatak.
+Broj upisanih studenata je takođe procenjen. Podrazumevana veličina grupe od 50 je takođe
+proizvoljno određena.
 
 \subsection{Formiranje sesija}
 \label{sec:sesije}
@@ -915,27 +898,6 @@ sledećih koraka:
     veličina grupe (konstanta \texttt{GROUP\_SIZE}). Na primer, za
     Informatiku u 2. semestru sa 100 studenata formiraju se dve grupe.
   \end{itemize}
-
-  Broj grupa zavisi, dakle, od izvora: nad punim letnjim semestrom
-  deljenje po veličini daje 30 grupa, a imena iz dodela nastave 44
-  grupe, jer stvarna podela na fakultetu ne prati pravilo od 50
-  studenata. To se prenosi na broj sesija, pa instance osnovnog i
-  proširenog modela nad istim ulaznim fajlom nisu iste veličine; o tome
-  govore odeljci \ref{sec:grupe_iz_osoblja} i
-  \ref{sec:finalna_metodologija}.
-
-  Veličine grupa računaju se u oba slučaja iz broja upisanih, ali se
-  ostatak pri deljenju tretira različito. Kod imenovanih grupa on se
-  raspoređuje na prve grupe, pa je zbir veličina tačno jednak broju
-  upisanih. Kod deljenja po veličini svaka grupa dobija $\lfloor n / k
-  \rfloor$ studenata, gde je $k$ broj grupa, pa se ostatak gubi: za 55
-  upisanih dobijaju se dve grupe po 27, a nad punim semestrom zbir
-  veličina grupa iznosi 918 umesto 919. Na preliminarnu evaluaciju
-  (odeljak \ref{sec:preliminarna-evaluacija}) to ne
-  utiče, jer osnovni model traži samo dopustivost i veličina grupe u
-  njemu ne ulazi ni u jedno ograničenje; kapacitet učionice postaje
-  meko ograničenje tek u proširenom modelu (odeljak
-  \ref{sec:kapacitet}), gde je zbir veličina tačan.
 
 \item \textbf{Dodeljivanje predmeta grupama.}
   Svaka grupa pohađa predmete koji odgovaraju njenom smeru i
@@ -964,7 +926,7 @@ Za sesiju $s$, rešavač treba da odredi trojku $(d_s, h_s, r_s)$
 Pošto se veći deo ulaza priprema pre pokretanja rešavača, korisno je
 izričito reći šta rešavač odlučuje, a šta ne.
 
-Rešavač odlučuje isključivo o trojki $(d_s, h_s, r_s)$ za svaku
+Rešavač odlučuje isključivo o trojci $(d_s, h_s, r_s)$ za svaku
 sesiju. Van njegove nadležnosti ostaje sve ostalo: grupe studenata
 formiraju se pre rešavanja, na jedan od tri opisana načina, i rešavač
 ne raspoređuje pojedinačne studente u grupe niti menja njihov broj i
@@ -1015,29 +977,7 @@ predavanja i vežbe istog predmeta nezavisno određuju:
   časa, o čemu govori nastavak.
 \end{itemize}
 
-Zahtev za računarima zaslužuje posebnu pažnju jer je u praksi najčešće
-vezan isključivo za vežbe: predavanje iz programiranja drži se u
-većim učionicama koje ne moraju imati računare, dok vežbe iz istog
-predmeta zahtevaju računarsku učionicu.
-Zbog toga se \texttt{needsComputers} ne zadaje kao jedna zastavica na
-nivou predmeta, nego strukturom \texttt{ComputerNeed} sa odvojenim
-poljima \texttt{theory} i \texttt{practice}. Predmet čije vežbe traže
-računare, a predavanja ne, u JSON ulazu se zapisuje kao:
-
-\begin{english}
-\begin{lstlisting}[caption={Isečak ulaznog fajla: predmet sa računarima samo za vežbe}]
-{"id": 4, "name": "Programiranje 1", "semester": 1, "trackId": 1,
- "quota": {"theory": 2, "practice": 3},
- "needsComputers": {"theory": false, "practice": true}}
-\end{lstlisting}
-\end{english}
-
-Pri generisanju sesija svaka sesija preuzima vrednost koja odgovara
-\emph{njenom} tipu nastave, a ne vrednost celog predmeta, pa je
-$\text{comp}_s$ atribut sesije. Skalarni oblik
-(\texttt{"needsComputers": true}) i dalje je dopušten i tumači se kao
-isti zahtev za oba tipa nastave, radi kompatibilnosti sa starijim
-ulaznim fajlovima.
+Zahtev za računarima se nezavisno definiše za predavanja i vežbe.
 
 \section{Implementacija}
 \label{sec:implementacija}
@@ -1053,17 +993,15 @@ zapisuju u kodu.
 
 Entiteti opisani u odeljku \ref{sec:input_model} definisani su kao
 Pydantic klase, sa tipovima koji služe i kao specifikacija ulaza i kao
-provera koju biblioteka sprovodi pri učitavanju:
+provera koju biblioteka sprovodi pri učitavanju. Klase pojedinačnih
+entiteta su proste liste polja, pa ih ne navodimo u celini; sve ih
+ilustruje učionica, na kojoj se vidi i uobičajeni obrazac -- poziv
+\texttt{Field} povezuje ime polja u Python kodu sa imenom ključa u
+JSON ulazu. Korenska klasa \texttt{SchedulingInput} objedinjuje
+entitete i odgovara jednom ulaznom fajlu:
 
 \begin{english}
-\begin{lstlisting}[language=Python, caption={Model ulaznih podataka}, label={lst:pydantic_model}]
-@dataclass(config=_config)
-class Settings:
-    working_days: List[str] = Field(alias="workingDays")
-    start_hour: int = Field(alias="startHour")
-    end_hour: int = Field(alias="endHour")
-    duration: int = 1
-
+\begin{lstlisting}[language=Python, caption={Model ulaznih podataka (skraćeno)}, label={lst:pydantic_model}]
 @dataclass(config=_config)
 class Classroom:
     id: int
@@ -1086,6 +1024,101 @@ class SchedulingInput:
     groups: List[GroupDef] = Field(default_factory=list)
 \end{lstlisting}
 \end{english}
+
+\subsection{Klasa sesije}
+\label{sec:session_class}
+
+Jedinica koja se raspoređuje je \emph{sesija} -- jednosatni čas jedne
+kohorte iz jednog predmeta, uveden u odeljku \ref{sec:sesije} -- pa je
+klasa \texttt{Session} (modul \code{data.py}) središnja struktura
+podataka implementacije: ulazni model se pre rešavanja prevodi u listu
+sesija, a oba rešavača i sva pravila iz glava \ref{chp:nadogradnja} i
+\ref{chp:osoblje} rade isključivo nad tom listom.
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Klasa \texttt{Session} -- jedinica raspoređivanja}, label={lst:session_class}]
+class Session:
+    def __init__(
+        self, id, group_ids, track_id, course_id, needs_computers,
+        session_type: str, teacher_id: int | None = None,
+        size: int = 0,
+    ):
+        self.id = id
+        # sve grupe koje prisustvuju sesiji; vise grupa = zajednicko
+        # predavanje (npr. oba toka slusaju isti cas)
+        self.group_ids: list[str] = list(group_ids)
+        self.course_id = course_id
+        self.track_id = track_id
+        self.needs_computers = needs_computers
+        self.session_type = session_type
+        # None znaci da nema dodeljenog nastavnika pa se staff pravila
+        # ne primenjuju na ovu sesiju
+        self.teacher_id = teacher_id
+        # ukupan broj studenata (zbir po grupama), za kapacitet ucionice
+        self.size = size
+\end{lstlisting}
+\end{english}
+
+Za razliku od ulaznih klasa, \texttt{Session} nije Pydantic klasa jer
+se ne učitava iz fajla, već se izvodi iz ulaza funkcijom
+\texttt{generate\_sessions}, koja za svaki predmet formira kohorte i
+za svaku od njih onoliko sesija koliko nalaže kvota.
+
+Polja klase su upravo atributi sesije iz formalne specifikacije
+(odeljak \ref{sec:notacija}):
+
+\begin{itemize}
+\item \texttt{group\_ids} -- grupe koje pohađaju sesiju. Lista, a ne
+  jedna grupa, jer zajedničko predavanje više grupa jeste jedna sesija;
+  preko ovog polja se gradi skup $\mathcal{S}_g$ iz ograničenja HC3, u
+  koji sesija ulazi za svaku svoju grupu;
+\item \texttt{needs\_computers} -- oznaka $\text{comp}_s$, koja
+  određuje skup dopustivih učionica $\text{Elig}(s)$ u ograničenju
+  HC4. Vrednost se preuzima sa predmeta, ali za tip nastave te sesije
+  (odeljak \ref{sec:nezavisnost_tipova});
+\item \texttt{session\_type} -- \texttt{"theory"} ili
+  \texttt{"practice"}; razdvaja predavanja od vežbi istog predmeta,
+  koja su nezavisne sesije;
+\item \texttt{course\_id}, \texttt{track\_id} -- predmet i smer, koji
+  se ne koriste u tvrdim ograničenjima, nego u izveštaju i u pravilu za
+  spajanje časova u blokove (odeljak \ref{sec:rule_join});
+\item \texttt{id} -- čitljiv identifikator oblika
+  \emph{grupa\_smer\_predmet\_tip\_redni broj}, koji služi izveštaju i
+  dijagnostici;
+\item \texttt{teacher\_id} i \texttt{size} -- nastavnik i ukupan broj
+  studenata. U osnovnom modelu ove glave ostaju neiskorišćeni
+  (podrazumevano \texttt{None} i 0); pune ih dodele nastave i veličine
+  kohorti, a koriste ih pravila kapaciteta učionice (odeljak
+  \ref{sec:kapacitet}) i pravila nastavnog osoblja (glava
+  \ref{chp:osoblje}).
+\end{itemize}
+
+Ono što klasa \emph{ne} sadrži jednako je važno: u njoj nema ni dana,
+ni sata, ni učionice. To su nepoznate koje rešavač određuje, pa sesija
+ostaje nepromenjena tokom rešavanja, a rezultat se čita iz
+promenljivih modela.
+
+Veza između sesije i promenljivih uspostavlja se položajem u listi:
+indeks $s$ iz formalne specifikacije je redni broj sesije u
+\texttt{self.sessions}, i on je ključ svih rečnika promenljivih u oba
+rešavača.
+
+\begin{english}
+\begin{lstlisting}[language=Python, caption={Sesije kao indeksni skup modela}]
+self.sessions = generate_sessions(
+    scheduling_input, GROUP_SIZE, staff_input)
+
+for s in range(len(self.sessions)):
+    self.day_var[s] = self.model.NewIntVar(0, D - 1, f"day_{s}")
+    self.slot_var[s] = self.model.NewIntVar(0, H - 1, f"slot_{s}")
+    self.room_var[s] = self.model.NewIntVar(0, R - 1, f"room_{s}")
+\end{lstlisting}
+\end{english}
+
+Zbog toga broj sesija neposredno određuje veličinu modela: u CP
+formulaciji svaka sesija donosi šest celobrojnih promenljivih, a u MIP
+formulaciji po jednu binarnu promenljivu za svaku kombinaciju dana,
+sata i dopustive učionice.
 
 \subsection{CP implementacija}
 \label{sec:cp_impl}
@@ -1140,20 +1173,8 @@ modela, ali je koriste pravila vezana za lokacije u glavama
 
 Skup $\text{Elig}(s)$ iz ograničenja HC4 gradi se po sesiji, a
 ograničenje se dodaje samo kada je taj skup uži od skupa svih
-učionica:
-
-\begin{english}
-\begin{lstlisting}[language=Python, caption={Dozvoljene učionice po sesiji}]
-for s, session in enumerate(self.sessions):
-    allowed = [
-        i for i, room in enumerate(self.classrooms)
-        if not session.needs_computers or room.has_computers
-    ]
-    if len(allowed) < len(self.classrooms):
-        self.model.AddAllowedAssignments(
-            [self.room_var[s]], [[idx] for idx in allowed])
-\end{lstlisting}
-\end{english}
+učionica. U suštini to su učionice koje zadovoljavaju zahtev za računarima,
+ako je sesija takva da zahteva računare.
 
 \subsection{MIP implementacija}
 
@@ -1175,7 +1196,7 @@ for s, session in enumerate(self.sessions):
 \end{english}
 
 Svako od tri ograničenja zapisuje se kao familija linearnih
-nejednakosti, po jedna za svaku kombinaciju indeksa nad kojima se
+nejednakosti ili jednakosti, po jedna za svaku kombinaciju indeksa nad kojima se
 kvantifikuje; rečnik \texttt{groups} gradi se isto kao u CP modelu:
 
 \begin{english}
@@ -1554,10 +1575,7 @@ solver.model.Add(violation == 0).OnlyEnforceIf(b)
 
 Promenljiva \texttt{violation} ulazi u funkciju cilja
 \eqref{eq:objective}, pa nespojen blok nosi kaznu koju rešavač
-minimizuje zajedno sa ostalim komponentama cilja. Blok će, dakle, ostati
-nespojen kada je ta kazna manja od zbira kazni koje bi spajanje izazvalo
-kod drugih pravila; nije reč o tome da rešavač pravilo krši samo kada je
-dopustivost drugačije nemoguća.
+minimizuje zajedno sa ostalim komponentama cilja.
 
 \section{Pravilo: jedna lokacija po danu za grupu}
 \label{sec:rule_location}
@@ -1742,24 +1760,12 @@ nedostajućih mesta u toj učionici:
 \label{eq:room_cost}
 \end{equation}
 
-Bitno je da se kažnjava \emph{samo} prekoračenje. Sve učionice u koje
-cela kohorta staje su međusobno jednako dobre, pa pravilo ne pravi
-nepotrebnu razliku između njih i ne troši prostor rešenja na to da
-najveću salu dobije najveća grupa kad to nikome ne pomaže. Kazna je nula
-kada u rasporedu nema nedostajućih mesta. Pošto je ovo meko pravilo,
-rešavač sme da izabere premalu učionicu kad god je zbir ušteda kod
-drugih komponenti cilja veći od cene prekoračenja; prekoračenje, dakle,
-ne znači nužno da odgovarajuća učionica nije bila slobodna.
-
 Za razliku od procepa, prekršaj ovde nije ,,jedan događaj`` nego
 \emph{količina} -- pravilo je prvo koje kao prekršaj vraća celobrojne, a
 ne binarne promenljive. Funkcija cilja \eqref{eq:objective} je težinska
 suma vraćenih promenljivih, pa se takva cena uklapa bez izmena u jezgru
-rešavača. Cena po prekršaju je pri tome namerno niska (1 po
-nedostajućem mestu), ali pošto se sabira po mestima, dovoljno veliko
-prekoračenje ipak može da prevagne nad ostalim komponentama: deset
-nedostajućih mesta nosi kaznu 10, dakle više od tri procepa u rasporedu
-grupe (6) ili od tri dodatna radna dana nastavnika (9).
+rešavača. Cena po prekršaju se obično množi malim težinskim faktorom
+(10$^{-3}$ u našem slučaju) da bi se smanjila njena uloga u odnosu na ostale komponente cilja.
 
 U implementaciji se za svaku sesiju gradi tabela prekoračenja po
 učionicama (konstante, jer su i veličina sesije i kapaciteti poznati
@@ -1784,17 +1790,6 @@ solver.model.AddElement(solver.room_var[s], overflows, overflow)
 overflow_vars.append(overflow)
 \end{lstlisting}
 \end{english}
-
-Tvrda varijanta (\texttt{penalty} 0) svodi se na klasično ograničenje
-kapaciteta: izbor učionica se sužava na one u koje kohorta staje, isto
-kao što se za računare radi u jezgru rešavača. Ako za neku sesiju takve
-učionice nema, greška se prijavljuje odmah pri konstrukciji modela,
-umesto da se pojavi kao neinformativan status \texttt{INFEASIBLE}.
-
-Ispravnost obe varijante proverava test \code{test_room_capacity.py}:
-meko pravilo bira učionicu u koju grupa staje, a kada takve učionice
-nema ipak vraća raspored sa najmanjim prekoračenjem; tvrdo pravilo takve
-učionice zabranjuje.
 
 
 % ------------------------------------------------------------------------------
