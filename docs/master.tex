@@ -203,9 +203,8 @@ Rad je organizovan na sledeći način:
 \chaptermark{Teorijske osnove}
 % ------------------------------------------------------------------------------
 
-U ovoj glavi izlažemo teorijski okvir problema i pristupa
-koje koristimo u ovom radu, a zatim na njega nadovezujemo formalnu
-specifikaciju problema. Najpre definišemo problem raspoređivanja
+U ovoj glavi izlažemo teorijski okvir problema potom prelazimo na
+specifikaciju. Najpre definišemo problem raspoređivanja
 časova, zatim opisujemo paradigmu programiranja ograničenja, pa
 celobrojno linearno programiranje, i na kraju, u odeljku
 \ref{sec:formalna_specifikacija}, zapisujemo konkretan model u obe
@@ -244,8 +243,7 @@ zadovoljena.
 \subsection{Vrste ograničenja}
 \label{subsec:ogranicenja}
 
-Ograničenja se u literaturi klasifikuju u dve kategorije
-\cite{schaerf1999, kingston2013}:
+Ograničenja delimo u dve kategorije:
 
 \begin{enumerate}
 \item \textbf{Tvrda ograničenja} (eng. \emph{hard constraints}) --
@@ -363,8 +361,7 @@ grafovima \cite{regin1994}.
 Ograničenje $\texttt{AllowedAssignments}$ (poznato i kao
 \emph{table constraint}) eksplicitno navodi dozvoljene 
 vrednosti promenljivih pomoću tabele (skupa torki). Ovo je korisno
-za ograničenja koja se ne mogu izraziti prostom aritmetikom, na primer
-ograničenje da sesija može biti raspoređena samo u podskup učionica.
+za ograničenja tipa: da sesija može biti raspoređena samo u podskup učionica.
 
 \subsection{CP-SAT pristup}
 
@@ -578,7 +575,6 @@ učionice sa računarima:
 \label{eq:cp_hc4}
 \end{equation}
 
-Ekvivalentno, $\text{room}_s \in \text{Elig}(s)$ za svaku sesiju $s$.
 U implementaciji se ovo zapisuje tabelarnim ograničenjem, koje u
 OR-Tools-u nosi ime \texttt{AddAllowedAssignments} (odeljak
 \ref{sec:cp_impl}). Pošto je $\text{comp}_s$ atribut sesije,
@@ -675,12 +671,7 @@ MIP/SCIP koju koristimo u tabelama.
 \underbrace{G D H}_{\text{HC3}},
 \label{eq:mip_broj_ogranicenja}
 \end{equation}
-dakle $O(|\mathcal{S}| + DHR + GDH)$. Na instancama iz odeljka
-\ref{sec:preliminarna-evaluacija} vrednost se dostiže tačno: za MATF-S
-je $204 + 1740 + 480 = 2424$, koliko model i prijavljuje. Kraći zapis
-$O(DHR + GDH)$, kakav se sreće u literaturi, opravdan je samo kada važi
-$|\mathcal{S}| \leq DHR$, što na instancama iz ovog rada jeste slučaj
-(722 naspram 1740 na najvećoj skali).
+dakle $O(|\mathcal{S}| + DHR + GDH)$.
 
 Kao i CP model iz prethodnog pododeljka, osnovni MIP model radi u
 režimu izvodljivosti, bez funkcije cilja. Meka ograničenja i funkcija
@@ -761,9 +752,7 @@ mogu porediti bez razlika koje bi poticale od različitih biblioteka.
 Bazel \cite{bazel} je sistem za gradnju i testiranje softvera. U ovom
 projektu koristi se zbog hermetičkih, reproducibilnih gradnji: iste
 verzije zavisnosti i isti izvorni kod daju isti rezultat na svakoj
-mašini, što je važno da bi merenja iz glave
-\ref{chp:evaluacija-glava} bila ponovljiva. Inkrementalne gradnje
-pritom skraćuju ciklus razvoja.
+mašini.
 
 \subsection{Python biblioteke}
 \label{sec:pylibs}
@@ -838,15 +827,6 @@ Struktura ulaznih podataka je sledeća:
 
 Sve navedene celine objedinjuje korenska klasa
 \texttt{SchedulingInput}, koja odgovara jednom ulaznom JSON fajlu.
-Polja \texttt{rules} i \texttt{groups} imaju podrazumevano prazne
-vrednosti i uvode se u kasnijim glavama: \texttt{rules} nosi
-konfiguraciju mekih i tvrdih pravila (glava \ref{chp:nadogradnja}), a
-\texttt{groups} omogućava da se grupe studenata zadaju eksplicitno
-umesto da se izvode iz broja upisanih; u realnom ulazu grupe dolaze iz
-fajla sa nastavnim osobljem (odeljak \ref{sec:grupe_iz_osoblja}), koji
-je modelovan zasebnom klasom \texttt{StaffInput} (odeljak
-\ref{sec:staff_model}). Alias \texttt{departments} zadržan je radi
-kompatibilnosti sa starijim ulaznim fajlovima.
 
 \subsection{Realni podaci i poreklo ulaza}
 \label{sec:poreklo_podataka}
@@ -947,37 +927,6 @@ jedinstvenosti učionice poredi samo termine, ne i intervale. Podrška
 za časove proizvoljnog trajanja zahtevala bi da promenljiva termina
 nosi i trajanje i da se preklapanje sprečava ograničenjem nad
 intervalima; to je naznačeno kao pravac daljeg rada.
-
-\subsection{Nezavisnost predavanja i vežbi}
-\label{sec:nezavisnost_tipova}
-
-Naglašavamo da su \emph{predavanja i vežbe nezavisne jedinice
-raspoređivanja}. Predmet u ulaznom modelu nije jedinica koja se
-raspoređuje -- on samo povezuje časove koji pripadaju istoj nastavnoj
-celini i propisuje njihov nedeljni broj kroz kvotu. Sve odluke o
-raspoređivanju donose se na nivou pojedinačne sesije, pa se za
-predavanja i vežbe istog predmeta nezavisno određuju:
-
-\begin{itemize}
-\item \textbf{broj časova} -- \texttt{quota.theory} i
-  \texttt{quota.practice} su odvojena polja, tako da predmet može imati
-  npr. 2 časa predavanja i 3 časa vežbi nedeljno ili ne mora uopšte imati vežbe.
-\item \textbf{nastavnik} -- dodela nastave
-  (\texttt{TeachingAssignment}, sekcija \ref{sec:staff_model}) vezuje se
-  za par (predmet, tip nastave), pa predavanja i vežbe tipično drže
-  različiti nastavnici,
-\item \textbf{sastav slušalaca} -- kohorte se formiraju odvojeno po tipu
-  (sekcija \ref{sec:cohorts}), što odgovara uobičajenoj praksi da više
-  grupa sluša predavanje zajedno, a vežbe odvojeno,
-\item \textbf{termin i učionica} -- promenljive
-  $(d_s, h_s, r_s)$ postoje po sesiji, pa ni jedno ograničenje ne
-  primorava predavanje i vežbe istog predmeta na isti termin ili istu
-  učionicu,
-\item \textbf{zahtev za računarima} -- $\text{comp}_s$ zavisi od tipa
-  časa, o čemu govori nastavak.
-\end{itemize}
-
-Zahtev za računarima se nezavisno definiše za predavanja i vežbe.
 
 \section{Implementacija}
 \label{sec:implementacija}
@@ -1250,7 +1199,6 @@ Broj promenljivih & $6|\mathcal{S}|$ &
 Tip ograničenja & Globalna & Linearne jednakosti i nejednakosti \\
 Broj ograničenja & $3|\mathcal{S}| + 1 + G + |\{s : \text{comp}_s\}|$ &
   najviše $|\mathcal{S}| + DHR + GDH$ \\
-Pretraga & Propagacija + SAT & LP relaksacija + B\&B \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1337,8 +1285,7 @@ istovremeno određuje i \emph{tip} ograničenja:
   dodaje ograničenja direktno u model i vraća praznu listu.
 \item \texttt{penalty > 0} -- \textbf{meko} (eng. \emph{soft})
   ograničenje. Rešavač pokušava da ga zadovolji, ali ga može prekršiti
-  uz datu cenu. Metoda \texttt{apply} vraća listu binarnih promenljivih
-  prekršaja (vrednost 1 označava prekršaj).
+  uz datu cenu. Ovo predstavlja težinski faktor prekršaja.
 \end{itemize}
 
 \subsection{Konfiguracija pravila}
@@ -1716,10 +1663,6 @@ return gap_vars                       # meko: minimizuj broj procepa
 \end{lstlisting}
 \end{english}
 
-Ispravnost pravila proverava se testom
-\code{test_no_gaps_in_schedule.py}, koji potvrđuje da rešenje na
-malom ulazu nema nijedan unutrašnji procep.
-
 \section{Pravilo: kapacitet učionice kao meko ograničenje}
 \label{sec:kapacitet}
 
@@ -1765,7 +1708,7 @@ Za razliku od procepa, prekršaj ovde nije ,,jedan događaj`` nego
 ne binarne promenljive. Funkcija cilja \eqref{eq:objective} je težinska
 suma vraćenih promenljivih, pa se takva cena uklapa bez izmena u jezgru
 rešavača. Cena po prekršaju se obično množi malim težinskim faktorom
-(10$^{-3}$ u našem slučaju) da bi se smanjila njena uloga u odnosu na ostale komponente cilja.
+ da bi se smanjila njena uloga u odnosu na ostale komponente cilja.
 
 U implementaciji se za svaku sesiju gradi tabela prekoračenja po
 učionicama (konstante, jer su i veličina sesije i kapaciteti poznati
@@ -1803,8 +1746,6 @@ U ovoj glavi model proširujemo nastavnim osobljem: svakoj sesiji se
 dodeljuje nastavnik, uvodi se pojam \emph{kohorte} -- skupa grupa koje
 zajedno slušaju isti čas -- i tek potom, nad tako proširenim modelom,
 uvode se ograničenja vezana za nastavnike.
-Ovaj deo predstavlja poslednji korak u približavanju modela realnom
-scenariju na Matematičkom fakultetu.
 
 Nastavno osoblje se zadaje u \emph{odvojenom} ulaznom fajlu, tako da
 osnovni ulaz (predmeti, učionice, broj upisanih) ostaje nepromenjen.
@@ -1898,10 +1839,7 @@ grupa navedenih u dodelama (\texttt{1i1a}, \texttt{1i1b},
 \texttt{1i1v}, \texttt{1i2a}, \texttt{1i2b}, \texttt{1i2v}) daju četiri
 grupe od 17 i dve od 16 studenata.
 
-Time je zbir veličina grupa po konstrukciji jednak broju upisanih: nad
-punim letnjim semestrom 44 grupe zbrajaju tačno 919 studenata. To je i
-razlika u odnosu na deljenje po veličini iz odeljka \ref{sec:sesije},
-gde se ostatak pri deljenju gubi. Fajl sa osobljem, dakle, određuje
+Fajl sa osobljem, dakle, određuje 
 \emph{koje} grupe postoje i \emph{ko} im drži nastavu, a osnovni ulaz
 \emph{koliko} ih je i \emph{šta} slušaju. Ako neki par (smer, semestar)
 nema ni jednu imenovanu grupu u dodelama, za njega se koristi rezervni
