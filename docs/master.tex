@@ -203,7 +203,7 @@ Rad je organizovan na sledeći način:
 \chaptermark{Teorijske osnove}
 % ------------------------------------------------------------------------------
 
-U ovoj glavi izlažemo teorijski okvir problema potom prelazimo na
+U ovoj glavi izlažemo teorijski okvir problema, a potom prelazimo na
 specifikaciju. Najpre definišemo problem raspoređivanja
 časova, zatim opisujemo paradigmu programiranja ograničenja, pa
 celobrojno linearno programiranje, i na kraju, u odeljku
@@ -671,7 +671,9 @@ MIP/SCIP koju koristimo u tabelama.
 \underbrace{G D H}_{\text{HC3}},
 \label{eq:mip_broj_ogranicenja}
 \end{equation}
-dakle $O(|\mathcal{S}| + DHR + GDH)$.
+dakle $O(|\mathcal{S}| + DHR + GDH)$. Kraći zapis $O(DHR + GDH)$
+opravdan je kada važi $|\mathcal{S}| \leq DHR$, što na instancama iz
+ovog rada jeste slučaj (722 naspram 1740 na najvećoj skali).
 
 Kao i CP model iz prethodnog pododeljka, osnovni MIP model radi u
 režimu izvodljivosti, bez funkcije cilja. Meka ograničenja i funkcija
@@ -851,7 +853,8 @@ Njihov kapacitet je podatak koji nije bio na raspolaganju, pa su brojevi izmišl
 Takođe, podatak o tome da li učionice poseduju računare je proizvoljno procenjen.
 
 Broj upisanih studenata je takođe procenjen. Podrazumevana veličina grupe od 50 je takođe
-proizvoljno određena.
+proizvoljno određena. Ravnomerna podela na grupe je pojednostavljenje:
+stvarne grupe nisu iste veličine.
 
 \subsection{Formiranje sesija}
 \label{sec:sesije}
@@ -927,6 +930,12 @@ jedinstvenosti učionice poredi samo termine, ne i intervale. Podrška
 za časove proizvoljnog trajanja zahtevala bi da promenljiva termina
 nosi i trajanje i da se preklapanje sprečava ograničenjem nad
 intervalima; to je naznačeno kao pravac daljeg rada.
+
+\label{sec:nezavisnost_tipova}
+Predavanja i vežbe istog predmeta su nezavisne jedinice raspoređivanja:
+kvota (\texttt{theory} i \texttt{practice}), nastavnik, sastav slušalaca
+i zahtev za računarima zadaju se odvojeno po tipu nastave, pa se termin
+i učionica za njih biraju nezavisno.
 
 \section{Implementacija}
 \label{sec:implementacija}
@@ -1707,8 +1716,9 @@ Za razliku od procepa, prekršaj ovde nije ,,jedan događaj`` nego
 \emph{količina} -- pravilo je prvo koje kao prekršaj vraća celobrojne, a
 ne binarne promenljive. Funkcija cilja \eqref{eq:objective} je težinska
 suma vraćenih promenljivih, pa se takva cena uklapa bez izmena u jezgru
-rešavača. Cena po prekršaju se obično množi malim težinskim faktorom
- da bi se smanjila njena uloga u odnosu na ostale komponente cilja.
+rešavača. Cena je 1 po nedostajućem mestu, ali se sabira po mestima, pa
+dovoljno veliko prekoračenje može prevagnuti nad ostalim komponentama
+cilja.
 
 U implementaciji se za svaku sesiju gradi tabela prekoračenja po
 učionicama (konstante, jer su i veličina sesije i kapaciteti poznati
@@ -1839,7 +1849,7 @@ grupa navedenih u dodelama (\texttt{1i1a}, \texttt{1i1b},
 \texttt{1i1v}, \texttt{1i2a}, \texttt{1i2b}, \texttt{1i2v}) daju četiri
 grupe od 17 i dve od 16 studenata.
 
-Fajl sa osobljem, dakle, određuje 
+Fajl sa osobljem određuje
 \emph{koje} grupe postoje i \emph{ko} im drži nastavu, a osnovni ulaz
 \emph{koliko} ih je i \emph{šta} slušaju. Ako neki par (smer, semestar)
 nema ni jednu imenovanu grupu u dodelama, za njega se koristi rezervni
@@ -2289,9 +2299,9 @@ Rešenje validno        & da              & da \\
 
 Zaključci koji slede odnose se na dve konkretne formulacije iz odeljka
 \ref{sec:formalna_specifikacija}, na rešavače CP-SAT i SCIP u
-podrazumevanim podešavanjima, i na tri opisane instance, drugačije
-podešen rešavač ili instanca druge strukture mogli bi dati drugačiji
-odnos.
+podrazumevanim podešavanjima, i na tri opisane instance. O paradigmama
+uopšte ne tvrdimo ništa: drugačija formulacija, drugačije podešen
+rešavač ili instanca druge strukture mogli bi dati drugačiji odnos.
 
 \subsubsection{Veličina zapisa modela}
 
@@ -2336,10 +2346,6 @@ dok apsolutna razlika raste -- sa 8,3 sekunde na MATF-S na 34,8
 sekundi na MATF-L. Pošto sve tri instance koriste isti skup od 29
 učionica, razlika između skala potiče isključivo od porasta broja
 sesija.
-
-Brojevi iz tabele opisuju obim zapisa, ne i količinu posla pri
-rešavanju: jedno globalno ograničenje u CP modelu obuhvata sve sesije
-instance, pa manji broj ograničenja ne znači i lakši problem.
 
 \subsubsection{Ograničenje pristupa: MIP model bez funkcije cilja}
 \label{sec:mip_bez_cilja}
@@ -2987,6 +2993,8 @@ treba navesti eksplicitno:
   jer bi sa uključenim pravilom za grupe instanca postala znatno teža.
   U tabeli \ref{tbl:primer_grupe} to se i vidi: grupa u utorak prelazi
   iz zgrade u Ulici Svetog Nikole u Jagićevu, pa na Studentski trg.
+\item \textbf{Raspoloživost nastavnika nije modelovana.} Model ne
+  poznaje termine u kojima nastavnik ne može da drži nastavu.
 \item \textbf{Ulazni podaci su procene.} Brojevi upisanih studenata i
   podela na grupe preuzeti su iz dostupnih izvora i ne moraju odgovarati
   stvarnom stanju na početku semestra.
