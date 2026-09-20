@@ -17,6 +17,10 @@
         "roomCapacity": {
             "enabled": true,
             "penalty": 1
+        },
+        "singleLocationInDayForGroup": {
+            "enabled": true,
+            "penalty": 0
         }
     },
     "locations": [

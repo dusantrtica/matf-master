@@ -20,6 +20,16 @@
 \usepackage{booktabs}
 \usepackage{multirow}
 \usepackage{xcolor}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+
+\pgfplotsset{trajplot/.style={
+  width=\linewidth, height=7cm, grid=major,
+  xlabel={vreme pretrage (s)}, ylabel={vrednost funkcije cilja},
+  const plot, mark size=1pt,
+  scaled ticks=false,
+  tick label style={/pgf/number format/use comma,
+                    /pgf/number format/set thousands separator={\,}}}}
 
 \lstset{
   basicstyle=\ttfamily\small,
@@ -721,7 +731,8 @@ Ovde dajemo kratak pregled alata i tehnologija korišćenih u
 implementaciji, u meri u kojoj su potrebni za razumevanje narednih
 odeljaka. Projekat je napisan u programskom jeziku Python \cite{python} i
 koristi Bazel \cite{bazel} kao sistem za gradnju i upravljanje
-zavisnostima.
+zavisnostima. Izvorni kod, ulazni podaci i izvor ovog rada javno su
+dostupni na adresi \url{https://github.com/dusantrtica/matf-master}.
 
 \subsection{Google OR-Tools}
 \label{sec:ortools}
@@ -2554,7 +2565,8 @@ Pošto se sva poboljšanja dešavaju u uskom intervalu odmah po nalaženju
 prvog rešenja, gruba mreža preseka ne pokazuje dinamiku pretrage. Zato
 u tabelama \ref{tbl:final_traj_s}, \ref{tbl:final_traj_m} i
 \ref{tbl:final_traj_l} dajemo celu putanju poboljšanja za konfiguraciju
-sa osobljem. Konfiguracija bez osoblja prolazi kroz istu vrstu putanje
+sa osobljem, a za najveću skalu je ista putanja prikazana i krivom na
+slici \ref{fig:traj_l}. Konfiguracija bez osoblja prolazi kroz istu vrstu putanje
 (22, 16 i 43 prijavljena rešenja po skalama), samo je kraća: na dve
 manje skale ceo tok stane u prvih nekoliko sekundi, dok na najvećoj
 traje oko 40 sekundi.
@@ -2791,7 +2803,68 @@ Kolona ,,FINAL-L sa`` je ono što se u ovakvim merenjima obično i očekuje:
 prvo dopustivo rešenje pojavi se posle 50,6 sekundi, sa ciljem 2821, a
 zatim vrednost pada na 1431 u prvom minutu, 103 u prva dva minuta i
 konačno na 6 posle 194,3 sekunde pretrage. Cela putanja poboljšanja za
-to pokretanje data je u tabeli \ref{tbl:tight_traj_l}.
+to pokretanje data je u tabeli \ref{tbl:tight_traj_l}, a na slici
+\ref{fig:traj_l} je prikazana zajedno sa putanjom iste instance u
+realnom okruženju. Poređenje pokazuje u čemu je razlika:
+u zaoštrenom okruženju prvo dopustivo rešenje dolazi kasnije, pad cilja
+traje oko tri puta duže, a kriva se na kraju zaustavlja na 6 umesto da
+padne na nulu.
+
+\newcommand{\trajRealno}{
+  (27.46,3095) (27.66,3053) (27.96,2999) (28.19,2947) (28.63,2824)
+  (29.26,2592) (29.53,2444) (29.9,1848) (31.36,1838) (31.55,1557)
+  (31.96,1386) (32.21,1380) (34.17,1072) (36.68,1026) (37.21,936)
+  (38.35,880) (38.77,833) (42.26,761) (42.4,612) (42.67,606) (42.99,600)
+  (43.55,555) (45.83,545) (47.16,375) (49.95,367) (50.56,300) (51.77,292)
+  (53.67,270) (55.12,254) (55.81,215) (57.23,214) (57.8,136) (58.35,114)
+  (61.42,113) (61.66,111) (61.89,110) (62.13,108) (62.42,105) (62.54,86)
+  (63.41,84) (63.68,82) (63.97,80) (64.24,79) (64.49,77) (64.67,51)
+  (64.95,49) (65.3,47) (66.01,45) (66.58,44) (67.2,42) (68.57,39)
+  (68.93,38) (69.15,35) (69.86,33) (70.11,32) (70.39,29) (70.7,27)
+  (70.94,26) (71.33,24) (71.94,23) (72.44,21) (72.87,20) (73.49,17)
+  (74.09,16) (74.35,14) (74.61,13) (74.83,11) (75.13,9) (75.34,6)
+  (75.74,5) (76.07,3) (76.35,2) (76.66,0)}
+
+\newcommand{\trajZaostreno}{
+  (50.61,2821) (50.76,2795) (50.95,2791) (54.15,2716) (54.46,2293)
+  (54.82,2258) (55.09,1978) (56.08,1663) (57.05,1431) (61.15,867)
+  (62.09,861) (63.49,724) (63.7,536) (64.07,509) (66.34,445) (67.76,411)
+  (70.09,384) (70.63,322) (70.84,320) (71.53,293) (72.27,287) (75.34,263)
+  (75.67,254) (76.66,202) (77.06,188) (80.96,165) (83.59,162) (86.39,136)
+  (87.6,128) (87.78,125) (87.93,116) (88.46,113) (88.91,103) (92.01,82)
+  (92.92,80) (95.61,73) (95.99,68) (96.78,63) (100.71,62) (101.46,60)
+  (109.18,56) (111.45,53) (112.73,48) (118.43,41) (123.01,39) (133.02,36)
+  (137.02,33) (140.49,30) (145.16,29) (145.83,27) (146.88,24) (149.28,21)
+  (160.57,18) (168.03,15) (170.78,14) (189.3,11) (194.32,6)}
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}
+\begin{axis}[trajplot, height=6cm, legend pos=north east,
+             xmin=20, xmax=200]
+\addplot[color=blue!70!black] coordinates {\trajRealno};
+\addlegendentry{realno okruženje}
+\addplot[color=red!75!black] coordinates {\trajZaostreno};
+\addlegendentry{zaoštreno okruženje}
+\end{axis}
+\end{tikzpicture}
+
+\vspace{1em}
+
+\begin{tikzpicture}
+\begin{axis}[trajplot, height=5cm, xmin=20, xmax=200, ymin=-4, ymax=120,
+             ylabel={cilj (uvećan opseg)}]
+\addplot[color=blue!70!black] coordinates {\trajRealno};
+\addplot[color=red!75!black] coordinates {\trajZaostreno};
+\end{axis}
+\end{tikzpicture}
+\caption{Vrednost funkcije cilja u zavisnosti od vremena pretrage,
+FINAL-L sa osobljem. Svaka tačka je jedno prijavljeno poboljšanje. Donji
+panel je uvećan na poslednjih stotinak poena cilja, gde se vidi da se
+kriva u zaoštrenom okruženju zaustavlja na 6, dok u realnom pada na
+nulu.}
+\label{fig:traj_l}
+\end{figure}
 
 \begin{table}[ht]
 \centering
